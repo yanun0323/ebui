@@ -125,6 +125,7 @@ func (v *textView[T]) draw(screen *ebiten.Image, parent viewOption) image.Rectan
 				x := ix + (current.Width()-int(w))/2
 				y := iy + (current.Height()-int(h))/2
 				op := &text.DrawOptions{}
+				op.ColorScale.ScaleWithColor(current.foregroundColor())
 				op.GeoM.Translate(float64(x), float64(y))
 
 				text.Draw(screen, tt, face, op)

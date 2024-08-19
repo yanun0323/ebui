@@ -13,9 +13,7 @@ import (
 var (
 	_mplusFaceSource        = defaultFont()
 	_defaultForegroundColor = color.Black
-	_defaultBackgroundColor = color.White
-
-	_globalTicker = atomic.Int64{}
+	_globalTicker           = atomic.Int64{}
 )
 
 func defaultFont() *text.GoTextFaceSource {

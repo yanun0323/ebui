@@ -28,7 +28,7 @@ func (view *contentView) Body() ebui.SomeView {
 		),
 		ebui.Text(&view.title).
 			Padding(0, 15, 0, 15).
-			ForegroundColor(color.Gray{128}).
+			ForegroundColor(color.RGBA{0, 0, 255, 255}).
 			Padding(10, 10, 10, 10).
 			BackgroundColor(color.White).
 			Padding(30, 30, 30, 30).

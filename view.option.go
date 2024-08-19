@@ -147,14 +147,6 @@ func (opt viewOption) foregroundColor() color.Color {
 	return opt.fColor
 }
 
-func (opt viewOption) backgroundColor() color.Color {
-	if opt.bColor == nil {
-		return _defaultBackgroundColor
-	}
-
-	return opt.bColor
-}
-
 func (opt viewOption) fontSize() font.Size {
 	if opt.fontSizes <= 0 {
 		return font.Body
