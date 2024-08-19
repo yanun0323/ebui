@@ -31,11 +31,10 @@ func (view *contentView) Body() ebui.SomeView {
 			ebui.Text(view.title).
 				Padding(0, 15, 0, 15).
 				ForegroundColor(color.White).
-				BackgroundColor(color.Gray{128}).
-				Frame(200, -1),
+				BackgroundColor(color.Gray{128}),
 			ebui.Text(view.content),
 			ebui.Spacer(),
-		),
+		).Frame(200, -1),
 		ebui.Spacer(),
 	).
 		ForegroundColor(color.RGBA{200, 200, 200, 255}).
