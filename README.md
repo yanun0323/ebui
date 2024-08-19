@@ -2,7 +2,7 @@
 
 #### EBUI is a [SwiftUI](https://developer.apple.com/documentation/swiftui) likes UI framework build with golang and [Ebitengine](https://github.com/hajimehoshi/ebiten) framework.
 
-For develop games, apps, and other interactive applications.
+For develop games, apps, websites, and other interactive applications.
 
 It also works within a [Ebitengine](https://github.com/hajimehoshi/ebiten) application.
 
