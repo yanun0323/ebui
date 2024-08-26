@@ -122,8 +122,11 @@ func (v *uiView) IterateViewModifiers(modifier func(viewModifier), subviews ...f
 		subviewsHandler = subviews[0]
 	}
 
-	for _, vm := range v.viewModifiers {
-		modifier(vm)
+	// for _, vm := range v.viewModifiers {
+	// 	modifier(vm)
+	// }
+	for i := len(v.viewModifiers) - 1; i >= 0; i-- {
+		modifier(v.viewModifiers[i])
 	}
 
 	for _, sv := range v.subviews {

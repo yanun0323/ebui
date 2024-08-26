@@ -27,20 +27,6 @@ type textView struct {
 	t string
 }
 
-// func (v *textView) initBounds() (int, int) {
-// 	w, h := v.size.w, v.size.h
-
-// 	if w == -1 {
-
-// 	}
-
-// 	if h == -1 {
-
-// 	}
-
-// 	return w, h
-// }
-
 func (*textView) textFace(opt *uiView, size ...font.Size) *text.GoTextFace {
 	if len(size) != 0 {
 		return &text.GoTextFace{
@@ -60,11 +46,30 @@ func (*textView) textFace(opt *uiView, size ...font.Size) *text.GoTextFace {
 	return face
 }
 
-func (v *textView) calculateSizeFromText() {
+// calculateSizeFromText returns the width, height, text and text face of the text view.
+//
+// It will truncate the text to fit the bounds.
+func (v *textView) calculateSizeFromText(view *uiView) (int, int, string, *text.GoTextFace) {
 	if len(v.t) == 0 {
-		return
+		return 0, 0, "", nil
 	}
 
+	face := v.textFace(view)
+	w, h := v.getTextBounds(v.t, face)
+	if w <= view.size.h && h <= view.size.h {
+		return w, h, v.t, face
+	}
+
+	tt := v.flexibleTruncateText(v.t, view, face)
+	if len(tt) == 0 {
+		t := "..."
+		f := v.textFace(view, font.Body)
+		w, h := text.Measure(t, f, view.lineSpacing())
+		return int(w), int(h), t, f
+	}
+
+	w, h = v.getTextBounds(tt, face)
+	return int(w), int(h), tt, face
 }
 
 func (v *textView) getTextBounds(t string, face *text.GoTextFace) (int, int) {
@@ -72,44 +77,15 @@ func (v *textView) getTextBounds(t string, face *text.GoTextFace) (int, int) {
 	return int(w) + v.kern(), int(h)
 }
 
-// flexibleTextBounds returns the width, height, text and text face of the text view.
-//
-// if the frame did'nt set, it will truncate the text to fit the flexible bounds.
-func (v *textView) flexibleTextBounds(opt *uiView) (int, int, string, *text.GoTextFace) {
-	if len(v.t) == 0 {
-		return 0, 0, "", nil
-	}
-
-	face := v.textFace(opt)
-	width, height := opt.initSize.w, opt.initSize.h
-	width -= opt.kern() * len(v.t)
-
-	if v.size.w == width && v.size.h == height {
-		return width, height, v.t, face
-	}
-
-	tt := v.flexibleTruncateText(v.t, opt, face)
-	if len(tt) == 0 {
-		t := "..."
-		f := v.textFace(opt, font.Body)
-		w, h := text.Measure(t, f, opt.lineSpacing())
-		return int(w), int(h), t, f
-	}
-
-	w, h := text.Measure(tt, face, opt.lineSpacing())
-
-	return int(w), int(h), tt, face
-}
-
-func (v *textView) flexibleTruncateText(tt string, opt *uiView, face *text.GoTextFace, ignoreDots ...bool) string {
+func (v *textView) flexibleTruncateText(tt string, view *uiView, face *text.GoTextFace, ignoreDots ...bool) string {
 	if len(tt) == 0 {
 		return tt
 	}
 
-	width, height := opt.Width(), opt.Height()
-	width -= opt.kern() * len(tt)
+	width, height := view.Width(), view.Height()
+	width -= view.kern() * len(tt)
 
-	wf, hf := text.Measure(tt, face, opt.lineSpacing())
+	wf, hf := text.Measure(tt, face, view.lineSpacing())
 	if int(hf) > height {
 		return ""
 	}
@@ -120,7 +96,7 @@ func (v *textView) flexibleTruncateText(tt string, opt *uiView, face *text.GoTex
 
 	l, m, r := 0, (len(tt)-2)/2, len(tt)-1
 	for l < r && m != l && m != r {
-		wf, _ := text.Measure(tt[:m], face, opt.lineSpacing())
+		wf, _ := text.Measure(tt[:m], face, view.lineSpacing())
 		if int(wf) >= width {
 			r = m
 			m = (l + m) / 2
@@ -136,7 +112,7 @@ func (v *textView) flexibleTruncateText(tt string, opt *uiView, face *text.GoTex
 
 	truncateNum := 2
 	if m <= truncateNum {
-		return v.flexibleTruncateText(tt, opt, face, true)
+		return v.flexibleTruncateText(tt, view, face, true)
 	}
 
 	return tt[:m-truncateNum] + "..."
@@ -145,7 +121,6 @@ func (v *textView) flexibleTruncateText(tt string, opt *uiView, face *text.GoTex
 func (v *textView) draw(screen *ebiten.Image) {
 	cache := v.Copy()
 	cache.Draw(screen, func(screen *ebiten.Image) {
-		// FIXME: Fix me
 		cache.IterateViewModifiers(func(vm viewModifier) {
 			v := vm(screen, cache)
 			if v != nil {
@@ -153,7 +128,7 @@ func (v *textView) draw(screen *ebiten.Image) {
 			}
 		})
 
-		w, h, tt, face := v.flexibleTextBounds(cache)
+		w, h, tt, face := v.calculateSizeFromText(cache)
 		if len(tt) != 0 && face != nil {
 			dx := float64(cache.Width()-int(w)) / 2
 			dy := float64(cache.Height()-int(h)) / 2

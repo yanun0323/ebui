@@ -82,6 +82,7 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
+	ebui.EbitenUpdate(g.contentView)
 	return nil
 }
 

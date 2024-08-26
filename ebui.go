@@ -69,8 +69,6 @@ func EbitenUpdate(sv SomeView) {
 }
 
 func EbitenDraw(screen *ebiten.Image, view SomeView) {
-	println()
-
 	if p := view.view(); p.size.w <= 0 || p.size.h <= 0 {
 		logs.Warnf("view is not ready yet: size(%d, %d)", p.size.w, p.size.h)
 		return

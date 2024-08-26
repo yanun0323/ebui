@@ -81,23 +81,10 @@ func paddingViewModifier(top, right, bottom, left int) viewModifier {
 			left = 0
 		}
 
-		if current.size.w >= 0 { /* margin */
-			current.size.w += left + right
-			current.pos.x += left
-			current.xx += left
-		} else { /* padding */
-			current.padding.left += left
-			current.padding.right += right
-		}
-
-		if current.size.h >= 0 { /* margin */
-			current.size.h += top + bottom
-			current.pos.y += top
-			current.yy += top
-		} else { /* padding */
-			current.padding.top += top
-			current.padding.bottom += bottom
-		}
+		current.padding.left += left
+		current.padding.right += right
+		current.padding.top += top
+		current.padding.bottom += bottom
 
 		return nil
 	}
