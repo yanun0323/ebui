@@ -23,30 +23,13 @@ func (view *contentView) Body() ebui.SomeView {
 		ebui.Spacer(),
 		ebui.VStack(
 			ebui.Spacer(),
-			InfoView(func() { println("Info Clicked") }),
+			ebui.Text(view.title).
+				Padding(0, 15, 0, 15).
+				ForegroundColor(color.White).
+				BackgroundColor(color.Gray{128}),
+			ebui.Text(view.content),
 			ebui.Spacer(),
-		),
-		ebui.Text(&view.title).
-			Padding(0, 15, 0, 15).
-			ForegroundColor(color.RGBA{0, 0, 255, 255}).
-			Padding(10, 10, 10, 10).
-			BackgroundColor(color.White).
-			Padding(30, 30, 30, 30).
-			BackgroundColor(color.Gray{64}).
-			Frame(200, -1),
-		ebui.VStack(
-			ebui.Text("VStack").
-				BackgroundColor(color.Gray{32}),
-			ebui.VStack(
-				ebui.Text("HStack 1").
-					BackgroundColor(color.Gray{160}),
-				ebui.Text("HStack 2").
-					Padding(5, 5, 5, 5).
-					BackgroundColor(color.Gray{192}),
-			),
-		),
-		ebui.Text("Trailing").
-			BackgroundColor(color.Gray{16}),
+		).Frame(200, -1),
 		ebui.Spacer(),
 	).
 		ForegroundColor(color.RGBA{200, 200, 200, 255}).

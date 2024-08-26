@@ -6,6 +6,19 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+func replaceIfZero[T comparable](v, replace T) T {
+	var zero T
+	return replaceIf(v, zero, replace)
+}
+
+func replaceIf[T comparable](v, is, replace T) T {
+	if v == is {
+		return replace
+	}
+
+	return v
+}
+
 func makeImageRounded(img *ebiten.Image, round int) {
 	if img == nil || round <= 0 {
 		return

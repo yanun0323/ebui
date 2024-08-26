@@ -1,14 +1,16 @@
 package ebui
 
 import (
+	"errors"
 	"fmt"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/yanun0323/pkg/logs"
 )
 
-/* Check Interface Implement */
+/* Check Interface Implementation */
 var _ ebiten.Game = (*app)(nil)
 
 type app struct {
@@ -23,7 +25,16 @@ func Run(title string, contentView View, debug ...bool) {
 		view:  contentView.Body(),
 		debug: len(debug) != 0 && debug[0],
 	}
+
+	if app.debug {
+		logs.SetDefaultLevel(logs.LevelDebug)
+	}
+
 	if err := ebiten.RunGame(app); err != nil {
+		if errors.Is(err, ebiten.Termination) {
+			return
+		}
+
 		logs.Fatal(err)
 	}
 }
@@ -33,7 +44,8 @@ func (a *app) SetWindowSize(w, h int) {
 }
 
 func (a *app) Update() error {
-	tickTock()
+	EbitenUpdate(a.view)
+	runtime.GC()
 	return nil
 }
 

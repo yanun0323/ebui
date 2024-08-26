@@ -10,29 +10,22 @@ import (
 	view modifier
 */
 
-type viewModifier func(screen *ebiten.Image, current *viewOption) SomeView
-
-func newViewModifiers(svs ...View) []viewModifier {
-	vms := make([]viewModifier, 0, len(svs))
-	for _, sv := range svs {
-		body := sv.Body()
-		vms = append(vms, func(*ebiten.Image, *viewOption) SomeView {
-			return body
-		})
-	}
-	return vms
-}
+type viewModifier func(screen *ebiten.Image, current *view) SomeView
 
 func backgroundColorViewModifier(clr color.Color) viewModifier {
-	return func(screen *ebiten.Image, current *viewOption) SomeView {
-		if screen == nil || current == nil {
+	return func(screen *ebiten.Image, current *view) SomeView {
+		if current == nil {
 			return nil
 		}
 
-		bColor := current.bColor
-		if bColor == nil {
-			bColor = clr
+		if screen == nil {
+			return nil
 		}
+
+		// bColor := current.bColor
+		// if bColor == nil {
+		// 	bColor = clr
+		// }
 
 		w, h := current.Width(), current.Height()
 		if w <= 0 || h <= 0 {
@@ -41,9 +34,9 @@ func backgroundColorViewModifier(clr color.Color) viewModifier {
 
 		op := &ebiten.DrawImageOptions{}
 		op.ColorScale.ScaleAlpha(current.opacity())
-		op.GeoM.Translate(float64(current.XX()), float64(current.YY()))
+		op.GeoM.Translate(float64(current.paddingLeft), float64(current.paddingTop))
 		img := ebiten.NewImage(w, h)
-		img.Fill(bColor)
+		img.Fill(clr)
 		screen.DrawImage(img, op)
 
 		return nil
@@ -51,8 +44,8 @@ func backgroundColorViewModifier(clr color.Color) viewModifier {
 }
 
 func paddingViewModifier(top, right, bottom, left int) viewModifier {
-	return func(screen *ebiten.Image, current *viewOption) SomeView {
-		if screen == nil || current == nil {
+	return func(screen *ebiten.Image, current *view) SomeView {
+		if current == nil {
 			return nil
 		}
 
@@ -60,8 +53,6 @@ func paddingViewModifier(top, right, bottom, left int) viewModifier {
 		current.paddingBottom += bottom
 		current.paddingLeft += left
 		current.paddingRight += right
-
-		current.calculateFlexibleSizeTo()
 
 		return nil
 	}

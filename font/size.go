@@ -19,3 +19,11 @@ func NewSize(size int) Size {
 
 	return Size(size)
 }
+
+func (s Size) Int() int {
+	return int(s)
+}
+
+func (s Size) F64() float64 {
+	return float64(s)
+}
