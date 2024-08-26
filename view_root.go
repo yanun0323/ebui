@@ -5,16 +5,12 @@ import (
 	"github.com/yanun0323/pkg/logs"
 )
 
-type size struct {
-	w, h int
-}
-
-func root(contentView SomeView, s ...size) *rootView {
+func root(contentView SomeView, s ...frame) *rootView {
 	v := &rootView{}
 	v.uiView = newUIView(typeRoot, v, contentView)
 	if len(s) == 0 {
 		w, h := ebiten.WindowSize()
-		s = append(s, size{w, h})
+		s = append(s, frame{w, h})
 	}
 	v.setWindowSize(s[0].w, s[0].h)
 
@@ -49,7 +45,7 @@ func (r *rootView) draw(screen *ebiten.Image) {
 func (r *rootView) preCacheChildrenSize() {
 	var formula func(SomeView) (maxWidth, maxHeight, sumWidth, sumHeight int)
 	formula = func(current SomeView) (maxWidth, maxHeight, sumWidth, sumHeight int) {
-		currentView := current.params()
+		currentView := current.view()
 		initW, initH := current.initBounds()
 		maxWidth, maxHeight = initW, initH
 		for _, sv := range currentView.subviews {
@@ -57,8 +53,8 @@ func (r *rootView) preCacheChildrenSize() {
 
 			maxWidth = max(maxWidth, maxW)
 			maxHeight = max(maxHeight, maxH)
-			sumWidth += replaceIf(sumW, -1, 0)
-			sumHeight += replaceIf(sumH, -1, 0)
+			sumWidth += rpEq(sumW, -1, 0)
+			sumHeight += rpEq(sumH, -1, 0)
 		}
 
 		sumWidth = max(sumWidth, initW)
@@ -67,16 +63,16 @@ func (r *rootView) preCacheChildrenSize() {
 		switch currentView.types {
 		case typeVStack:
 			currentView.size.w = maxWidth
-			currentView.size.h = replaceIf(sumHeight, 0, -1)
+			currentView.size.h = rpEq(sumHeight, 0, -1)
 		case typeHStack:
-			currentView.size.w = replaceIf(sumWidth, 0, -1)
+			currentView.size.w = rpEq(sumWidth, 0, -1)
 			currentView.size.h = maxHeight
 		case typeZStack:
 			currentView.size.w = maxWidth
 			currentView.size.h = maxHeight
 		default:
-			currentView.size.w = -1
-			currentView.size.h = -1
+			currentView.size.w = initW
+			currentView.size.h = initH
 		}
 
 		return currentView.size.w, currentView.size.h, sumWidth, sumHeight
@@ -95,9 +91,9 @@ func (r *rootView) calculationParameters() {
 		v.xx = anchor.xx
 		v.yy = anchor.yy
 		v.viewOpacity *= anchor.viewOpacity
-		v.fColor = replaceIfZero(v.fColor, anchor.fColor)
-		v.fontSizes = replaceIfZero(v.fontSizes, anchor.fontSizes)
-		v.isPressing = replaceIfZero(v.isPressing, anchor.isPressing)
+		v.fColor = rpZero(v.fColor, anchor.fColor)
+		v.fontSizes = rpZero(v.fontSizes, anchor.fontSizes)
+		v.isPressing = rpZero(v.isPressing, anchor.isPressing)
 
 		// apply view modifiers
 		nextAnchor := v.Copy()
@@ -122,11 +118,11 @@ func (r *rootView) calculationParameters() {
 				l.Fatalf("%s: flex count is negative: wFlexCount: %d, hFlexCount: %d", nextAnchor.types, wFlexCount, hFlexCount)
 			}
 
-			width := (nextAnchor.Width() - wDelta) / replaceIfZero(wFlexCount, 1)
-			height := (nextAnchor.Height() - hDelta) / replaceIfZero(hFlexCount, 1)
+			width := (nextAnchor.Width() - wDelta) / rpZero(wFlexCount, 1)
+			height := (nextAnchor.Height() - hDelta) / rpZero(hFlexCount, 1)
 
 			for _, sv := range nextAnchor.subviews {
-				svp := sv.params()
+				svp := sv.view()
 				ll := logs.New(logs.LevelDebug).WithField("parent", v.types).WithField("current", svp.types)
 				ll.Debugf("x,y(%d, %d), xx,yy(%d, %d), w,h(%d, %d)", svp.pos.x, svp.pos.y, svp.xx, svp.yy, svp.size.w, svp.size.h)
 
@@ -158,14 +154,14 @@ func (r *rootView) calculationParameters() {
 				// set size to subviews
 				switch v.types {
 				case typeVStack:
-					svp.size.w = replaceIf(svp.initSize.w, -1, max(svp.size.w, nextAnchor.Width()))
-					svp.size.h = replaceIf(svp.initSize.h, -1, max(svp.size.h, height))
+					svp.size.w = rpEq(svp.initSize.w, -1, max(svp.size.w, nextAnchor.Width()))
+					svp.size.h = rpEq(svp.initSize.h, -1, max(svp.size.h, height))
 				case typeHStack:
-					svp.size.w = replaceIf(svp.initSize.w, -1, max(svp.size.w, width))
-					svp.size.h = replaceIf(svp.initSize.h, -1, max(svp.size.h, nextAnchor.Height()))
+					svp.size.w = rpEq(svp.initSize.w, -1, max(svp.size.w, width))
+					svp.size.h = rpEq(svp.initSize.h, -1, max(svp.size.h, nextAnchor.Height()))
 				default:
-					svp.size.w = replaceIf(svp.initSize.w, -1, max(svp.size.w, width))
-					svp.size.h = replaceIf(svp.initSize.h, -1, max(svp.size.h, height))
+					svp.size.w = rpEq(svp.initSize.w, -1, max(svp.size.w, width))
+					svp.size.h = rpEq(svp.initSize.h, -1, max(svp.size.h, height))
 				}
 
 				// deep calculate subviews
@@ -196,7 +192,7 @@ func (r *rootView) countFlexibleChildren(v *uiView) (widthCount, heightCount, wi
 	table := make(map[*uiView]bool, len(v.subviews))
 	wCount, hCount, wDelta, hDelta := 0, 0, 0, 0
 	for _, sv := range v.subviews {
-		svp := sv.params()
+		svp := sv.view()
 		vvw, vvh := sv.initBounds()
 
 		if vvw == -1 {

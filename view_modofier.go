@@ -38,16 +38,66 @@ func backgroundColorViewModifier(clr color.Color) viewModifier {
 	}
 }
 
-func paddingViewModifier(top, right, bottom, left int) viewModifier {
-	return func(screen *ebiten.Image, current *uiView) SomeView {
+func frameViewModifier(w, h int) viewModifier {
+	return func(_ *ebiten.Image, current *uiView) SomeView {
 		if current == nil {
 			return nil
 		}
 
-		current.padding.top += top
-		current.padding.bottom += bottom
-		current.padding.left += left
-		current.padding.right += right
+		if w < 0 {
+			w = -1
+		}
+
+		if h < 0 {
+			h = -1
+		}
+
+		current.initSize = frame{rpEq(w, -1, current.initSize.w), rpEq(h, -1, current.initSize.h)}
+		current.size = frame{rpEq(w, -1, current.size.w), rpEq(h, -1, current.size.h)}
+
+		return nil
+	}
+}
+
+func paddingViewModifier(top, right, bottom, left int) viewModifier {
+	return func(_ *ebiten.Image, current *uiView) SomeView {
+		if current == nil {
+			return nil
+		}
+
+		if top < 0 {
+			top = 0
+		}
+
+		if right < 0 {
+			right = 0
+		}
+
+		if bottom < 0 {
+			bottom = 0
+		}
+
+		if left < 0 {
+			left = 0
+		}
+
+		if current.size.w >= 0 { /* margin */
+			current.size.w += left + right
+			current.pos.x += left
+			current.xx += left
+		} else { /* padding */
+			current.padding.left += left
+			current.padding.right += right
+		}
+
+		if current.size.h >= 0 { /* margin */
+			current.size.h += top + bottom
+			current.pos.y += top
+			current.yy += top
+		} else { /* padding */
+			current.padding.top += top
+			current.padding.bottom += bottom
+		}
 
 		return nil
 	}

@@ -27,19 +27,19 @@ type textView struct {
 	t string
 }
 
-func (v *textView) initBounds() (int, int) {
-	w, h := v.size.w, v.size.h
+// func (v *textView) initBounds() (int, int) {
+// 	w, h := v.size.w, v.size.h
 
-	if w == -1 {
+// 	if w == -1 {
 
-	}
+// 	}
 
-	if h == -1 {
+// 	if h == -1 {
 
-	}
+// 	}
 
-	return w, h
-}
+// 	return w, h
+// }
 
 func (*textView) textFace(opt *uiView, size ...font.Size) *text.GoTextFace {
 	if len(size) != 0 {

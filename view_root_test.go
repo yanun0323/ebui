@@ -15,7 +15,7 @@ func TestPreCacheChildrenSizeSmallerChildren(t *testing.T) {
 	r.preCacheChildrenSize()
 
 	{
-		p := v2.params()
+		p := v2.view()
 		msg := fmt.Sprintf("v2: %+v", p)
 		assert(t, p.initSize.w, 20, "p.initSize.w", msg)
 		assert(t, p.initSize.h, 20, "p.initSize.h", msg)
@@ -24,7 +24,7 @@ func TestPreCacheChildrenSizeSmallerChildren(t *testing.T) {
 	}
 
 	{
-		p := v1.params()
+		p := v1.view()
 		msg := fmt.Sprintf("v1: %+v", p)
 		assert(t, p.initSize.w, 50, "p.initSize.w", msg)
 		assert(t, p.initSize.h, 50, "p.initSize.h", msg)
@@ -43,7 +43,7 @@ func TestPreCacheChildrenSizeBiggerChildren(t *testing.T) {
 	r.preCacheChildrenSize()
 
 	{
-		p := v2.params()
+		p := v2.view()
 		msg := fmt.Sprintf("v2: %+v", p)
 		assert(t, p.initSize.w, 70, "p.initSize.w", msg)
 		assert(t, p.initSize.h, 70, "p.initSize.h", msg)
@@ -52,7 +52,7 @@ func TestPreCacheChildrenSizeBiggerChildren(t *testing.T) {
 	}
 
 	{
-		p := v1.params()
+		p := v1.view()
 		msg := fmt.Sprintf("v1: %+v", p)
 		assert(t, p.initSize.w, 50, "p.initSize.w", msg)
 		assert(t, p.initSize.h, 50, "p.initSize.h", msg)
@@ -61,7 +61,7 @@ func TestPreCacheChildrenSizeBiggerChildren(t *testing.T) {
 	}
 
 	{
-		p := r.params()
+		p := r.view()
 		msg := fmt.Sprintf("r: %+v", p)
 		assert(t, p.initSize.w, 100, "p.initSize.w", msg)
 		assert(t, p.initSize.h, 100, "p.initSize.h", msg)
@@ -80,7 +80,7 @@ func TestCalculateParametersSingle(t *testing.T) {
 	r.preCacheChildrenSize()
 
 	{
-		p := v2.params()
+		p := v2.view()
 		msg := fmt.Sprintf("v2: %+v", p)
 		assert(t, p.initSize.w, 20, "p.initSize.w", msg)
 		assert(t, p.initSize.h, 20, "p.initSize.h", msg)
@@ -89,7 +89,7 @@ func TestCalculateParametersSingle(t *testing.T) {
 	}
 
 	{
-		p := v1.params()
+		p := v1.view()
 		msg := fmt.Sprintf("v1: %+v", p)
 		assert(t, p.initSize.w, -1, "p.initSize.w", msg)
 		assert(t, p.initSize.h, -1, "p.initSize.h", msg)
@@ -100,7 +100,7 @@ func TestCalculateParametersSingle(t *testing.T) {
 	r.calculationParameters()
 
 	{
-		p := v2.params()
+		p := v2.view()
 		msg := fmt.Sprintf("v2: %+v", p)
 		assert(t, p.initSize.w, 20, "p.initSize.w", msg)
 		assert(t, p.initSize.h, 20, "p.initSize.h", msg)
@@ -109,7 +109,7 @@ func TestCalculateParametersSingle(t *testing.T) {
 	}
 
 	{
-		p := v1.params()
+		p := v1.view()
 		msg := fmt.Sprintf("v1: %+v", p)
 		assert(t, p.initSize.w, -1, "p.initSize.w", msg)
 		assert(t, p.initSize.h, -1, "p.initSize.h", msg)
@@ -129,7 +129,7 @@ func TestCalculateParametersMultiple(t *testing.T) {
 	r.preCacheChildrenSize()
 
 	{
-		p := v3.params()
+		p := v3.view()
 		msg := fmt.Sprintf("v3: %+v", p)
 		assert(t, p.initSize.w, -1, "p.initSize.w", msg)
 		assert(t, p.initSize.h, -1, "p.initSize.h", msg)
@@ -138,7 +138,7 @@ func TestCalculateParametersMultiple(t *testing.T) {
 	}
 
 	{
-		p := v2.params()
+		p := v2.view()
 		msg := fmt.Sprintf("v2: %+v", p)
 		assert(t, p.initSize.w, 20, "p.initSize.w", msg)
 		assert(t, p.initSize.h, 20, "p.initSize.h", msg)
@@ -147,7 +147,7 @@ func TestCalculateParametersMultiple(t *testing.T) {
 	}
 
 	{
-		p := v1.params()
+		p := v1.view()
 		msg := fmt.Sprintf("v1: %+v", p)
 		assert(t, p.initSize.w, -1, "p.initSize.w", msg)
 		assert(t, p.initSize.h, -1, "p.initSize.h", msg)
@@ -158,7 +158,7 @@ func TestCalculateParametersMultiple(t *testing.T) {
 	r.calculationParameters()
 
 	{
-		p := v3.params()
+		p := v3.view()
 		msg := fmt.Sprintf("v3: %+v", p)
 		assert(t, p.initSize.w, -1, "p.initSize.w", msg)
 		assert(t, p.initSize.h, -1, "p.initSize.h", msg)
@@ -167,7 +167,7 @@ func TestCalculateParametersMultiple(t *testing.T) {
 	}
 
 	{
-		p := v2.params()
+		p := v2.view()
 		msg := fmt.Sprintf("v2: %+v", p)
 		assert(t, p.initSize.w, 20, "p.initSize.w", msg)
 		assert(t, p.initSize.h, 20, "p.initSize.h", msg)
@@ -176,7 +176,7 @@ func TestCalculateParametersMultiple(t *testing.T) {
 	}
 
 	{
-		p := v1.params()
+		p := v1.view()
 		msg := fmt.Sprintf("v1: %+v", p)
 		assert(t, p.initSize.w, -1, "p.initSize.w", msg)
 		assert(t, p.initSize.h, -1, "p.initSize.h", msg)

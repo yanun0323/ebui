@@ -17,7 +17,7 @@ type SomeView interface {
 	View
 
 	draw(screen *ebiten.Image)
-	params() *uiView
+	view() *uiView
 	initBounds() (int, int)
 
 	Frame(w, h int) SomeView
@@ -257,16 +257,21 @@ func (v *uiView) Body() SomeView {
 func (uiView) draw(*ebiten.Image) {}
 
 func (v *uiView) initBounds() (int, int) {
-	return v.initSize.w, v.initSize.h
+	cache := v.Copy()
+	cache.IterateViewModifiers(func(vm viewModifier) {
+		_ = vm(nil, cache)
+	})
+
+	return rpNeq(cache.initSize.w, -1, cache.size.w), rpNeq(cache.initSize.h, -1, cache.size.h)
 }
 
-func (v *uiView) params() *uiView {
+func (v *uiView) view() *uiView {
 	return v
 }
 
 func (v *uiView) Frame(w, h int) SomeView {
-	v.initSize.w = w
-	v.initSize.h = h
+	v.initSize = frame{w, h}
+	v.viewModifiers = append(v.viewModifiers, frameViewModifier(w, h))
 	return v.holder
 }
 

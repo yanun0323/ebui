@@ -19,12 +19,12 @@ func TestSpacerVStackBasic(t *testing.T) {
 			sp2,
 			Spacer(),
 		),
-		size{200, 100},
+		frame{200, 100},
 	)
 	r.calculateStage()
 
 	{
-		opt := sp1.params()
+		opt := sp1.view()
 		msg := fmt.Sprintf("sp1: %+v", opt)
 		assert(t, opt.initSize.w, -1, "opt.initSize.w", msg)
 		assert(t, opt.initSize.h, -1, "opt.initSize.h", msg)
@@ -37,7 +37,7 @@ func TestSpacerVStackBasic(t *testing.T) {
 	}
 
 	{
-		opt := sp2.params()
+		opt := sp2.view()
 		msg := fmt.Sprintf("sp2: %+v", opt)
 		assert(t, opt.initSize.w, -1, "opt.initSize.w", msg)
 		assert(t, opt.initSize.h, -1, "opt.initSize.h", msg)
@@ -50,7 +50,7 @@ func TestSpacerVStackBasic(t *testing.T) {
 	}
 
 	{
-		opt := sp3.params()
+		opt := sp3.view()
 		msg := fmt.Sprintf("sp3: %+v", opt)
 		assert(t, opt.initSize.w, -1, "opt.initSize.w", msg)
 		assert(t, opt.initSize.h, -1, "opt.initSize.h", msg)

@@ -6,14 +6,25 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-func replaceIfZero[T comparable](v, replace T) T {
+// rpZero returns result if v is zero value, otherwise returns v.
+func rpZero[T comparable](v, result T) T {
 	var zero T
-	return replaceIf(v, zero, replace)
+	return rpEq(v, zero, result)
 }
 
-func replaceIf[T comparable](v, is, replace T) T {
-	if v == is {
-		return replace
+// rpEq returns result if v is eq, otherwise returns v.
+func rpEq[T comparable](v, eq, result T) T {
+	if v == eq {
+		return result
+	}
+
+	return v
+}
+
+// rpNeq returns result if v is not n, otherwise returns v.
+func rpNeq[T comparable](v, n, result T) T {
+	if v != n {
+		return result
 	}
 
 	return v

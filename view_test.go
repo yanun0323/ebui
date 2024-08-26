@@ -34,7 +34,7 @@ func TestViewCalculateVStack(t *testing.T) {
 	r.calculateStage()
 
 	{
-		opt := v1.params()
+		opt := v1.view()
 		msg := fmt.Sprintf("v1: %+v", opt)
 		assert(t, opt.initSize.w, 200, "opt.initSize.w", msg)
 		assert(t, opt.initSize.h, 100, "opt.initSize.h", msg)
@@ -47,7 +47,7 @@ func TestViewCalculateVStack(t *testing.T) {
 	}
 
 	{
-		opt := v2.params()
+		opt := v2.view()
 		msg := fmt.Sprintf("v2: %+v", opt)
 		assert(t, opt.initSize.w, -1, "opt.initSize.w", msg)
 		assert(t, opt.initSize.h, -1, "opt.initSize.h", msg)
@@ -60,7 +60,7 @@ func TestViewCalculateVStack(t *testing.T) {
 	}
 
 	{
-		opt := v3.params()
+		opt := v3.view()
 		msg := fmt.Sprintf("v3: %+v", opt)
 		assert(t, opt.initSize.w, 20, "opt.initSize.w", msg)
 		assert(t, opt.initSize.h, 20, "opt.initSize.h", msg)
@@ -89,7 +89,7 @@ func TestViewCalculateHStack(t *testing.T) {
 	r.calculateStage()
 
 	{
-		opt := v1.params()
+		opt := v1.view()
 		msg := fmt.Sprintf("v1: %+v", opt)
 		assert(t, opt.initSize.w, 200, "opt.initSize.w", msg)
 		assert(t, opt.initSize.h, 100, "opt.initSize.h", msg)
@@ -102,7 +102,7 @@ func TestViewCalculateHStack(t *testing.T) {
 	}
 
 	{
-		opt := v2.params()
+		opt := v2.view()
 		msg := fmt.Sprintf("v2: %+v", opt)
 		assert(t, opt.initSize.w, -1, "opt.initSize.w", msg)
 		assert(t, opt.initSize.h, -1, "opt.initSize.h", msg)
@@ -115,7 +115,7 @@ func TestViewCalculateHStack(t *testing.T) {
 	}
 
 	{
-		opt := v3.params()
+		opt := v3.view()
 		msg := fmt.Sprintf("v3: %+v", opt)
 		assert(t, opt.initSize.w, 20, "opt.initSize.w", msg)
 		assert(t, opt.initSize.h, 20, "opt.initSize.h", msg)

@@ -10,11 +10,11 @@ func TestVStackBasic(t *testing.T) {
 	v2 := VStack()
 	v1 := VStack(v2, v3)
 
-	r := root(v1, size{200, 100})
+	r := root(v1, frame{200, 100})
 	r.calculateStage()
 
 	{
-		opt := v1.params()
+		opt := v1.view()
 		msg := fmt.Sprintf("v1: %+v", opt)
 		assert(t, opt.initSize.w, -1, "opt.initSize.w", msg)
 		assert(t, opt.initSize.h, -1, "opt.initSize.h", msg)
@@ -27,7 +27,7 @@ func TestVStackBasic(t *testing.T) {
 	}
 
 	{
-		opt := v2.params()
+		opt := v2.view()
 		msg := fmt.Sprintf("v2: %+v", opt)
 		assert(t, opt.initSize.w, -1, "opt.initSize.w", msg)
 		assert(t, opt.initSize.h, -1, "opt.initSize.h", msg)
@@ -40,7 +40,7 @@ func TestVStackBasic(t *testing.T) {
 	}
 
 	{
-		opt := v3.params()
+		opt := v3.view()
 		msg := fmt.Sprintf("v3: %+v", opt)
 		assert(t, opt.initSize.w, -1, "opt.initSize.w", msg)
 		assert(t, opt.initSize.h, -1, "opt.initSize.h", msg)
