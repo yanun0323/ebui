@@ -47,12 +47,13 @@ func (r *rootView) draw(screen *ebiten.Image) {
 }
 
 func (r *rootView) preCacheChildrenSize() {
-	var formula func(*view) (maxWidth, maxHeight, sumWidth, sumHeight int)
-	formula = func(current *view) (maxWidth, maxHeight, sumWidth, sumHeight int) {
+	var formula func(SomeView) (maxWidth, maxHeight, sumWidth, sumHeight int)
+	formula = func(current SomeView) (maxWidth, maxHeight, sumWidth, sumHeight int) {
+		currentView := current.params()
 		initW, initH := current.initBounds()
 		maxWidth, maxHeight = initW, initH
-		for _, sv := range current.subviews {
-			maxW, maxH, sumW, sumH := formula(sv.params())
+		for _, sv := range currentView.subviews {
+			maxW, maxH, sumW, sumH := formula(sv)
 
 			maxWidth = max(maxWidth, maxW)
 			maxHeight = max(maxHeight, maxH)
@@ -63,22 +64,22 @@ func (r *rootView) preCacheChildrenSize() {
 		sumWidth = max(sumWidth, initW)
 		sumHeight = max(sumHeight, initH)
 
-		switch current.types {
+		switch currentView.types {
 		case typeVStack:
-			current.w = maxWidth
-			current.h = replaceIf(sumHeight, 0, -1)
+			currentView.w = maxWidth
+			currentView.h = replaceIf(sumHeight, 0, -1)
 		case typeHStack:
-			current.w = replaceIf(sumWidth, 0, -1)
-			current.h = maxHeight
+			currentView.w = replaceIf(sumWidth, 0, -1)
+			currentView.h = maxHeight
 		case typeZStack:
-			current.w = maxWidth
-			current.h = maxHeight
+			currentView.w = maxWidth
+			currentView.h = maxHeight
 		default:
-			current.w = -1
-			current.h = -1
+			currentView.w = -1
+			currentView.h = -1
 		}
 
-		return current.w, current.h, sumWidth, sumHeight
+		return currentView.w, currentView.h, sumWidth, sumHeight
 	}
 
 	formula(r.view)

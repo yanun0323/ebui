@@ -1,8 +1,6 @@
 package ebui
 
 import (
-	"image/color"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/yanun0323/ebui/font"
@@ -27,6 +25,20 @@ type textView struct {
 	*view
 
 	t string
+}
+
+func (v *textView) initBounds() (int, int) {
+	w, h := v.w, v.h
+
+	if w == -1 {
+
+	}
+
+	if h == -1 {
+
+	}
+
+	return w, h
 }
 
 func (*textView) textFace(opt *view, size ...font.Size) *text.GoTextFace {
@@ -156,9 +168,8 @@ func (v *textView) draw(screen *ebiten.Image) {
 				}
 
 				op := &ebiten.DrawImageOptions{}
-				// op.ColorScale.ScaleWithColor(cache.foregroundColor())
-				op.ColorScale.ScaleWithColor(color.Black)
-				// op.GeoM.Translate(float64(x+i*cache.kern()), float64(y))
+				op.ColorScale.ScaleWithColor(cache.foregroundColor())
+				// op.ColorScale.ScaleWithColor(color.Black)
 				op.GeoM.Translate(float64(i*cache.kern()), 0)
 				op.GeoM.Translate(dx, dy)
 				op.GeoM.Translate(gl.X, gl.Y)

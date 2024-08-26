@@ -21,7 +21,6 @@ type view struct {
 	minW, minH                                           int
 	maxW, maxH                                           int
 	paddingTop, paddingBottom, paddingLeft, paddingRight int
-	bColor                                               color.Color
 	viewModifiers                                        []viewModifier
 	subviews                                             []SomeView
 	viewOpacity                                          float32
@@ -58,6 +57,11 @@ func newView(id types, holder SomeView, svs ...View) *view {
 		viewOpacity: 1.0,
 		subviews:    subviews,
 	}
+}
+
+func (v *view) setInitSize(w, h int) {
+	v.initW, v.initH = w, h
+	v.w, v.h = w, h
 }
 
 func (v *view) Draw(screen *ebiten.Image, painter func(screen *ebiten.Image)) {
@@ -109,10 +113,6 @@ func (v *view) IterateViewModifiers(modifier func(viewModifier), subviews ...fun
 			return sv
 		})
 	}
-}
-
-func (v *view) bounds() (int, int) {
-	return v.w, v.h
 }
 
 /*
