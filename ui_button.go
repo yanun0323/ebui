@@ -15,12 +15,12 @@ func Button(action func(), label View) *buttonView {
 		action: action,
 	}
 
-	v.view = newView(typeButton, v, label)
+	v.uiView = newUIView(typeButton, v, label)
 	return v
 }
 
 type buttonView struct {
-	*view
+	*uiView
 
 	action     func()
 	invokeTick atomic.Int64

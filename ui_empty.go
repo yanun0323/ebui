@@ -5,11 +5,11 @@ var _ SomeView = (*emptyView)(nil)
 
 func Empty() *emptyView {
 	v := &emptyView{}
-	v.view = newView(typeEmpty, v)
-	v.view.w, v.view.h = 0, 0
+	v.uiView = newUIView(typeEmpty, v)
+	v.uiView.size.w, v.uiView.size.h = 0, 0
 	return v
 }
 
 type emptyView struct {
-	*view
+	*uiView
 }

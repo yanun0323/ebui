@@ -11,7 +11,7 @@ type size struct {
 
 func root(contentView SomeView, s ...size) *rootView {
 	v := &rootView{}
-	v.view = newView(typeRoot, v, contentView)
+	v.uiView = newUIView(typeRoot, v, contentView)
 	if len(s) == 0 {
 		w, h := ebiten.WindowSize()
 		s = append(s, size{w, h})
@@ -22,12 +22,12 @@ func root(contentView SomeView, s ...size) *rootView {
 }
 
 type rootView struct {
-	*view
+	*uiView
 }
 
 func (r *rootView) setWindowSize(w, h int) {
-	r.view.initW, r.view.initH = w, h
-	r.view.w, r.view.h = w, h
+	r.uiView.initSize = frame{w, h}
+	r.uiView.size = frame{w, h}
 }
 
 func (r *rootView) calculateStage() {
@@ -36,9 +36,9 @@ func (r *rootView) calculateStage() {
 }
 
 func (r *rootView) draw(screen *ebiten.Image) {
-	r.view.Draw(screen, func(screen *ebiten.Image) {
-		r.view.IterateViewModifiers(func(vm viewModifier) {
-			vv := vm(screen, r.view)
+	r.uiView.Draw(screen, func(screen *ebiten.Image) {
+		r.uiView.IterateViewModifiers(func(vm viewModifier) {
+			vv := vm(screen, r.uiView)
 			if vv != nil {
 				vv.draw(screen)
 			}
@@ -66,32 +66,32 @@ func (r *rootView) preCacheChildrenSize() {
 
 		switch currentView.types {
 		case typeVStack:
-			currentView.w = maxWidth
-			currentView.h = replaceIf(sumHeight, 0, -1)
+			currentView.size.w = maxWidth
+			currentView.size.h = replaceIf(sumHeight, 0, -1)
 		case typeHStack:
-			currentView.w = replaceIf(sumWidth, 0, -1)
-			currentView.h = maxHeight
+			currentView.size.w = replaceIf(sumWidth, 0, -1)
+			currentView.size.h = maxHeight
 		case typeZStack:
-			currentView.w = maxWidth
-			currentView.h = maxHeight
+			currentView.size.w = maxWidth
+			currentView.size.h = maxHeight
 		default:
-			currentView.w = -1
-			currentView.h = -1
+			currentView.size.w = -1
+			currentView.size.h = -1
 		}
 
-		return currentView.w, currentView.h, sumWidth, sumHeight
+		return currentView.size.w, currentView.size.h, sumWidth, sumHeight
 	}
 
-	formula(r.view)
-	r.view.w, r.view.h = r.initBounds()
+	formula(r.uiView)
+	r.uiView.size.w, r.uiView.size.h = r.initBounds()
 }
 
 func (r *rootView) calculationParameters() {
-	var formula func(v, anchor *view)
-	formula = func(v, anchor *view) {
+	var formula func(v, anchor *uiView)
+	formula = func(v, anchor *uiView) {
 		// update params from anchor
-		v.x = anchor.x
-		v.y = anchor.y
+		v.pos.x = anchor.pos.x
+		v.pos.y = anchor.pos.y
 		v.xx = anchor.xx
 		v.yy = anchor.yy
 		v.viewOpacity *= anchor.viewOpacity
@@ -106,10 +106,10 @@ func (r *rootView) calculationParameters() {
 		}
 
 		// update cache after modifying
-		nextAnchor.x += nextAnchor.paddingLeft
-		nextAnchor.y += nextAnchor.paddingTop
-		nextAnchor.xx = nextAnchor.paddingLeft // TODO: check if this is correct
-		nextAnchor.yy = nextAnchor.paddingTop
+		nextAnchor.pos.x += nextAnchor.padding.left
+		nextAnchor.pos.y += nextAnchor.padding.top
+		nextAnchor.xx = nextAnchor.padding.left // TODO: check if this is correct
+		nextAnchor.yy = nextAnchor.padding.top
 
 		// fmt.Printf("next anchor: %+v\n", nextAnchor)
 
@@ -128,24 +128,24 @@ func (r *rootView) calculationParameters() {
 			for _, sv := range nextAnchor.subviews {
 				svp := sv.params()
 				ll := logs.New(logs.LevelDebug).WithField("parent", v.types).WithField("current", svp.types)
-				ll.Debugf("x,y(%d, %d), xx,yy(%d, %d), w,h(%d, %d)", svp.x, svp.y, svp.xx, svp.yy, svp.w, svp.h)
+				ll.Debugf("x,y(%d, %d), xx,yy(%d, %d), w,h(%d, %d)", svp.pos.x, svp.pos.y, svp.xx, svp.yy, svp.size.w, svp.size.h)
 
 				if !recalculatedSubViews[svp] {
 					recalculatedSubViews[svp] = true
 					// calculate that does width/height need to recalculate
 					switch v.types {
 					case typeVStack, typeHStack, typeZStack:
-						if svp.w > width {
-							ll.Warnf("width out of range! svp.w: %d > width: %d", svp.w, width)
+						if svp.size.w > width {
+							ll.Warnf("width out of range! svp.size.w: %d > width: %d", svp.size.w, width)
 							wFlexCount--
-							wDelta += svp.w
+							wDelta += svp.size.w
 							again = true
 						}
 
-						if svp.h > height {
-							ll.Warnf("height out of range! svp.h: %d > height: %d", svp.h, height)
+						if svp.size.h > height {
+							ll.Warnf("height out of range! svp.size.h: %d > height: %d", svp.size.h, height)
 							hFlexCount--
-							hDelta += svp.h
+							hDelta += svp.size.h
 							again = true
 						}
 					}
@@ -158,14 +158,14 @@ func (r *rootView) calculationParameters() {
 				// set size to subviews
 				switch v.types {
 				case typeVStack:
-					svp.w = replaceIf(svp.initW, -1, max(svp.w, nextAnchor.Width()))
-					svp.h = replaceIf(svp.initH, -1, max(svp.h, height))
+					svp.size.w = replaceIf(svp.initSize.w, -1, max(svp.size.w, nextAnchor.Width()))
+					svp.size.h = replaceIf(svp.initSize.h, -1, max(svp.size.h, height))
 				case typeHStack:
-					svp.w = replaceIf(svp.initW, -1, max(svp.w, width))
-					svp.h = replaceIf(svp.initH, -1, max(svp.h, nextAnchor.Height()))
+					svp.size.w = replaceIf(svp.initSize.w, -1, max(svp.size.w, width))
+					svp.size.h = replaceIf(svp.initSize.h, -1, max(svp.size.h, nextAnchor.Height()))
 				default:
-					svp.w = replaceIf(svp.initW, -1, max(svp.w, width))
-					svp.h = replaceIf(svp.initH, -1, max(svp.h, height))
+					svp.size.w = replaceIf(svp.initSize.w, -1, max(svp.size.w, width))
+					svp.size.h = replaceIf(svp.initSize.h, -1, max(svp.size.h, height))
 				}
 
 				// deep calculate subviews
@@ -174,9 +174,9 @@ func (r *rootView) calculationParameters() {
 				// update cache after calculating subviews
 				switch v.types {
 				case typeVStack:
-					nextAnchor.y, nextAnchor.yy = nextAnchor.y+svp.h, nextAnchor.yy+svp.h
+					nextAnchor.pos.y, nextAnchor.yy = nextAnchor.pos.y+svp.size.h, nextAnchor.yy+svp.size.h
 				case typeHStack:
-					nextAnchor.x, nextAnchor.xx = nextAnchor.x+svp.w, nextAnchor.xx+svp.w
+					nextAnchor.pos.x, nextAnchor.xx = nextAnchor.pos.x+svp.size.w, nextAnchor.xx+svp.size.w
 				}
 			}
 
@@ -189,11 +189,11 @@ func (r *rootView) calculationParameters() {
 		}
 	}
 
-	formula(r.view, r.view)
+	formula(r.uiView, r.uiView)
 }
 
-func (r *rootView) countFlexibleChildren(v *view) (widthCount, heightCount, widthDelta, heightDelta int, recalculatedSubViews map[*view]bool) {
-	table := make(map[*view]bool, len(v.subviews))
+func (r *rootView) countFlexibleChildren(v *uiView) (widthCount, heightCount, widthDelta, heightDelta int, recalculatedSubViews map[*uiView]bool) {
+	table := make(map[*uiView]bool, len(v.subviews))
 	wCount, hCount, wDelta, hDelta := 0, 0, 0, 0
 	for _, sv := range v.subviews {
 		svp := sv.params()

@@ -6,6 +6,10 @@ For develop games, apps, websites, and other interactive applications.
 
 It also works within a [Ebitengine](https://github.com/hajimehoshi/ebiten) application.
 
+## Install
+
+### Coming soon...
+
 ## Example
 
 ### Define a Content View

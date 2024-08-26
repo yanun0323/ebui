@@ -10,10 +10,10 @@ import (
 	view modifier
 */
 
-type viewModifier func(screen *ebiten.Image, current *view) SomeView
+type viewModifier func(screen *ebiten.Image, current *uiView) SomeView
 
 func backgroundColorViewModifier(clr color.Color) viewModifier {
-	return func(screen *ebiten.Image, current *view) SomeView {
+	return func(screen *ebiten.Image, current *uiView) SomeView {
 		if current == nil {
 			return nil
 		}
@@ -22,11 +22,6 @@ func backgroundColorViewModifier(clr color.Color) viewModifier {
 			return nil
 		}
 
-		// bColor := current.bColor
-		// if bColor == nil {
-		// 	bColor = clr
-		// }
-
 		w, h := current.Width(), current.Height()
 		if w <= 0 || h <= 0 {
 			return nil
@@ -34,7 +29,7 @@ func backgroundColorViewModifier(clr color.Color) viewModifier {
 
 		op := &ebiten.DrawImageOptions{}
 		op.ColorScale.ScaleAlpha(current.opacity())
-		op.GeoM.Translate(float64(current.paddingLeft), float64(current.paddingTop))
+		op.GeoM.Translate(float64(current.padding.left), float64(current.padding.top))
 		img := ebiten.NewImage(w, h)
 		img.Fill(clr)
 		screen.DrawImage(img, op)
@@ -44,15 +39,15 @@ func backgroundColorViewModifier(clr color.Color) viewModifier {
 }
 
 func paddingViewModifier(top, right, bottom, left int) viewModifier {
-	return func(screen *ebiten.Image, current *view) SomeView {
+	return func(screen *ebiten.Image, current *uiView) SomeView {
 		if current == nil {
 			return nil
 		}
 
-		current.paddingTop += top
-		current.paddingBottom += bottom
-		current.paddingLeft += left
-		current.paddingRight += right
+		current.padding.top += top
+		current.padding.bottom += bottom
+		current.padding.left += left
+		current.padding.right += right
 
 		return nil
 	}

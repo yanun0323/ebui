@@ -17,18 +17,18 @@ func Text(t string) *textView {
 		t: t,
 	}
 
-	v.view = newView(typeText, v)
+	v.uiView = newUIView(typeText, v)
 	return v
 }
 
 type textView struct {
-	*view
+	*uiView
 
 	t string
 }
 
 func (v *textView) initBounds() (int, int) {
-	w, h := v.w, v.h
+	w, h := v.size.w, v.size.h
 
 	if w == -1 {
 
@@ -41,7 +41,7 @@ func (v *textView) initBounds() (int, int) {
 	return w, h
 }
 
-func (*textView) textFace(opt *view, size ...font.Size) *text.GoTextFace {
+func (*textView) textFace(opt *uiView, size ...font.Size) *text.GoTextFace {
 	if len(size) != 0 {
 		return &text.GoTextFace{
 			Source: _defaultFontResource,
@@ -75,16 +75,16 @@ func (v *textView) getTextBounds(t string, face *text.GoTextFace) (int, int) {
 // flexibleTextBounds returns the width, height, text and text face of the text view.
 //
 // if the frame did'nt set, it will truncate the text to fit the flexible bounds.
-func (v *textView) flexibleTextBounds(opt *view) (int, int, string, *text.GoTextFace) {
+func (v *textView) flexibleTextBounds(opt *uiView) (int, int, string, *text.GoTextFace) {
 	if len(v.t) == 0 {
 		return 0, 0, "", nil
 	}
 
 	face := v.textFace(opt)
-	width, height := opt.initW, opt.initH
+	width, height := opt.initSize.w, opt.initSize.h
 	width -= opt.kern() * len(v.t)
 
-	if v.w == width && v.h == height {
+	if v.size.w == width && v.size.h == height {
 		return width, height, v.t, face
 	}
 
@@ -101,7 +101,7 @@ func (v *textView) flexibleTextBounds(opt *view) (int, int, string, *text.GoText
 	return int(w), int(h), tt, face
 }
 
-func (v *textView) flexibleTruncateText(tt string, opt *view, face *text.GoTextFace, ignoreDots ...bool) string {
+func (v *textView) flexibleTruncateText(tt string, opt *uiView, face *text.GoTextFace, ignoreDots ...bool) string {
 	if len(tt) == 0 {
 		return tt
 	}
@@ -158,7 +158,7 @@ func (v *textView) draw(screen *ebiten.Image) {
 			dx := float64(cache.Width()-int(w)) / 2
 			dy := float64(cache.Height()-int(h)) / 2
 
-			logs.Warnf("cache.Width(): %d, cache.Height(): %d\ncache.iniW: %d, cache.iniH: %d\nw: %d, h: %d, dx: %.1f, dy: %.1f", cache.Width(), cache.Height(), cache.initW, cache.initH, w, h, dx, dy)
+			logs.Warnf("cache.Width(): %d, cache.Height(): %d\ncache.iniW: %d, cache.iniH: %d\nw: %d, h: %d, dx: %.1f, dy: %.1f", cache.Width(), cache.Height(), cache.initSize.w, cache.initSize.h, w, h, dx, dy)
 
 			for i, gl := range text.AppendGlyphs(nil, tt, face, &text.LayoutOptions{
 				LineSpacing: cache.lineSpacing(),

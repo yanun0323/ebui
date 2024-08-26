@@ -9,12 +9,12 @@ var _ SomeView = (*spacerView)(nil)
 
 func Spacer() *spacerView {
 	v := &spacerView{}
-	v.view = newView(typeSpacer, v)
+	v.uiView = newUIView(typeSpacer, v)
 	return v
 }
 
 type spacerView struct {
-	*view
+	*uiView
 }
 
 func (v *spacerView) draw(screen *ebiten.Image) {}

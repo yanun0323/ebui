@@ -5,20 +5,20 @@ import (
 )
 
 /* Check Interface Implementation */
-var _ SomeView = (*vstackView)(nil)
+var _ SomeView = (*hstackView)(nil)
 
-func VStack(views ...View) *vstackView {
-	v := &vstackView{}
-	v.view = newView(typeVStack, v, views...)
+func HStack(views ...View) *hstackView {
+	v := &hstackView{}
+	v.uiView = newUIView(typeHStack, v, views...)
 	return v
 }
 
-type vstackView struct {
-	*view
+type hstackView struct {
+	*uiView
 }
 
-func (v *vstackView) draw(screen *ebiten.Image) {
-	cache := v.view.Copy()
+func (v *hstackView) draw(screen *ebiten.Image) {
+	cache := v.uiView.Copy()
 	cache.Draw(screen, func(screen *ebiten.Image) {
 		cache.IterateViewModifiers(func(vm viewModifier) {
 			vv := vm(screen, cache)
