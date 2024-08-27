@@ -23,15 +23,14 @@ func (view *testView) Body() ebui.SomeView {
 		ebui.HStack().BackgroundColor(color.RGBA{0, 0, 128, 128}),
 		ebui.HStack(
 			ebui.Spacer(),
-			ebui.Image("./test/resource/avatar.jpg").BackgroundColor(color.RGBA{128, 0, 128, 128}).Padding(5, 5, 5, 5),
-			ebui.VStack().Frame(50, 50).BackgroundColor(color.Gray{128}),
+			ebui.Image("./test/resource/avatar.jpg"),
 			ebui.Button(func() {
 				println("Hi")
-			}, ebui.Text("Hello!")).
+			}, ebui.Image("./test/resource/avatar.jpg")).
 				BackgroundColor(color.RGBA{128, 0, 0, 128}).
-				Padding(15, 15, 15, 15).
+				Padding(5, 5, 5, 5).
 				BackgroundColor(color.RGBA{64, 0, 0, 64}).
-				Frame(75, 50).
+				Frame(100, 100).
 				CornerRadius(15),
 			ebui.Text("Hello!").
 				BackgroundColor(color.Gray{200}).
@@ -42,7 +41,7 @@ func (view *testView) Body() ebui.SomeView {
 		ebui.ZStack().BackgroundColor(color.RGBA{128, 0, 0, 128}),
 	).
 		BackgroundColor(color.White).
-		// Padding(15, 15, 15, 15).
+		Padding(15, 15, 15, 15).
 		// Frame(400, 400).
 		ForegroundColor(color.Black)
 }

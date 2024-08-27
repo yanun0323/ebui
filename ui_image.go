@@ -74,7 +74,6 @@ func (ui *uiImage) draw(screen *ebiten.Image) {
 		op := &ebiten.DrawImageOptions{}
 		ratio := min(wRatio, hRatio)
 		dx, dy := 0, 0
-		_, _ = dx, dy
 
 		if wRatio != ratio {
 			dx = abs(int(float64(ui.img.Bounds().Dx())*ratio - float64(cache.Width())))
