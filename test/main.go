@@ -8,5 +8,5 @@ import (
 func main() {
 	contentView := component.TestView("title", "content\ncontent")
 	println("Hi")
-	ebui.Run("Windows Title", contentView, true)
+	ebui.Run("Windows Title", contentView, false)
 }

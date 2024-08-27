@@ -4,7 +4,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/yanun0323/ebui/font"
-	"github.com/yanun0323/pkg/logs"
 )
 
 /* Check Interface Implementation */
@@ -130,10 +129,8 @@ func (v *textView) draw(screen *ebiten.Image) {
 
 		w, h, tt, face := v.calculateSizeFromText(cache)
 		if len(tt) != 0 && face != nil {
-			dx := float64(cache.Width()-int(w)) / 2
-			dy := float64(cache.Height()-int(h)) / 2
-
-			logs.Warnf("cache.Width(): %d, cache.Height(): %d\ncache.iniW: %d, cache.iniH: %d\nw: %d, h: %d, dx: %.1f, dy: %.1f", cache.Width(), cache.Height(), cache.initSize.w, cache.initSize.h, w, h, dx, dy)
+			dx := float64(cache.padding.left) + float64(cache.Width()-int(w))/2
+			dy := float64(cache.padding.top) + float64(cache.Height()-int(h))/2
 
 			for i, gl := range text.AppendGlyphs(nil, tt, face, &text.LayoutOptions{
 				LineSpacing: cache.lineSpacing(),

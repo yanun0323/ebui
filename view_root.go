@@ -114,7 +114,7 @@ func (r *rootView) calculationParameters() {
 
 		setSubviews := func() (again bool) {
 			if wFlexCount <= -1 || hFlexCount <= -1 {
-				l := logs.New(logs.LevelDebug).WithField("current", v.types)
+				l := logs.Default().WithField("current", v.types)
 				l.Fatalf("%s: flex count is negative: wFlexCount: %d, hFlexCount: %d", nextAnchor.types, wFlexCount, hFlexCount)
 			}
 
@@ -123,7 +123,7 @@ func (r *rootView) calculationParameters() {
 
 			for _, sv := range nextAnchor.subviews {
 				svp := sv.view()
-				ll := logs.New(logs.LevelDebug).WithField("parent", v.types).WithField("current", svp.types)
+				ll := logs.Default().WithField("parent", v.types).WithField("current", svp.types)
 				ll.Debugf("x,y(%d, %d), xx,yy(%d, %d), w,h(%d, %d)", svp.pos.x, svp.pos.y, svp.xx, svp.yy, svp.size.w, svp.size.h)
 
 				if !recalculatedSubViews[svp] {
@@ -132,14 +132,14 @@ func (r *rootView) calculationParameters() {
 					switch v.types {
 					case typeVStack, typeHStack, typeZStack:
 						if svp.size.w > width {
-							ll.Warnf("width out of range! svp.size.w: %d > width: %d", svp.size.w, width)
+							ll.Debugf("width out of range! svp.size.w: %d > width: %d", svp.size.w, width)
 							wFlexCount--
 							wDelta += svp.size.w
 							again = true
 						}
 
 						if svp.size.h > height {
-							ll.Warnf("height out of range! svp.size.h: %d > height: %d", svp.size.h, height)
+							ll.Debugf("height out of range! svp.size.h: %d > height: %d", svp.size.h, height)
 							hFlexCount--
 							hDelta += svp.size.h
 							again = true
