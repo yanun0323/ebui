@@ -29,8 +29,6 @@ func backgroundColorViewModifier(clr color.Color) viewModifier {
 		img := ebiten.NewImage(w, h)
 		img.Fill(clr)
 		screen.DrawImage(img, op)
-
-		return
 	}
 }
 
@@ -50,8 +48,6 @@ func frameViewModifier(w, h int) viewModifier {
 
 		current.initSize = frame{rpEq(w, -1, current.initSize.w), rpEq(h, -1, current.initSize.h)}
 		current.size = frame{rpEq(w, -1, current.size.w), rpEq(h, -1, current.size.h)}
-
-		return
 	}
 }
 
