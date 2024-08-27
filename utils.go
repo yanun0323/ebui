@@ -30,12 +30,28 @@ func rpNeq[T comparable](v, n, result T) T {
 	return v
 }
 
-func makeImageRounded(img *ebiten.Image, round int) {
+// makeImageRounded makes image rounded.
+//
+// FIXME: should be optimized for chaining calls.
+func makeImageRounded(img *ebiten.Image, current *uiView, round int) {
 	if img == nil || round <= 0 {
 		return
 	}
 
-	h, w := img.Bounds().Dy(), img.Bounds().Dx()
+	sW, sH := img.Bounds().Dx(), img.Bounds().Dy()
+	if sW <= 0 || sH <= 0 {
+		return
+	}
+
+	set := func(x, y int) {
+		// x += current.padding.left
+		// y += current.padding.top
+		if x >= 0 && y >= 0 && x < sW && y < sH {
+			img.Set(x, y, color.Transparent)
+		}
+	}
+
+	w, h := current.size.w, current.size.h
 
 	for x := 0; x < round; x++ {
 		// left-top
@@ -44,7 +60,7 @@ func makeImageRounded(img *ebiten.Image, round int) {
 			dx := x - ltX
 			dy := y - ltY
 			if dx*dx+dy*dy > round*round {
-				img.Set(x, y, color.Transparent)
+				set(x, y)
 			}
 		}
 
@@ -54,7 +70,7 @@ func makeImageRounded(img *ebiten.Image, round int) {
 			dx := x - lbX
 			dy := y - lbY
 			if dx*dx+dy*dy > round*round {
-				img.Set(x, y, color.Transparent)
+				set(x, y)
 			}
 		}
 	}
@@ -66,7 +82,7 @@ func makeImageRounded(img *ebiten.Image, round int) {
 			dx := x - rtX
 			dy := y - rtY
 			if dx*dx+dy*dy > round*round {
-				img.Set(x, y, color.Transparent)
+				set(x, y)
 			}
 		}
 
@@ -76,7 +92,7 @@ func makeImageRounded(img *ebiten.Image, round int) {
 			dx := x - rbX
 			dy := y - rbY
 			if dx*dx+dy*dy > round*round {
-				img.Set(x, y, color.Transparent)
+				set(x, y)
 			}
 		}
 	}

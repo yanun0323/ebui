@@ -9,7 +9,7 @@ var _ SomeView = (*spacerView)(nil)
 
 func Spacer() *spacerView {
 	v := &spacerView{}
-	v.uiView = newUIView(typeSpacer, v)
+	v.uiView = newUIView(typesSpacer, v)
 	return v
 }
 

@@ -15,7 +15,7 @@ func Button(action func(), label View) *buttonView {
 		action: action,
 	}
 
-	v.uiView = newUIView(typeButton, v, label)
+	v.uiView = newUIView(typesButton, v, label)
 	return v
 }
 
@@ -33,7 +33,6 @@ func (v *buttonView) Body() SomeView {
 func (v *buttonView) draw(screen *ebiten.Image) {
 	cache := v.Copy()
 	cache.Draw(screen, func(screen *ebiten.Image) {
-		// FIXME: Fix me
 		cX, cY := ebiten.CursorPosition()
 		cache.isPressing = cache.Contain(cX, cY) && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
 		if cache.Contain(cX, cY) {

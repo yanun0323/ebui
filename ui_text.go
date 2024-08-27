@@ -16,7 +16,7 @@ func Text(t string) *textView {
 		t: t,
 	}
 
-	v.uiView = newUIView(typeText, v)
+	v.uiView = newUIView(typesText, v)
 	return v
 }
 

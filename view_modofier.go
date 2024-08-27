@@ -89,3 +89,24 @@ func paddingViewModifier(top, right, bottom, left int) viewModifier {
 		return nil
 	}
 }
+
+func cornerRadiusViewModifier(radius ...int) viewModifier {
+	r := 7
+	if len(radius) != 0 && radius[0] >= 0 {
+		r = radius[0]
+	}
+
+	return func(screen *ebiten.Image, current *uiView) SomeView {
+		if screen == nil || current == nil {
+			return nil
+		}
+
+		if r == 0 {
+			return nil
+		}
+
+		makeImageRounded(screen, current, r)
+
+		return nil
+	}
+}

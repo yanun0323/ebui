@@ -9,7 +9,7 @@ var _ SomeView = (*vstackView)(nil)
 
 func VStack(views ...View) *vstackView {
 	v := &vstackView{}
-	v.uiView = newUIView(typeVStack, v, views...)
+	v.uiView = newUIView(typesVStack, v, views...)
 	return v
 }
 

@@ -3,15 +3,15 @@ package ebui
 type types string
 
 const (
-	typeNone      = ""
-	typeRoot      = "Root"
-	typeEmpty     = "Empty"
-	typeSpacer    = "Spacer"
-	typeHStack    = "HStack"
-	typeVStack    = "VStack"
-	typeZStack    = "ZStack"
-	typeButton    = "Button"
-	typeText      = "Text"
-	typeImage     = "Image"
-	typeRectangle = "Rectangle"
+	typesNone      = ""
+	typesRoot      = "Root"
+	typesEmpty     = "Empty"
+	typesSpacer    = "Spacer"
+	typesHStack    = "HStack"
+	typesVStack    = "VStack"
+	typesZStack    = "ZStack"
+	typesButton    = "Button"
+	typesText      = "Text"
+	typesImage     = "Image"
+	typesRectangle = "Rectangle"
 )

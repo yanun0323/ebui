@@ -9,7 +9,7 @@ func TestPreCacheChildrenSizeSmallerChildren(t *testing.T) {
 	v2 := VStack().Frame(20, 20)
 	v1 := VStack(v2).Frame(50, 50)
 	r := &rootView{}
-	r.uiView = newUIView(typeRoot, r, v1)
+	r.uiView = newUIView(typesRoot, r, v1)
 	r.setWindowSize(100, 100)
 
 	r.preCacheChildrenSize()
@@ -37,7 +37,7 @@ func TestPreCacheChildrenSizeBiggerChildren(t *testing.T) {
 	v2 := VStack().Frame(70, 70)
 	v1 := VStack(v2).Frame(50, 50)
 	r := &rootView{}
-	r.uiView = newUIView(typeRoot, r, v1)
+	r.uiView = newUIView(typesRoot, r, v1)
 	r.setWindowSize(100, 100)
 
 	r.preCacheChildrenSize()
@@ -74,7 +74,7 @@ func TestCalculateParametersSingle(t *testing.T) {
 	v2 := VStack().Frame(20, 20)
 	v1 := VStack(v2)
 	r := &rootView{}
-	r.uiView = newUIView(typeRoot, r, v1)
+	r.uiView = newUIView(typesRoot, r, v1)
 	r.setWindowSize(100, 100)
 
 	r.preCacheChildrenSize()
@@ -123,7 +123,7 @@ func TestCalculateParametersMultiple(t *testing.T) {
 	v2 := VStack().Frame(20, 20)
 	v1 := VStack(v2, v3)
 	r := &rootView{}
-	r.uiView = newUIView(typeRoot, r, v1)
+	r.uiView = newUIView(typesRoot, r, v1)
 	r.setWindowSize(100, 100)
 
 	r.preCacheChildrenSize()

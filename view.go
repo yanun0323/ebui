@@ -26,6 +26,10 @@ type SomeView interface {
 	Padding(top, right, bottom, left int) SomeView
 	FontSize(size font.Size) SomeView
 	FontWeight(weight font.Weight) SomeView
+
+	// CornerRadius makes view rounded.
+	//
+	// BUG: only works for outermost frame.
 	CornerRadius(radius ...int) SomeView
 	LineSpacing(spacing float64) SomeView
 	Kern(kern int) SomeView
@@ -50,7 +54,6 @@ type uiView struct {
 
 	/* no inherit */
 
-	cornerRadius    int         /* no inherit */
 	fontBold        bool        /* no inherit */
 	fontWeight      font.Weight /* no inherit */
 	fontItalic      bool        /* no inherit */
@@ -98,7 +101,7 @@ func (v *uiView) Draw(screen *ebiten.Image, painter func(screen *ebiten.Image)) 
 		op.GeoM.Translate(float64(v.xx), float64(v.yy))
 	}
 
-	makeImageRounded(img, v.cornerRadius)
+	// makeImageRounded(img, v.cornerRadius)
 	screen.DrawImage(img, op)
 }
 
@@ -324,11 +327,6 @@ func (v *uiView) Bold() SomeView {
 }
 
 func (v *uiView) CornerRadius(radius ...int) SomeView {
-	if len(radius) != 0 {
-		v.cornerRadius = radius[0]
-	} else {
-		v.cornerRadius = 7
-	}
-
+	v.viewModifiers = append(v.viewModifiers, cornerRadiusViewModifier(radius...))
 	return v.holder
 }

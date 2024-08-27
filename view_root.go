@@ -7,7 +7,7 @@ import (
 
 func root(contentView SomeView, s ...frame) *rootView {
 	v := &rootView{}
-	v.uiView = newUIView(typeRoot, v, contentView)
+	v.uiView = newUIView(typesRoot, v, contentView)
 	if len(s) == 0 {
 		w, h := ebiten.WindowSize()
 		s = append(s, frame{w, h})
@@ -61,13 +61,13 @@ func (r *rootView) preCacheChildrenSize() {
 		sumHeight = max(sumHeight, initH)
 
 		switch currentView.types {
-		case typeVStack:
+		case typesVStack:
 			currentView.size.w = maxWidth
 			currentView.size.h = rpEq(sumHeight, 0, -1)
-		case typeHStack:
+		case typesHStack:
 			currentView.size.w = rpEq(sumWidth, 0, -1)
 			currentView.size.h = maxHeight
-		case typeZStack:
+		case typesZStack:
 			currentView.size.w = maxWidth
 			currentView.size.h = maxHeight
 		default:
@@ -130,7 +130,7 @@ func (r *rootView) calculationParameters() {
 					recalculatedSubViews[svp] = true
 					// calculate that does width/height need to recalculate
 					switch v.types {
-					case typeVStack, typeHStack, typeZStack:
+					case typesVStack, typesHStack, typesZStack:
 						if svp.size.w > width {
 							ll.Debugf("width out of range! svp.size.w: %d > width: %d", svp.size.w, width)
 							wFlexCount--
@@ -153,10 +153,10 @@ func (r *rootView) calculationParameters() {
 
 				// set size to subviews
 				switch v.types {
-				case typeVStack:
+				case typesVStack:
 					svp.size.w = rpEq(svp.initSize.w, -1, max(svp.size.w, nextAnchor.Width()))
 					svp.size.h = rpEq(svp.initSize.h, -1, max(svp.size.h, height))
-				case typeHStack:
+				case typesHStack:
 					svp.size.w = rpEq(svp.initSize.w, -1, max(svp.size.w, width))
 					svp.size.h = rpEq(svp.initSize.h, -1, max(svp.size.h, nextAnchor.Height()))
 				default:
@@ -169,9 +169,9 @@ func (r *rootView) calculationParameters() {
 
 				// update cache after calculating subviews
 				switch v.types {
-				case typeVStack:
+				case typesVStack:
 					nextAnchor.pos.y, nextAnchor.yy = nextAnchor.pos.y+svp.size.h, nextAnchor.yy+svp.size.h
-				case typeHStack:
+				case typesHStack:
 					nextAnchor.pos.x, nextAnchor.xx = nextAnchor.pos.x+svp.size.w, nextAnchor.xx+svp.size.w
 				}
 			}

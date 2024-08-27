@@ -9,7 +9,7 @@ var _ SomeView = (*hstackView)(nil)
 
 func HStack(views ...View) *hstackView {
 	v := &hstackView{}
-	v.uiView = newUIView(typeHStack, v, views...)
+	v.uiView = newUIView(typesHStack, v, views...)
 	return v
 }
 
