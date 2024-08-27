@@ -23,7 +23,7 @@ func (view *testView) Body() ebui.SomeView {
 		ebui.HStack().BackgroundColor(color.RGBA{0, 0, 128, 128}),
 		ebui.HStack(
 			ebui.Spacer(),
-			ebui.Image("./test/resource/avatar.jpg"),
+			ebui.Image("./test/resource/avatar.jpg").BackgroundColor(color.RGBA{128, 0, 128, 128}).Padding(5, 5, 5, 5),
 			ebui.VStack().Frame(50, 50).BackgroundColor(color.Gray{128}),
 			ebui.Button(func() {
 				println("Hi")

@@ -66,15 +66,26 @@ func (ui *uiImage) draw(screen *ebiten.Image) {
 	}
 
 	cache := ui.Copy()
-	cache.Draw(screen, func(img *ebiten.Image) {
+	cache.Draw(screen, func(screen *ebiten.Image) {
 		cache.ApplyViewModifiers(screen)
 
 		wRatio := float64(cache.Width()) / float64(ui.img.Bounds().Dx())
 		hRatio := float64(cache.Height()) / float64(ui.img.Bounds().Dy())
 		op := &ebiten.DrawImageOptions{}
-		ratio := max(wRatio, hRatio)
+		ratio := min(wRatio, hRatio)
+		dx, dy := 0, 0
+		_, _ = dx, dy
+
+		if wRatio != ratio {
+			dx = abs(int(float64(ui.img.Bounds().Dx())*ratio - float64(cache.Width())))
+		}
+
+		if hRatio != ratio {
+			dy = abs(int(float64(ui.img.Bounds().Dy())*ratio - float64(cache.Height())))
+		}
+
 		op.GeoM.Scale(ratio, ratio)
-		op.GeoM.Translate(float64(cache.padding.left), float64(cache.padding.top))
+		op.GeoM.Translate(float64(cache.padding.left+dx/2), float64(cache.padding.top+dy/2))
 		screen.DrawImage(ui.img, op)
 	})
 }

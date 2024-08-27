@@ -26,9 +26,9 @@ func Run(title string, contentView View, debug ...bool) error {
 		debug:       len(debug) != 0 && debug[0],
 	}
 
-	if app.debug {
-		logs.SetDefaultLevel(logs.LevelDebug)
-	}
+	// if app.debug {
+	// 	logs.SetDefaultLevel(logs.LevelDebug)
+	// }
 
 	if err := ebiten.RunGame(app); err != nil {
 		if errors.Is(err, ebiten.Termination) {

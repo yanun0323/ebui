@@ -163,9 +163,11 @@ func (r *rootView) calculationParameters() {
 				// update cache after calculating subviews
 				switch v.types {
 				case typesVStack:
-					nextAnchor.pos.y, nextAnchor.yy = nextAnchor.pos.y+svp.size.h, nextAnchor.yy+svp.size.h
+					nextAnchor.pos.y += svp.size.h
+					nextAnchor.yy += svp.size.h
 				case typesHStack:
-					nextAnchor.pos.x, nextAnchor.xx = nextAnchor.pos.x+svp.size.w, nextAnchor.xx+svp.size.w
+					nextAnchor.pos.x += svp.size.w
+					nextAnchor.xx += svp.size.w
 				}
 			}
 

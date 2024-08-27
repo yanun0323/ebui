@@ -6,6 +6,20 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+type ordered interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uintptr |
+		~float32 | ~float64
+}
+
+func abs[T ordered](num T) T {
+	if num < 0 {
+		return -num
+	}
+
+	return num
+}
+
 // rpZero returns result if v is zero value, otherwise returns v.
 func rpZero[T comparable](v, result T) T {
 	var zero T
