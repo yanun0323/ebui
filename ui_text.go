@@ -120,12 +120,7 @@ func (v *textView) flexibleTruncateText(tt string, view *uiView, face *text.GoTe
 func (v *textView) draw(screen *ebiten.Image) {
 	cache := v.Copy()
 	cache.Draw(screen, func(screen *ebiten.Image) {
-		cache.IterateViewModifiers(func(vm viewModifier) {
-			v := vm(screen, cache)
-			if v != nil {
-				v.draw(screen)
-			}
-		})
+		cache.ApplyViewModifiers(screen)
 
 		w, h, tt, face := v.calculateSizeFromText(cache)
 		if len(tt) != 0 && face != nil {

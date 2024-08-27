@@ -119,23 +119,15 @@ func (v uiView) Contain(x, y int) bool {
 	return px <= x && x <= px+pw && py <= y && y <= py+ph
 }
 
-func (v *uiView) IterateViewModifiers(modifier func(viewModifier), subviews ...func(viewModifier)) {
-	subviewsHandler := modifier
-	if len(subviews) != 0 && subviews[0] != nil {
-		subviewsHandler = subviews[0]
-	}
-
+func (v *uiView) ApplyViewModifiers(screen *ebiten.Image) {
 	for _, vm := range v.viewModifiers {
-		modifier(vm)
+		vm(screen, v)
 	}
-	// for i := len(v.viewModifiers) - 1; i >= 0; i-- {
-	// 	modifier(v.viewModifiers[i])
-	// }
 
-	for _, sv := range v.subviews {
-		subviewsHandler(func(*ebiten.Image, *uiView) SomeView {
-			return sv
-		})
+	if screen != nil {
+		for _, sv := range v.subviews {
+			sv.draw(screen)
+		}
 	}
 }
 
@@ -264,9 +256,7 @@ func (uiView) draw(*ebiten.Image) {}
 
 func (v *uiView) initBounds() (int, int) {
 	cache := v.Copy()
-	cache.IterateViewModifiers(func(vm viewModifier) {
-		_ = vm(nil, cache)
-	})
+	cache.ApplyViewModifiers(nil)
 
 	return rpNeq(cache.initSize.w, -1, cache.size.w), rpNeq(cache.initSize.h, -1, cache.size.h)
 }

@@ -46,11 +46,6 @@ func (v *buttonView) draw(screen *ebiten.Image) {
 			}
 		}
 
-		cache.IterateViewModifiers(func(vm viewModifier) {
-			v := vm(screen, cache)
-			if v != nil {
-				v.draw(screen)
-			}
-		})
+		cache.ApplyViewModifiers(screen)
 	})
 }

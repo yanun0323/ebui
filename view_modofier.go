@@ -10,21 +10,17 @@ import (
 	view modifier
 */
 
-type viewModifier func(screen *ebiten.Image, current *uiView) SomeView
+type viewModifier func(screen *ebiten.Image, current *uiView)
 
 func backgroundColorViewModifier(clr color.Color) viewModifier {
-	return func(screen *ebiten.Image, current *uiView) SomeView {
-		if current == nil {
-			return nil
-		}
-
-		if screen == nil {
-			return nil
+	return func(screen *ebiten.Image, current *uiView) {
+		if current == nil || screen == nil {
+			return
 		}
 
 		w, h := current.Width(), current.Height()
 		if w <= 0 || h <= 0 {
-			return nil
+			return
 		}
 
 		op := &ebiten.DrawImageOptions{}
@@ -34,14 +30,14 @@ func backgroundColorViewModifier(clr color.Color) viewModifier {
 		img.Fill(clr)
 		screen.DrawImage(img, op)
 
-		return nil
+		return
 	}
 }
 
 func frameViewModifier(w, h int) viewModifier {
-	return func(_ *ebiten.Image, current *uiView) SomeView {
+	return func(_ *ebiten.Image, current *uiView) {
 		if current == nil {
-			return nil
+			return
 		}
 
 		if w < 0 {
@@ -55,14 +51,14 @@ func frameViewModifier(w, h int) viewModifier {
 		current.initSize = frame{rpEq(w, -1, current.initSize.w), rpEq(h, -1, current.initSize.h)}
 		current.size = frame{rpEq(w, -1, current.size.w), rpEq(h, -1, current.size.h)}
 
-		return nil
+		return
 	}
 }
 
 func paddingViewModifier(top, right, bottom, left int) viewModifier {
-	return func(_ *ebiten.Image, current *uiView) SomeView {
+	return func(_ *ebiten.Image, current *uiView) {
 		if current == nil {
-			return nil
+			return
 		}
 
 		if top < 0 {
@@ -85,8 +81,6 @@ func paddingViewModifier(top, right, bottom, left int) viewModifier {
 		current.padding.right += right
 		current.padding.top += top
 		current.padding.bottom += bottom
-
-		return nil
 	}
 }
 
@@ -96,17 +90,15 @@ func cornerRadiusViewModifier(radius ...int) viewModifier {
 		r = radius[0]
 	}
 
-	return func(screen *ebiten.Image, current *uiView) SomeView {
+	return func(screen *ebiten.Image, current *uiView) {
 		if screen == nil || current == nil {
-			return nil
+			return
 		}
 
 		if r == 0 {
-			return nil
+			return
 		}
 
 		makeImageRounded(screen, current, r)
-
-		return nil
 	}
 }

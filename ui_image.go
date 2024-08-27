@@ -42,7 +42,7 @@ func (ui *uiImage) tryLoadingImage(path string, embedFile ...fs.FS) {
 			logs.Errorf("Failed to open image with embed file (%s): %v", filename, err)
 			return
 		}
-		r = bytes.NewReader(f) 
+		r = bytes.NewReader(f)
 	} else {
 		r, err = os.Open(filename)
 		if err != nil {
@@ -67,9 +67,7 @@ func (ui *uiImage) draw(screen *ebiten.Image) {
 
 	cache := ui.Copy()
 	cache.Draw(screen, func(img *ebiten.Image) {
-		cache.IterateViewModifiers(func(vm viewModifier) {
-			_ = vm(img, cache)
-		})
+		cache.ApplyViewModifiers(screen)
 
 		wRatio := float64(cache.Width()) / float64(ui.img.Bounds().Dx())
 		hRatio := float64(cache.Height()) / float64(ui.img.Bounds().Dy())

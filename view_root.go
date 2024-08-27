@@ -33,12 +33,7 @@ func (r *rootView) calculateStage() {
 
 func (r *rootView) draw(screen *ebiten.Image) {
 	r.uiView.Draw(screen, func(screen *ebiten.Image) {
-		r.uiView.IterateViewModifiers(func(vm viewModifier) {
-			vv := vm(screen, r.uiView)
-			if vv != nil {
-				vv.draw(screen)
-			}
-		})
+		r.uiView.ApplyViewModifiers(screen)
 	})
 }
 
@@ -97,9 +92,7 @@ func (r *rootView) calculationParameters() {
 
 		// apply view modifiers
 		nextAnchor := v.Copy()
-		for _, vm := range nextAnchor.viewModifiers {
-			_ = vm(nil, nextAnchor)
-		}
+		nextAnchor.ApplyViewModifiers(nil)
 
 		// update cache after modifying
 		nextAnchor.pos.x += nextAnchor.padding.left
