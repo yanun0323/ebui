@@ -12,6 +12,14 @@ func (p point) Sub(x, y int) point {
 	return point{p.x - x, p.y - y}
 }
 
+func (p point) Adds(a point) point {
+	return point{p.x + a.x, p.y + a.y}
+}
+
+func (p point) Subs(a point) point {
+	return point{p.x - a.x, p.y - a.y}
+}
+
 var _zeroSize = size{-1, -1}
 
 type size struct {
@@ -30,12 +38,32 @@ func (f size) Sub(w, h int) size {
 	return size{f.w - w, f.h - h}
 }
 
+func (f size) Adds(a size) size {
+	return size{f.w + a.w, f.h + a.h}
+}
+
+func (f size) Subs(a size) size {
+	return size{f.w - a.w, f.h - a.h}
+}
+
 type bounds struct {
 	top, right, bottom, left int
 }
 
 func (b bounds) Add(top, right, bottom, left int) bounds {
 	return bounds{b.top + top, b.right + right, b.bottom + bottom, b.left + left}
+}
+
+func (b bounds) Sub(top, right, bottom, left int) bounds {
+	return bounds{b.top - top, b.right - right, b.bottom - bottom, b.left - left}
+}
+
+func (b bounds) Adds(a bounds) bounds {
+	return bounds{b.top + a.top, b.right + a.right, b.bottom + a.bottom, b.left + a.left}
+}
+
+func (b bounds) Subs(a bounds) bounds {
+	return bounds{b.top - a.top, b.right - a.right, b.bottom - a.bottom, b.left - a.left}
 }
 
 func (b bounds) IsZero() bool {

@@ -4,7 +4,6 @@ type types string
 
 const (
 	typesNone      = ""
-	typesRoot      = "Root"
 	typesEmpty     = "Empty"
 	typesSpacer    = "Spacer"
 	typesHStack    = "HStack"

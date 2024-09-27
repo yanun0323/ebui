@@ -5,6 +5,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/font"
+	"github.com/yanun0323/pkg/logs"
 )
 
 type View interface {
@@ -61,9 +62,10 @@ type uiView struct {
 	owner SomeView
 	types types
 
-	flexible  size
-	modifiers []uiViewModifier
-	contents  []SomeView
+	size         size
+	flexibleSize size
+	modifiers    []uiViewModifier
+	contents     []SomeView
 }
 
 func newView(types types, owner SomeView, contents ...View) *uiView {
@@ -78,6 +80,165 @@ func newView(types types, owner SomeView, contents ...View) *uiView {
 		owner:        owner,
 		contents:     cts,
 	}
+}
+
+/*
+	########  #######  ########  ##     ## ##     ## ##          ###    ########
+	##       ##     ## ##     ## ###   ### ##     ## ##         ## ##   ##     ##
+	##       ##     ## ##     ## #### #### ##     ## ##        ##   ##  ##     ##
+	######   ##     ## ########  ## ### ## ##     ## ##       ##     ## ########
+	##       ##     ## ##   ##   ##     ## ##     ## ##       ######### ##   ##
+	##       ##     ## ##    ##  ##     ## ##     ## ##       ##     ## ##    ##
+	##        #######  ##     ## ##     ##  #######  ######## ##     ## ##     ##
+*/
+
+type preloadSizes struct {
+	size    size
+	minSize size
+}
+
+func (p *uiView) preloadSize() preloadSizes {
+	l := logs.Default().
+		WithField("types", p.types)
+
+	preload := preloadSizes{
+		minSize: p.getFrame(),
+	}
+
+	preload.minSize.w = rpEq(preload.minSize.w, -1, 0)
+	preload.minSize.h = rpEq(preload.minSize.h, -1, 0)
+
+	wSpacer, hSpacer := false, false
+	for _, content := range p.contents {
+		invokeSomeView(content, func(c *uiView) {
+			p := c.preloadSize()
+			l.Infof("preloadSize: size: %v", p.size)
+			if p.size.w != -1 {
+				preload.minSize.w += rpEq(p.size.w, -1, 0)
+			} else {
+				wSpacer = true
+
+				preload.minSize.w += rpEq(p.minSize.w, -1, 0)
+			}
+
+			if p.size.h != -1 {
+				preload.minSize.h += rpEq(p.size.h, -1, 0)
+			} else {
+				hSpacer = true
+				preload.minSize.h += rpEq(p.minSize.h, -1, 0)
+			}
+		})
+	}
+
+	if wSpacer {
+		preload.size.w = -1
+	} else {
+		preload.size.w = rpZero(preload.minSize.w, -1)
+	}
+
+	if hSpacer {
+		preload.size.h = -1
+	} else {
+		preload.size.h = rpZero(preload.minSize.h, -1)
+	}
+
+	p.size = preload.size
+
+	l.Infof("preloadSize: size: %v, preload: %v", p.size, preload)
+
+	return preload
+}
+
+func (p *uiView) getFrame() size {
+	frame := _zeroSize
+	for i := len(p.modifiers) - 1; i >= 0 && frame.IsZero(); i-- {
+		frame = p.modifiers[i].frame
+	}
+
+	return frame
+}
+
+func (p *uiView) setSizePosition(flexSize size, pos *point) {
+	p.start.x = pos.x
+	p.start.y = pos.y
+	p.size.w = rpEq(p.size.w, -1, flexSize.w)
+	p.size.h = rpEq(p.size.h, -1, flexSize.h)
+
+	flexCount := p.getFlexibleCount()
+	nextFlexSize := size{
+		w: (p.size.w - flexCount.summedSize.w) / rpZero(flexCount.count.x, 1),
+		h: (p.size.h - flexCount.summedSize.h) / rpZero(flexCount.count.y, 1),
+	}
+
+	var (
+		postCache   = pos.Add(0, 0)
+		afterPos    = func() {}
+		contentSize size
+	)
+	for _, content := range p.contents {
+		invokeSomeView(content, func(c *uiView) {
+			contentSize = size{
+				w: rpEq(c.size.w, -1, nextFlexSize.w),
+				h: rpEq(c.size.h, -1, nextFlexSize.h),
+			}
+			switch p.types {
+			case typesVStack:
+				pos.x += (p.size.w - contentSize.w) / 2
+				afterPos = func() {
+					pos.x = postCache.x
+					pos.y += contentSize.h
+				}
+			case typesHStack:
+				pos.y += (p.size.h - contentSize.h) / 2
+				afterPos = func() {
+					pos.x += contentSize.w
+					pos.y = postCache.y
+				}
+			case typesZStack:
+			default:
+				pos.x += (p.size.w - contentSize.w) / 2
+				pos.y += (p.size.h - contentSize.h) / 2
+				afterPos = func() {
+					pos.x = postCache.x + contentSize.w
+					pos.y = postCache.y + contentSize.h
+				}
+			}
+
+			c.setSizePosition(nextFlexSize, pos)
+			afterPos()
+		})
+	}
+
+	logs.Default().
+		WithField("types", p.types).
+		Infof("setSizePosition: size: %v, start: %v, pos: %v, nextFlexSize: %v, lastPos: %v",
+			p.size, p.start, pos, nextFlexSize, *pos)
+}
+
+type flexibleCount struct {
+	count      point
+	summedSize size
+}
+
+func (p *uiView) getFlexibleCount() flexibleCount {
+	fc := flexibleCount{}
+	for _, content := range p.contents {
+		invokeSomeView(content, func(c *uiView) {
+			if c.size.w == -1 {
+				fc.count.x++
+			} else {
+				fc.summedSize.w += c.size.w
+			}
+
+			if c.size.h == -1 {
+				fc.count.y++
+			} else {
+				fc.summedSize.h += c.size.h
+			}
+		})
+	}
+
+	return fc
 }
 
 /*
@@ -172,10 +333,9 @@ func (p *uiView) Draw(screen *ebiten.Image) {
 }
 
 func (p *uiView) drawModifiers(screen *ebiten.Image) {
-	rootStart := loadRootStart()
 	for _, v := range p.modifiers {
-		w := rpEq(v.frame.w, -1, p.flexible.w) - v.padding.left - v.padding.right
-		h := rpEq(v.frame.h, -1, p.flexible.h) - v.padding.top - v.padding.bottom
+		w := rpEq(v.frame.w, -1, p.flexibleSize.w) - v.padding.left - v.padding.right
+		h := rpEq(v.frame.h, -1, p.flexibleSize.h) - v.padding.top - v.padding.bottom
 
 		if w <= 0 || h <= 0 {
 			continue
@@ -184,7 +344,6 @@ func (p *uiView) drawModifiers(screen *ebiten.Image) {
 		img := ebiten.NewImage(w, h)
 		img.Fill(rpZero(v.background, color.Color(color.Transparent)))
 		opt := &ebiten.DrawImageOptions{}
-		opt.GeoM.Translate(float64(rootStart.x), float64(rootStart.y))
 		opt.GeoM.Translate(float64(p.start.x), float64(p.start.y))
 		opt.GeoM.Translate(float64(v.offset.x), float64(v.offset.y))
 		opt.GeoM.Translate(float64(v.margin.left), float64(v.margin.top))

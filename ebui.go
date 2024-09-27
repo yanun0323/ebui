@@ -77,16 +77,23 @@ func (a *app) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight
 
 func EbitenUpdate(sv SomeView) {
 	if sv != nil {
-		r := root(sv)
-		_rootViewCache.Store(r)
+		w, h := ebiten.WindowSize()
+		flexSize := size{w, h}
+		pos := point{}
+		v := newView(typesNone, nil, sv.Body())
+
+		v.preloadSize()
+		v.size = flexSize
+		v.setSizePosition(flexSize, &pos)
+		_rootViewCache.Store(sv.Body())
 	}
 
 	tickTock()
 }
 
 func EbitenDraw(screen *ebiten.Image) {
-	if r, ok := _rootViewCache.Load().(*rootView); ok {
-		r.Draw(screen)
+	if r, ok := _rootViewCache.Load().(uiViewDelegator); ok {
+		r.UIView().Draw(screen)
 	}
 }
 

@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	_blue  = color.RGBA{0, 0, 128, 128}
-	_red   = color.RGBA{128, 0, 0, 128}
-	_green = color.RGBA{0, 128, 0, 128}
+	_blue   = color.RGBA{0, 0, 128, 128}
+	_red    = color.RGBA{128, 0, 0, 128}
+	_green  = color.RGBA{0, 128, 0, 128}
+	_yellow = color.RGBA{128, 128, 0, 128}
 )
 
 func main() {
@@ -27,6 +28,9 @@ func main() {
 		ebui.HStack().
 			Frame(50, 50).
 			BackgroundColor(_green),
+		ebui.HStack().
+			Frame(25, 25).
+			BackgroundColor(_yellow),
 	).BackgroundColor(_blue)
 	ebui.Run("Windows Title", contentView, true)
 }
