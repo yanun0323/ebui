@@ -4,10 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"sync"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/yanun0323/pkg/logs"
+)
+
+var (
+	_rootViewCache = atomic.Value{}
 )
 
 /* Check Interface Implementation */
@@ -19,6 +25,7 @@ type app struct {
 }
 
 func Run(title string, contentView View, debug ...bool) error {
+	logs.Info("initializing app...")
 	ebiten.SetWindowTitle(title)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	app := &app{
@@ -26,10 +33,7 @@ func Run(title string, contentView View, debug ...bool) error {
 		debug:       len(debug) != 0 && debug[0],
 	}
 
-	// if app.debug {
-	// 	logs.SetDefaultLevel(logs.LevelDebug)
-	// }
-
+	logs.Info("starting app...")
 	if err := ebiten.RunGame(app); err != nil {
 		if errors.Is(err, ebiten.Termination) {
 			return nil
@@ -46,13 +50,21 @@ func (a *app) SetWindowSize(w, h int) {
 }
 
 func (a *app) Update() error {
+	sync.OnceFunc(func() {
+		logs.Info("starting app...")
+	})
+
 	EbitenUpdate(a.contentView)
 	runtime.GC()
+
+	sync.OnceFunc(func() {
+		logs.Info("app started successfully!")
+	})
 	return nil
 }
 
 func (a *app) Draw(screen *ebiten.Image) {
-	EbitenDraw(screen, a.contentView)
+	EbitenDraw(screen)
 
 	if a.debug {
 		ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %.1f, FPS: %.1f", ebiten.ActualTPS(), ebiten.ActualFPS()))
@@ -64,15 +76,22 @@ func (a *app) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight
 }
 
 func EbitenUpdate(sv SomeView) {
-	root(sv).calculateStage()
+	if sv != nil {
+		r := root(sv)
+		_rootViewCache.Store(r)
+	}
+
 	tickTock()
 }
 
-func EbitenDraw(screen *ebiten.Image, view SomeView) {
-	if p := view.view(); p.size.w <= 0 || p.size.h <= 0 {
-		logs.Warnf("view is not ready yet: size(%d, %d)", p.size.w, p.size.h)
-		return
+func EbitenDraw(screen *ebiten.Image) {
+	if r, ok := _rootViewCache.Load().(*rootView); ok {
+		r.Draw(screen)
 	}
+}
 
-	view.draw(screen)
+func invokeSomeView(sv SomeView, fn func(*uiView)) {
+	if sv, ok := sv.(uiViewDelegator); ok {
+		fn(sv.UIView())
+	}
 }

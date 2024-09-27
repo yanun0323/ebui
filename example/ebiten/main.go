@@ -36,7 +36,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	ebui.EbitenDraw(screen, g.contentView)
+	ebui.EbitenDraw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

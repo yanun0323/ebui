@@ -12,18 +12,32 @@ func (p point) Sub(x, y int) point {
 	return point{p.x - x, p.y - y}
 }
 
-type frame struct {
+var _zeroSize = size{-1, -1}
+
+type size struct {
 	w, h int
 }
 
-func (f frame) Add(w, h int) frame {
-	return frame{f.w + w, f.h + h}
+func (f size) IsZero() bool {
+	return f.w == -1 && f.h == -1
 }
 
-func (f frame) Sub(w, h int) frame {
-	return frame{f.w - w, f.h - h}
+func (f size) Add(w, h int) size {
+	return size{f.w + w, f.h + h}
+}
+
+func (f size) Sub(w, h int) size {
+	return size{f.w - w, f.h - h}
 }
 
 type bounds struct {
 	top, right, bottom, left int
+}
+
+func (b bounds) Add(top, right, bottom, left int) bounds {
+	return bounds{b.top + top, b.right + right, b.bottom + bottom, b.left + left}
+}
+
+func (b bounds) IsZero() bool {
+	return b.top == 0 && b.right == 0 && b.bottom == 0 && b.left == 0
 }

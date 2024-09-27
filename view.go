@@ -1,7 +1,6 @@
 package ebui
 
 import (
-	"image"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -12,122 +11,72 @@ type View interface {
 	Body() SomeView
 }
 
-//go:generate domaingen -destination=view.option.go -package=ebui -name=viewOption
 type SomeView interface {
 	View
-
-	draw(screen *ebiten.Image)
-	view() *uiView
-	initBounds() (int, int)
 
 	Frame(w, h int) SomeView
 	ForegroundColor(clr color.Color) SomeView
 	BackgroundColor(clr color.Color) SomeView
-	Padding(top, right, bottom, left int) SomeView
+
+	// Padding makes view have padding.
+	//
+	// # parameter count:
+	// 	 - [1] all
+	// 	 - [2] vertical, horizontal
+	// 	 - [4] top, right, bottom, left
+	Padding(padding ...int) SomeView
+
+	Offset(x, y int) SomeView
+
 	FontSize(size font.Size) SomeView
 	FontWeight(weight font.Weight) SomeView
 
-	// CornerRadius makes view rounded.
-	//
-	// BUG: only works for outermost frame.
 	CornerRadius(radius ...int) SomeView
 	LineSpacing(spacing float64) SomeView
-	Kern(kern int) SomeView
+	Kerning(kerning int) SomeView
 	Italic() SomeView
 }
 
-type uiView struct {
-	holder SomeView
-	types  types
-
-	size frame /* auto calculated */
-
-	/* params */
-	initSize         frame /* initial bounds */
-	minSize, maxSize frame
-	pos              point /* absolute coords, relative to (0,0) */
-	xx, yy           int   /* relative coords, relative to parent (x, y) */
-	padding          bounds
-	viewModifiers    []viewModifier
-	subviews         []SomeView
-	viewOpacity      float32
-
-	/* no inherit */
-
-	fontBold        bool        /* no inherit */
-	fontWeight      font.Weight /* no inherit */
-	fontItalic      bool        /* no inherit */
-	fontKern        int         /* no inherit */
-	fontLineSpacing float64     /* no inherit */
-
-	/* inherit if nil/zero */
-
-	fColor     color.Color /* inherit if nil/zero */
-	fontSizes  font.Size   /* inherit if nil/zero */
-	isPressing bool        /* inherit if nil/zero */
+type uiViewDelegator interface {
+	UIView() *uiView
 }
 
-func newUIView(id types, holder SomeView, svs ...View) *uiView {
-	subviews := make([]SomeView, 0, len(svs))
-	for _, sv := range svs {
-		subviews = append(subviews, sv.Body())
+type uiViewModifier struct {
+	uiViewLayout
+	uiViewParameter
+}
+
+func newViewModifier() uiViewModifier {
+	return uiViewModifier{
+		uiViewLayout: _zeroUIViewLayout,
+	}
+}
+
+type uiView struct {
+	uiViewLayout
+	uiViewParameter
+	uiViewAction
+	uiViewEnvironment
+
+	owner SomeView
+	types types
+
+	flexible  size
+	modifiers []uiViewModifier
+	contents  []SomeView
+}
+
+func newView(types types, owner SomeView, contents ...View) *uiView {
+	cts := make([]SomeView, 0, len(contents))
+	for _, v := range contents {
+		cts = append(cts, v.Body())
 	}
 
 	return &uiView{
-		holder:      holder,
-		types:       id,
-		size:        frame{-1, -1},
-		initSize:    frame{-1, -1},
-		minSize:     frame{-1, -1},
-		maxSize:     frame{-1, -1},
-		viewOpacity: 1.0,
-		subviews:    subviews,
-	}
-}
-
-func (v *uiView) Draw(screen *ebiten.Image, painter func(screen *ebiten.Image)) {
-	if v.size.w <= 0 || v.size.h <= 0 {
-		return
-	}
-
-	img := ebiten.NewImage(v.size.w, v.size.h)
-	painter(img)
-
-	op := &ebiten.DrawImageOptions{}
-	op.ColorScale.ScaleAlpha(v.opacity())
-	switch v.types {
-
-	default:
-		op.GeoM.Translate(float64(v.xx), float64(v.yy))
-	}
-
-	// makeImageRounded(img, v.cornerRadius)
-	screen.DrawImage(img, op)
-}
-
-func (v uiView) Copy() *uiView {
-	return &v
-}
-
-func (v uiView) DrawnArea() image.Rectangle {
-	return image.Rect(v.pos.x, v.pos.y, v.pos.x+v.size.w, v.pos.y+v.size.h)
-}
-
-func (v uiView) Contain(x, y int) bool {
-	px, py := v.X(), v.Y()
-	pw, ph := v.Width(), v.Height()
-	return px <= x && x <= px+pw && py <= y && y <= py+ph
-}
-
-func (v *uiView) ApplyViewModifiers(screen *ebiten.Image) {
-	for _, vm := range v.viewModifiers {
-		vm(screen, v)
-	}
-
-	if screen != nil {
-		for _, sv := range v.subviews {
-			sv.draw(screen)
-		}
+		uiViewLayout: _zeroUIViewLayout,
+		types:        types,
+		owner:        owner,
+		contents:     cts,
 	}
 }
 
@@ -141,98 +90,114 @@ func (v *uiView) ApplyViewModifiers(screen *ebiten.Image) {
 	##        ##     ## ##     ## ##     ## ##     ## ########    ##    ######## ##     ##  ######
 */
 
-func (v uiView) X() int {
-	if v.padding.left >= v.size.w {
-		return v.size.w
+func (p *uiView) first() *uiViewModifier {
+	if len(p.modifiers) == 0 {
+		p.pushFirst()
 	}
-
-	return v.pos.x + v.padding.left
+	return &p.modifiers[0]
 }
 
-func (v uiView) Y() int {
-	if v.padding.top >= v.size.h {
-		return v.size.h
+func (p *uiView) last() *uiViewModifier {
+	if len(p.modifiers) == 0 {
+		p.pushLast()
 	}
-
-	return v.pos.y + v.padding.top
+	return &p.modifiers[len(p.modifiers)-1]
 }
 
-func (v uiView) Width() int {
-	result := v.size.w - v.padding.left - v.padding.right
-	if result <= 0 {
-		result = 0
+func (p *uiView) pushFirst(v ...uiViewModifier) {
+	vv := uiViewModifier{uiViewLayout: _zeroUIViewLayout}
+	if len(v) != 0 {
+		vv = v[0]
 	}
 
-	return result
+	p.modifiers = append(append(make([]uiViewModifier, 0, len(p.modifiers)*2), vv), p.modifiers...)
 }
 
-func (v uiView) Height() int {
-	result := v.size.h - v.padding.top - v.padding.bottom
-	if result <= 0 {
-		result = 0
+func (p *uiView) pushLast(v ...uiViewModifier) {
+	vv := uiViewModifier{uiViewLayout: _zeroUIViewLayout}
+	if len(v) != 0 {
+		vv = v[0]
 	}
 
-	return result
+	if len(p.modifiers) != 0 {
+		anchor := p.modifiers[len(p.modifiers)-1]
+		vv.frame = anchor.frame
+		vv.margin = anchor.padding
+
+	}
+
+	p.modifiers = append(p.modifiers, vv)
 }
 
-func (v uiView) foregroundColor() color.Color {
-	if v.fColor == nil {
-		return _defaultForegroundColor
+func (p *uiView) Start(x, y int, replace ...bool) {
+	if len(replace) != 0 && replace[0] {
+		p.start.x = x
+		p.start.y = y
+	} else {
+		p.start.x += x
+		p.start.y += y
 	}
-
-	return v.fColor
 }
 
-func (v uiView) fontSize() font.Size {
-	if v.fontSizes <= 0 {
-		return font.Body
-	}
-
-	return v.fontSizes
+func (p uiView) Copy() *uiView {
+	return &p
 }
 
-func (v uiView) weight() float32 {
-	if v.fontBold {
-		return font.Bold.F32()
+func (p *uiView) GetFrameWithMargin() size {
+	frame := _zeroSize
+	margin := bounds{}
+	for i := len(p.modifiers) - 1; i >= 0; i-- {
+		if frame.IsZero() {
+			frame = p.modifiers[i].frame
+			if !margin.IsZero() {
+				margin = p.modifiers[i].margin
+			}
+		}
+
+		if frame.w != -1 || frame.h != -1 {
+			break
+		}
 	}
 
-	if v.fontWeight <= 0 {
-		return font.Normal.F32()
-	}
-
-	return float32(v.fontWeight)
+	return frame.Add(margin.left+margin.right, margin.top+margin.bottom)
 }
 
-func (v uiView) lineSpacing() float64 {
-	return v.fontLineSpacing
+func (p *uiView) ActionUpdate() {
+	// TODO: Update for actions
 }
 
-func (v uiView) kern() int {
-	return v.fontKern
+func (p *uiView) Draw(screen *ebiten.Image) {
+	p.drawModifiers(screen)
+	p.drawContent(screen)
 }
 
-func (v uiView) italic() float32 {
-	if v.fontItalic {
-		return 1
-	}
+func (p *uiView) drawModifiers(screen *ebiten.Image) {
+	rootStart := loadRootStart()
+	for _, v := range p.modifiers {
+		w := rpEq(v.frame.w, -1, p.flexible.w) - v.padding.left - v.padding.right
+		h := rpEq(v.frame.h, -1, p.flexible.h) - v.padding.top - v.padding.bottom
 
-	return 0
+		if w <= 0 || h <= 0 {
+			continue
+		}
+
+		img := ebiten.NewImage(w, h)
+		img.Fill(rpZero(v.background, color.Color(color.Transparent)))
+		opt := &ebiten.DrawImageOptions{}
+		opt.GeoM.Translate(float64(rootStart.x), float64(rootStart.y))
+		opt.GeoM.Translate(float64(p.start.x), float64(p.start.y))
+		opt.GeoM.Translate(float64(v.offset.x), float64(v.offset.y))
+		opt.GeoM.Translate(float64(v.margin.left), float64(v.margin.top))
+		screen.DrawImage(img, opt)
+	}
 }
 
-func (v uiView) opacity() float32 {
-	if v.viewOpacity <= 0 {
-		return 0
+func (p *uiView) drawContent(screen *ebiten.Image) {
+	for _, p := range p.contents {
+		invokeSomeView(p, func(ui *uiView) {
+			ui.Draw(screen)
+		})
 	}
-
-	if v.viewOpacity > 1 {
-		return 1
-	}
-
-	if v.isPressing {
-		return v.viewOpacity * 0.75
-	}
-
-	return v.viewOpacity
 }
 
 /*
@@ -245,78 +210,150 @@ func (v uiView) opacity() float32 {
 	#### ##     ## ##        ######## ######## ##     ## ######## ##    ##    ##
 */
 
+/* Check Interface Implement */
+var _ uiViewDelegator = (*uiView)(nil)
+
+func (p *uiView) UIView() *uiView {
+	return p
+}
+
 /* Check Interface Implementation */
 var _ SomeView = (*uiView)(nil)
 
-func (v *uiView) Body() SomeView {
-	return v.holder
+func (p *uiView) Body() SomeView {
+	return p.owner
 }
 
-func (uiView) draw(*ebiten.Image) {}
+func (p *uiView) Frame(w, h int) SomeView {
+	if w < 0 {
+		w = -1
+	}
 
-func (v *uiView) initBounds() (int, int) {
-	cache := v.Copy()
-	cache.ApplyViewModifiers(nil)
+	if h < 0 {
+		h = -1
+	}
 
-	return rpNeq(cache.initSize.w, -1, cache.size.w), rpNeq(cache.initSize.h, -1, cache.size.h)
+	last := p.last()
+	last.frame = size{w, h}
+	last.padding = bounds{}
+	return p.owner
 }
 
-func (v *uiView) view() *uiView {
-	return v
+func (p *uiView) ForegroundColor(clr color.Color) SomeView {
+	return p.owner
 }
 
-func (v *uiView) Frame(w, h int) SomeView {
-	v.initSize = frame{w, h}
-	v.viewModifiers = append(v.viewModifiers, frameViewModifier(w, h))
-	return v.holder
+func (p *uiView) BackgroundColor(clr color.Color) SomeView {
+	last := p.last()
+	last.background = rpZero(last.background, clr)
+
+	// add frame to front views
+	w := last.frame.w
+	if w != -1 {
+		for i := len(p.modifiers) - 2; i >= 0; i-- {
+			if p.modifiers[i].frame.w != -1 {
+				break
+			}
+
+			p.modifiers[i].frame.w = w
+		}
+	}
+
+	h := last.frame.h
+	if h != -1 {
+		for i := len(p.modifiers) - 2; i >= 0; i-- {
+			if p.modifiers[i].frame.h != -1 {
+				break
+			}
+
+			p.modifiers[i].frame.h = h
+		}
+	}
+
+	p.pushLast()
+
+	return p.owner
 }
 
-func (v *uiView) ForegroundColor(clr color.Color) SomeView {
-	v.fColor = clr
-	return v.holder
+func (p *uiView) Padding(paddings ...int) SomeView {
+	top, right, bottom, left := 0, 0, 0, 0
+
+	switch len(paddings) {
+	case 1: /* all */
+		top = paddings[0]
+		right = paddings[0]
+		bottom = paddings[0]
+		left = paddings[0]
+	case 2: /* vertical, horizontal */
+		top = paddings[0]
+		right = paddings[1]
+		bottom = paddings[0]
+		left = paddings[1]
+	case 4: /* top, right, bottom, left */
+		top = paddings[0]
+		right = paddings[1]
+		bottom = paddings[2]
+		left = paddings[3]
+	}
+
+	if top < 0 {
+		top = 0
+	}
+
+	if right < 0 {
+		right = 0
+	}
+
+	if bottom < 0 {
+		bottom = 0
+	}
+
+	if left < 0 {
+		left = 0
+	}
+
+	last := p.last()
+	if last.frame.w != -1 || last.frame.h != -1 {
+		last.margin = last.margin.Add(top, right, bottom, left)
+	} else {
+		last.padding = last.padding.Add(top, right, bottom, left)
+	}
+
+	return p.owner
 }
 
-func (v *uiView) BackgroundColor(clr color.Color) SomeView {
-	v.viewModifiers = append(v.viewModifiers, backgroundColorViewModifier(clr))
-	return v.holder
+func (p *uiView) Offset(x, y int) SomeView {
+	p.offset.x += x
+	p.offset.y += y
+	return p.owner
 }
 
-func (v *uiView) Padding(top, right, bottom, left int) SomeView {
-	v.viewModifiers = append(v.viewModifiers, paddingViewModifier(top, right, bottom, left))
-	return v.holder
+func (p *uiView) FontSize(size font.Size) SomeView {
+	p.fontSize = size
+	return p.owner
 }
 
-func (v *uiView) FontSize(size font.Size) SomeView {
-	v.fontSizes = size
-	return v.holder
+func (p *uiView) FontWeight(weight font.Weight) SomeView {
+	p.fontWeight = weight
+	return p.owner
 }
 
-func (v *uiView) FontWeight(weight font.Weight) SomeView {
-	v.fontWeight = weight
-	return v.holder
+func (p *uiView) CornerRadius(radius ...int) SomeView {
+	p.cornerRadius = sliceFirst(radius, 7)
+	return p.owner
 }
 
-func (v *uiView) LineSpacing(spacing float64) SomeView {
-	v.fontLineSpacing = spacing
-	return v.holder
+func (p *uiView) LineSpacing(spacing float64) SomeView {
+	p.lineSpacing = spacing
+	return p.owner
 }
 
-func (v *uiView) Kern(kern int) SomeView {
-	v.fontKern = kern
-	return v.holder
+func (p *uiView) Kerning(kerning int) SomeView {
+	p.kerning = kerning
+	return p.owner
 }
 
-func (v *uiView) Italic() SomeView {
-	v.fontItalic = true
-	return v.holder
-}
-
-func (v *uiView) Bold() SomeView {
-	v.fontBold = true
-	return v.holder
-}
-
-func (v *uiView) CornerRadius(radius ...int) SomeView {
-	v.viewModifiers = append(v.viewModifiers, cornerRadiusViewModifier(radius...))
-	return v.holder
+func (p *uiView) Italic() SomeView {
+	p.italic = true
+	return p.owner
 }

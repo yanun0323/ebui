@@ -24,6 +24,22 @@ func tickTock() {
 }
 
 /*
+	ROOT START
+*/
+
+var (
+	_rootStart = atomic.Value{}
+)
+
+func loadRootStart() point {
+	if p, ok := _rootStart.Load().(point); ok {
+		return p
+	}
+
+	return point{}
+}
+
+/*
 	FONT
 */
 
