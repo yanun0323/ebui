@@ -192,6 +192,8 @@ func (r *rootView) calculateParameters() {
 						svp.flexible.h = rpEq(svp.flexible.h, -1, height)
 					}
 
+					ll.Infof("svp.flexible: %v, svp.start %v", svp.flexible, svp.start)
+
 					// deep calculate subviews
 					deepCalculate(svp, nextAnchor)
 
