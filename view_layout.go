@@ -9,6 +9,6 @@ type uiViewLayout struct {
 	offset     point       // modifier 設定的 offset
 	frame      size        // modifier 設定的 frame
 	padding    bounds      // modifier 設定的 padding
-	margin     bounds      // 計算的 margin
+	margin     bounds      // modifier 設定的 外部 padding
 	background color.Color // modifier 設定的 background
 }

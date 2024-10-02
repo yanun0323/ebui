@@ -14,6 +14,14 @@ package ebui
 // 	return num
 // }
 
+func ifs[T any](cond bool, trueV, falseV T) T {
+	if cond {
+		return trueV
+	}
+
+	return falseV
+}
+
 // rpZero returns result if v is zero value, otherwise returns v.
 func rpZero[T comparable](v, result T) T {
 	var zero T

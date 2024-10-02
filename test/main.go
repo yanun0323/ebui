@@ -26,18 +26,18 @@ func main() {
 			Frame(100, 100).
 			BackgroundColor(_red),
 		ebui.HStack(
-		// ebui.VStack().
-		// 	Frame(10, 10).
-		// 	BackgroundColor(_green),
-		// ebui.VStack().
-		// 	Frame(10, 10).
-		// 	BackgroundColor(_yellow),
+			ebui.VStack().
+				Frame(10, 10).
+				BackgroundColor(_green),
+			ebui.VStack().
+				Frame(10, 10).
+				BackgroundColor(_yellow),
 		).
 			Frame(50, 50).
 			BackgroundColor(_green),
 		ebui.HStack().
 			Frame(25, 25).
 			BackgroundColor(_yellow),
-	).BackgroundColor(_blue)
+	).Frame(200, 300).BackgroundColor(_blue)
 	ebui.Run("Windows Title", contentView, true)
 }

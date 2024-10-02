@@ -63,10 +63,11 @@ type uiView struct {
 	owner SomeView
 	types types
 
-	size         size
-	flexibleSize size
-	modifiers    []uiViewModifier
-	contents     []SomeView
+	size      size
+	anchor    point
+	inner     point
+	modifiers []uiViewModifier
+	contents  []SomeView
 }
 
 func newView(types types, owner SomeView, contents ...View) *uiView {
@@ -103,6 +104,7 @@ func (p *uiView) preloadSize() preloadSizes {
 		WithField("types", p.types)
 
 	preload := preloadSizes{}
+	flex := flexibleCount{}
 
 	wSpacer, hSpacer := false, false
 	for _, content := range p.contents {
@@ -110,17 +112,20 @@ func (p *uiView) preloadSize() preloadSizes {
 			p := c.preloadSize()
 			if p.size.w != -1 {
 				preload.minSize.w += rpEq(p.size.w, -1, 0)
+				flex.summedSize.w += p.size.w
 			} else {
 				wSpacer = true
-
 				preload.minSize.w += rpEq(p.minSize.w, -1, 0)
+				flex.count.x++
 			}
 
 			if p.size.h != -1 {
 				preload.minSize.h += rpEq(p.size.h, -1, 0)
+				flex.summedSize.h += p.size.h
 			} else {
 				hSpacer = true
 				preload.minSize.h += rpEq(p.minSize.h, -1, 0)
+				flex.count.y++
 			}
 		})
 	}
@@ -148,18 +153,10 @@ func (p *uiView) preloadSize() preloadSizes {
 	return preload
 }
 
-func (p *uiView) getFrame() size {
-	frame := _zeroSize
-	for i := len(p.modifiers) - 1; i >= 0 && frame.IsZero(); i-- {
-		frame = p.modifiers[i].frame
-	}
+func (p *uiView) presetSize(flexSize size) {
+	l := logs.Default().
+		WithField("types", p.types)
 
-	return frame
-}
-
-func (p *uiView) setSizePosition(flexSize size, pos *point) {
-	p.start.x = pos.x
-	p.start.y = pos.y
 	p.size.w = rpEq(p.size.w, -1, flexSize.w)
 	p.size.h = rpEq(p.size.h, -1, flexSize.h)
 
@@ -169,23 +166,62 @@ func (p *uiView) setSizePosition(flexSize size, pos *point) {
 		h: (p.size.h - flexCount.summedSize.h) / rpZero(flexCount.count.y, 1),
 	}
 
+	summed := size{}
+	for _, content := range p.contents {
+		invokeSomeView(content, func(c *uiView) {
+			c.presetSize(nextFlexSize)
+			summed = summed.Adds(c.size)
+		})
+	}
+
+	p.inner = point{
+		x: ifs(flexCount.count.x != 0, 0, (p.size.w-summed.w)/2),
+		y: ifs(flexCount.count.y != 0, 0, (p.size.h-summed.h)/2),
+	}
+
+	for _, content := range p.contents {
+		invokeSomeView(content, func(c *uiView) {
+			c.anchor = point{
+				x: (p.size.w - c.size.w) / 2,
+				y: (p.size.h - c.size.h) / 2,
+			}
+		})
+	}
+
+	l.Infof("presetSize: size: %v, inner: %v", p.size, p.inner)
+}
+
+func (p *uiView) getFrame() size {
+	frame := _zeroSize
+	for i := len(p.modifiers) - 1; i >= 0 && frame.IsZero(); i-- {
+		frame = p.modifiers[i].frame
+	}
+
+	return frame
+}
+
+func (p *uiView) setSizePosition(pos *point) {
+	p.start.x = pos.x
+	p.start.y = pos.y
+
 	var (
-		l           = logs.Default().WithField("types", p.types)
-		postCache   = pos.Add(0, 0)
-		setPos      = func(contentSize size) {} /* set init pos of child */
-		remainPos   = func(contentSize size) {} /* set pos after each child */
-		recoverPos  = func(contentSize size) {} /* set pos after all children */
-		contentSize = size{}
+		l          = logs.Default().WithField("types", p.types)
+		postCache  = pos.Add(0, 0)
+		setPos     = func(contentSize size) {} /* set init pos of child */
+		remainPos  = func(contentSize size) {} /* set pos after each child */
+		recoverPos = func() {}                 /* set pos after all children */
+		summed     = size{}
 	)
 
 	_ = l
 	_ = setPos
 	_ = recoverPos
 	_ = remainPos
-	_ = contentSize
 
 	switch p.types {
 	case typesVStack:
+		pos.y += p.inner.y
+
 		setPos = func(contentSize size) {
 			pos.x += (p.size.w - contentSize.w) / 2
 		}
@@ -195,11 +231,13 @@ func (p *uiView) setSizePosition(flexSize size, pos *point) {
 			pos.y += contentSize.h
 		}
 
-		recoverPos = func(contentSize size) {
+		recoverPos = func() {
 			pos.x = postCache.x
 			pos.y = postCache.y + p.size.h
 		}
 	case typesHStack:
+		pos.x += p.inner.x
+
 		setPos = func(contentSize size) {
 			pos.y += (p.size.h - contentSize.h) / 2
 		}
@@ -209,11 +247,14 @@ func (p *uiView) setSizePosition(flexSize size, pos *point) {
 			pos.y = postCache.y
 		}
 
-		recoverPos = func(contentSize size) {
+		recoverPos = func() {
 			pos.x = postCache.x + p.size.w
 			pos.y = postCache.y
 		}
-	case typesNone:
+	default:
+		pos.x += p.inner.x
+		pos.y += p.inner.y
+
 		setPos = func(contentSize size) {
 			pos.x += (p.size.w - contentSize.w) / 2
 			pos.y += (p.size.h - contentSize.h) / 2
@@ -224,7 +265,7 @@ func (p *uiView) setSizePosition(flexSize size, pos *point) {
 			pos.y += contentSize.h
 		}
 
-		recoverPos = func(contentSize size) {
+		recoverPos = func() {
 			pos.x = postCache.x + p.size.w
 			pos.y = postCache.y + p.size.h
 		}
@@ -232,29 +273,21 @@ func (p *uiView) setSizePosition(flexSize size, pos *point) {
 
 	for _, content := range p.contents {
 		invokeSomeView(content, func(c *uiView) {
-			contentSize = size{
-				w: rpEq(c.size.w, -1, nextFlexSize.w),
-				h: rpEq(c.size.h, -1, nextFlexSize.h),
-			}
 			pre := pos.Add(0, 0)
-			setPos(contentSize)
-			l.WithField("content", fmt.Sprintf("(%d %d)", contentSize.w, contentSize.h)).
+			setPos(c.size)
+			l.WithField("content", fmt.Sprintf("(%d %d)", c.size.w, c.size.h)).
 				WithField("size", fmt.Sprintf("(%d %d)", p.size.w, p.size.h)).
 				Infof("子視圖前，設定開始錨點: (%d %d) -> (%d %d): (%d %d)", pre.x, pre.y, pos.x, pos.y, pos.x-pre.x, pos.y-pre.y)
-			c.setSizePosition(nextFlexSize, pos)
+			c.setSizePosition(pos)
 			l.Infof("子視圖後錨點: (%d %d)", pos.x, pos.y)
-			remainPos(contentSize)
+			summed = summed.Adds(c.size)
+			remainPos(c.size)
 			l.Infof("子視圖前，還原錨點: (%d %d)", pos.x, pos.y)
 		})
 	}
-	recoverPos(contentSize)
+	recoverPos()
 	l.Infof("設定結束錨點: (%d %d)", pos.x, pos.y)
 	println()
-
-	// logs.Default().
-	// 	WithField("types", p.types).
-	// 	Infof("setSizePosition: size: %v, start: %v, pos: %v, nextFlexSize: %v, lastPos: %v",
-	// 		p.size, p.start, pos, nextFlexSize, *pos)
 }
 
 type flexibleCount struct {
@@ -376,8 +409,8 @@ func (p *uiView) Draw(screen *ebiten.Image) {
 
 func (p *uiView) drawModifiers(screen *ebiten.Image) {
 	for _, v := range p.modifiers {
-		w := rpEq(v.frame.w, -1, p.flexibleSize.w) - v.padding.left - v.padding.right
-		h := rpEq(v.frame.h, -1, p.flexibleSize.h) - v.padding.top - v.padding.bottom
+		w := rpEq(v.frame.w, -1, p.size.w) - v.padding.left - v.padding.right
+		h := rpEq(v.frame.h, -1, p.size.h) - v.padding.top - v.padding.bottom
 
 		if w <= 0 || h <= 0 {
 			continue

@@ -78,16 +78,16 @@ func (a *app) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight
 func EbitenUpdate(sv SomeView) {
 	if sv != nil {
 		w, h := ebiten.WindowSize()
-		flexSize := size{w, h}
-		pos := point{}
 		v := newView(typesNone, nil, sv.Body())
 
 		logs.Info("=== preloading...")
 		v.preloadSize()
-		v.size = flexSize
+
+		logs.Info("=== presetting...")
+		v.presetSize(size{w, h})
 
 		logs.Info("=== setting size position...")
-		v.setSizePosition(flexSize, &pos)
+		v.setSizePosition(&point{(w - v.size.w) / 2, (h - v.size.h) / 2})
 		_rootViewCache.Store(sv.Body())
 	}
 
