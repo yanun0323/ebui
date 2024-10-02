@@ -82,8 +82,11 @@ func EbitenUpdate(sv SomeView) {
 		pos := point{}
 		v := newView(typesNone, nil, sv.Body())
 
+		logs.Info("=== preloading...")
 		v.preloadSize()
 		v.size = flexSize
+
+		logs.Info("=== setting size position...")
 		v.setSizePosition(flexSize, &pos)
 		_rootViewCache.Store(sv.Body())
 	}

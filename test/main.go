@@ -16,16 +16,23 @@ var (
 func main() {
 	contentView := ebui.VStack(
 		ebui.HStack(
-		// ebui.VStack().
-		// 	Frame(50, 50).
-		// 	BackgroundColor(color.RGBA{0, 128, 0, 128}),
-		// ebui.VStack().
-		// 	Frame(50, 50).
-		// 	BackgroundColor(color.RGBA{0, 128, 128, 128}),
+			ebui.VStack().
+				Frame(25, 25).
+				BackgroundColor(color.RGBA{0, 128, 0, 128}),
+			ebui.VStack().
+				Frame(25, 25).
+				BackgroundColor(color.RGBA{0, 128, 128, 128}),
 		).
 			Frame(100, 100).
 			BackgroundColor(_red),
-		ebui.HStack().
+		ebui.HStack(
+		// ebui.VStack().
+		// 	Frame(10, 10).
+		// 	BackgroundColor(_green),
+		// ebui.VStack().
+		// 	Frame(10, 10).
+		// 	BackgroundColor(_yellow),
+		).
 			Frame(50, 50).
 			BackgroundColor(_green),
 		ebui.HStack().

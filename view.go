@@ -1,6 +1,7 @@
 package ebui
 
 import (
+	"fmt"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -101,18 +102,12 @@ func (p *uiView) preloadSize() preloadSizes {
 	l := logs.Default().
 		WithField("types", p.types)
 
-	preload := preloadSizes{
-		minSize: p.getFrame(),
-	}
-
-	preload.minSize.w = rpEq(preload.minSize.w, -1, 0)
-	preload.minSize.h = rpEq(preload.minSize.h, -1, 0)
+	preload := preloadSizes{}
 
 	wSpacer, hSpacer := false, false
 	for _, content := range p.contents {
 		invokeSomeView(content, func(c *uiView) {
 			p := c.preloadSize()
-			l.Infof("preloadSize: size: %v", p.size)
 			if p.size.w != -1 {
 				preload.minSize.w += rpEq(p.size.w, -1, 0)
 			} else {
@@ -129,6 +124,10 @@ func (p *uiView) preloadSize() preloadSizes {
 			}
 		})
 	}
+
+	pSize := p.getFrame()
+	preload.minSize.w = max(preload.minSize.w, pSize.w)
+	preload.minSize.h = max(preload.minSize.h, pSize.h)
 
 	if wSpacer {
 		preload.size.w = -1
@@ -171,48 +170,91 @@ func (p *uiView) setSizePosition(flexSize size, pos *point) {
 	}
 
 	var (
+		l           = logs.Default().WithField("types", p.types)
 		postCache   = pos.Add(0, 0)
-		afterPos    = func() {}
-		contentSize size
+		setPos      = func(contentSize size) {} /* set init pos of child */
+		remainPos   = func(contentSize size) {} /* set pos after each child */
+		recoverPos  = func(contentSize size) {} /* set pos after all children */
+		contentSize = size{}
 	)
+
+	_ = l
+	_ = setPos
+	_ = recoverPos
+	_ = remainPos
+	_ = contentSize
+
+	switch p.types {
+	case typesVStack:
+		setPos = func(contentSize size) {
+			pos.x += (p.size.w - contentSize.w) / 2
+		}
+
+		remainPos = func(contentSize size) {
+			pos.x = postCache.x
+			pos.y += contentSize.h
+		}
+
+		recoverPos = func(contentSize size) {
+			pos.x = postCache.x
+			pos.y = postCache.y + p.size.h
+		}
+	case typesHStack:
+		setPos = func(contentSize size) {
+			pos.y += (p.size.h - contentSize.h) / 2
+		}
+
+		remainPos = func(contentSize size) {
+			pos.x += contentSize.w
+			pos.y = postCache.y
+		}
+
+		recoverPos = func(contentSize size) {
+			pos.x = postCache.x + p.size.w
+			pos.y = postCache.y
+		}
+	case typesNone:
+		setPos = func(contentSize size) {
+			pos.x += (p.size.w - contentSize.w) / 2
+			pos.y += (p.size.h - contentSize.h) / 2
+		}
+
+		remainPos = func(contentSize size) {
+			pos.x += contentSize.w
+			pos.y += contentSize.h
+		}
+
+		recoverPos = func(contentSize size) {
+			pos.x = postCache.x + p.size.w
+			pos.y = postCache.y + p.size.h
+		}
+	}
+
 	for _, content := range p.contents {
 		invokeSomeView(content, func(c *uiView) {
 			contentSize = size{
 				w: rpEq(c.size.w, -1, nextFlexSize.w),
 				h: rpEq(c.size.h, -1, nextFlexSize.h),
 			}
-			switch p.types {
-			case typesVStack:
-				pos.x += (p.size.w - contentSize.w) / 2
-				afterPos = func() {
-					pos.x = postCache.x
-					pos.y += contentSize.h
-				}
-			case typesHStack:
-				pos.y += (p.size.h - contentSize.h) / 2
-				afterPos = func() {
-					pos.x += contentSize.w
-					pos.y = postCache.y
-				}
-			case typesZStack:
-			default:
-				pos.x += (p.size.w - contentSize.w) / 2
-				pos.y += (p.size.h - contentSize.h) / 2
-				afterPos = func() {
-					pos.x = postCache.x + contentSize.w
-					pos.y = postCache.y + contentSize.h
-				}
-			}
-
+			pre := pos.Add(0, 0)
+			setPos(contentSize)
+			l.WithField("content", fmt.Sprintf("(%d %d)", contentSize.w, contentSize.h)).
+				WithField("size", fmt.Sprintf("(%d %d)", p.size.w, p.size.h)).
+				Infof("子視圖前，設定開始錨點: (%d %d) -> (%d %d): (%d %d)", pre.x, pre.y, pos.x, pos.y, pos.x-pre.x, pos.y-pre.y)
 			c.setSizePosition(nextFlexSize, pos)
-			afterPos()
+			l.Infof("子視圖後錨點: (%d %d)", pos.x, pos.y)
+			remainPos(contentSize)
+			l.Infof("子視圖前，還原錨點: (%d %d)", pos.x, pos.y)
 		})
 	}
+	recoverPos(contentSize)
+	l.Infof("設定結束錨點: (%d %d)", pos.x, pos.y)
+	println()
 
-	logs.Default().
-		WithField("types", p.types).
-		Infof("setSizePosition: size: %v, start: %v, pos: %v, nextFlexSize: %v, lastPos: %v",
-			p.size, p.start, pos, nextFlexSize, *pos)
+	// logs.Default().
+	// 	WithField("types", p.types).
+	// 	Infof("setSizePosition: size: %v, start: %v, pos: %v, nextFlexSize: %v, lastPos: %v",
+	// 		p.size, p.start, pos, nextFlexSize, *pos)
 }
 
 type flexibleCount struct {
