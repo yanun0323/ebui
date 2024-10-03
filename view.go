@@ -104,35 +104,41 @@ func (p *uiView) preloadSize() preloadSizes {
 		WithField("types", p.types)
 
 	preload := preloadSizes{}
-	flex := flexibleCount{}
+	maxed := _zeroSize
 
 	wSpacer, hSpacer := false, false
 	for _, content := range p.contents {
 		invokeSomeView(content, func(c *uiView) {
-			p := c.preloadSize()
-			if p.size.w != -1 {
-				preload.minSize.w += rpEq(p.size.w, -1, 0)
-				flex.summedSize.w += p.size.w
+			cp := c.preloadSize()
+			if cp.size.w != -1 {
+				preload.minSize.w += cp.size.w
+				maxed.w = max(maxed.w, cp.size.w)
 			} else {
 				wSpacer = true
-				preload.minSize.w += rpEq(p.minSize.w, -1, 0)
-				flex.count.x++
+				preload.minSize.w += rpEq(cp.minSize.w, -1, 0)
+				maxed.w = max(maxed.w, cp.minSize.w)
 			}
 
-			if p.size.h != -1 {
-				preload.minSize.h += rpEq(p.size.h, -1, 0)
-				flex.summedSize.h += p.size.h
+			if cp.size.h != -1 {
+				preload.minSize.h += cp.size.h
+				maxed.h = max(maxed.h, cp.size.h)
 			} else {
 				hSpacer = true
-				preload.minSize.h += rpEq(p.minSize.h, -1, 0)
-				flex.count.y++
+				preload.minSize.h += rpEq(cp.minSize.h, -1, 0)
+				maxed.h = max(maxed.h, cp.minSize.h)
 			}
 		})
 	}
 
 	pSize := p.getFrame()
-	preload.minSize.w = max(preload.minSize.w, pSize.w)
-	preload.minSize.h = max(preload.minSize.h, pSize.h)
+	switch p.types {
+	case typesZStack:
+		preload.minSize.w = max(maxed.w, pSize.w)
+		preload.minSize.h = max(maxed.h, pSize.h)
+	default:
+		preload.minSize.w = max(preload.minSize.w, pSize.w)
+		preload.minSize.h = max(preload.minSize.h, pSize.h)
+	}
 
 	if wSpacer {
 		preload.size.w = -1
@@ -167,16 +173,27 @@ func (p *uiView) presetSize(flexSize size) {
 	}
 
 	summed := size{}
+	maxed := size{}
 	for _, content := range p.contents {
 		invokeSomeView(content, func(c *uiView) {
 			c.presetSize(nextFlexSize)
 			summed = summed.Adds(c.size)
+			maxed.w = max(maxed.w, c.size.w)
+			maxed.h = max(maxed.h, c.size.h)
 		})
 	}
 
-	p.inner = point{
-		x: ifs(flexCount.count.x != 0, 0, (p.size.w-summed.w)/2),
-		y: ifs(flexCount.count.y != 0, 0, (p.size.h-summed.h)/2),
+	switch p.types {
+	case typesZStack:
+		// p.inner = point{
+		// 	x: ifs(flexCount.count.x != 0, 0, (p.size.w-maxed.w)/2),
+		// 	y: ifs(flexCount.count.y != 0, 0, (p.size.h-maxed.h)/2),
+		// }
+	default:
+		p.inner = point{
+			x: ifs(flexCount.count.x != 0, 0, (p.size.w-summed.w)/2),
+			y: ifs(flexCount.count.y != 0, 0, (p.size.h-summed.h)/2),
+		}
 	}
 
 	for _, content := range p.contents {
@@ -250,6 +267,21 @@ func (p *uiView) setSizePosition(pos *point) {
 		recoverPos = func() {
 			pos.x = postCache.x + p.size.w
 			pos.y = postCache.y
+		}
+	case typesZStack:
+		setPos = func(contentSize size) {
+			pos.x += (p.size.w - contentSize.w) / 2
+			pos.y += (p.size.h - contentSize.h) / 2
+		}
+
+		remainPos = func(contentSize size) {
+			pos.x = postCache.x
+			pos.y = postCache.y
+		}
+
+		recoverPos = func() {
+			pos.x = postCache.x + p.size.w
+			pos.y = postCache.y + p.size.h
 		}
 	default:
 		pos.x += p.inner.x
