@@ -3,7 +3,7 @@ package ebui
 /* Check Interface Implementation */
 var _ SomeView = (*emptyView)(nil)
 
-func Empty() *emptyView {
+func EmptyView() *emptyView {
 	v := &emptyView{}
 	v.uiView = newView(typesEmpty, v)
 	return v
