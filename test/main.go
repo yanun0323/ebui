@@ -35,6 +35,7 @@ func main() {
 		).
 			Frame(50, 50).
 			BackgroundColor(_green),
+		ebui.Spacer(),
 		ebui.HStack().
 			Frame(25, 25).
 			BackgroundColor(_yellow),

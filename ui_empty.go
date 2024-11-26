@@ -1,15 +1,22 @@
 package ebui
 
-// /* Check Interface Implementation */
-// var _ SomeView = (*emptyView)(nil)
+/* Check Interface Implementation */
+var _ SomeView = (*emptyView)(nil)
 
-// func Empty() *emptyView {
-// 	v := &emptyView{}
-// 	v.uiViewBack = newUIView(typesEmpty, v)
-// 	v.uiViewBack.size.w, v.uiViewBack.size.h = 0, 0
-// 	return v
-// }
+func Empty() *emptyView {
+	v := &emptyView{}
+	v.uiView = newView(typesEmpty, v)
+	return v
+}
 
-// type emptyView struct {
-// 	*uiViewBack
-// }
+type emptyView struct {
+	*uiView
+}
+
+func (p *emptyView) getSize() size {
+	return size{}
+}
+
+func (p *emptyView) Frame(w, h int) SomeView {
+	return p
+}

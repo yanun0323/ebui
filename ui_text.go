@@ -7,24 +7,24 @@ package ebui
 // )
 
 // /* Check Interface Implementation */
-// var (
-// 	_ SomeView = (*textView)(nil)
-// )
+var (
+	_ SomeView = (*textView)(nil)
+)
 
-// func Text(t string) *textView {
-// 	v := &textView{
-// 		t: t,
-// 	}
+func Text(t string) *textView {
+	v := &textView{
+		t: t,
+	}
 
-// 	v.uiViewBack = newUIView(typesText, v)
-// 	return v
-// }
+	v.uiView = newView(typesText, v)
+	return v
+}
 
-// type textView struct {
-// 	*uiViewBack
+type textView struct {
+	*uiView
 
-// 	t string
-// }
+	t string
+}
 
 // func (*textView) textFace(opt *uiViewBack, size ...font.Size) *text.GoTextFace {
 // 	if len(size) != 0 {

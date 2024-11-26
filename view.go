@@ -39,6 +39,7 @@ type SomeView interface {
 
 	// FIXME: SomeView private method
 
+	getTypes() types
 	// clearCache 清除 getSize 的 cache
 	//
 	// 在每次 ebiten update 的時候調用
@@ -116,6 +117,10 @@ func newView(types types, owner SomeView, contents ...View) *uiView {
 	##        ##     ## ####    ###    ##     ##    ##    ########
 */
 
+func (p *uiView) getTypes() types {
+	return p.types
+}
+
 func (p *uiView) clearCache() {
 	p.isCached = false
 }
@@ -133,14 +138,20 @@ func (p *uiView) getSize() size {
 	}
 
 	result := _zeroSize
+	childNoWidthCount := 0
+	childNoHeightCount := 0
 	for _, child := range p.contents {
 		childSize := child.getSize()
 		result.w = max(result.w, childSize.w)
 		result.h = max(result.h, childSize.h)
+		childNoWidthCount += sys.If(childSize.w >= 0, 0, 1)
+		childNoHeightCount += sys.If(childSize.h >= 0, 0, 1)
 	}
 
 	result.w = sys.If(size.w == -1, result.w, size.w)
 	result.h = sys.If(size.h == -1, result.h, size.h)
+	result.w = sys.If(childNoWidthCount != 0, -1, result.w)
+	result.h = sys.If(childNoHeightCount != 0, -1, result.h)
 
 	p.isCached = true
 	p.cachedSize = result
@@ -194,27 +205,11 @@ func (p *uiView) getFrame() size {
 	##        ##     ## ##     ## ##     ## ##     ## ########    ##    ######## ##     ##  ######
 */
 
-func (p *uiView) first() *uiViewModifier {
-	if len(p.modifiers) == 0 {
-		p.pushFirst()
-	}
-	return &p.modifiers[0]
-}
-
 func (p *uiView) last() *uiViewModifier {
 	if len(p.modifiers) == 0 {
 		p.pushLast()
 	}
 	return &p.modifiers[len(p.modifiers)-1]
-}
-
-func (p *uiView) pushFirst(v ...uiViewModifier) {
-	vv := uiViewModifier{uiViewLayout: _zeroUIViewLayout}
-	if len(v) != 0 {
-		vv = v[0]
-	}
-
-	p.modifiers = append(append(make([]uiViewModifier, 0, len(p.modifiers)*2), vv), p.modifiers...)
 }
 
 func (p *uiView) pushLast(v ...uiViewModifier) {
@@ -231,39 +226,6 @@ func (p *uiView) pushLast(v ...uiViewModifier) {
 	}
 
 	p.modifiers = append(p.modifiers, vv)
-}
-
-func (p *uiView) Start(x, y int, replace ...bool) {
-	if len(replace) != 0 && replace[0] {
-		p.start.x = x
-		p.start.y = y
-	} else {
-		p.start.x += x
-		p.start.y += y
-	}
-}
-
-func (p uiView) Copy() *uiView {
-	return &p
-}
-
-func (p *uiView) GetFrameWithMargin() size {
-	frame := _zeroSize
-	margin := bounds{}
-	for i := len(p.modifiers) - 1; i >= 0; i-- {
-		if frame.IsZero() {
-			frame = p.modifiers[i].frame
-			if !margin.IsZero() {
-				margin = p.modifiers[i].margin
-			}
-		}
-
-		if frame.w != -1 || frame.h != -1 {
-			break
-		}
-	}
-
-	return frame.Add(margin.left+margin.right, margin.top+margin.bottom)
 }
 
 func (p *uiView) ActionUpdate() {

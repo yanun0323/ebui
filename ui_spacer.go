@@ -1,20 +1,22 @@
 package ebui
 
-// import (
-// 	"github.com/hajimehoshi/ebiten/v2"
-// )
+/* Check Interface Implementation */
+var _ SomeView = (*spacerView)(nil)
 
-// /* Check Interface Implementation */
-// var _ SomeView = (*spacerView)(nil)
+func Spacer() *spacerView {
+	v := &spacerView{}
+	v.uiView = newView(typesSpacer, v)
+	return v
+}
 
-// func Spacer() *spacerView {
-// 	v := &spacerView{}
-// 	v.uiViewBack = newUIView(typesSpacer, v)
-// 	return v
-// }
+type spacerView struct {
+	*uiView
+}
 
-// type spacerView struct {
-// 	*uiViewBack
-// }
+func (p *spacerView) getSize() size {
+	return _zeroSize
+}
 
-// func (v *spacerView) draw(screen *ebiten.Image) {}
+func (p *spacerView) Frame(w, h int) SomeView {
+	return p
+}
