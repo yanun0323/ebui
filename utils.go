@@ -14,40 +14,23 @@ package ebui
 // 	return num
 // }
 
-func ifs[T any](cond bool, trueV, falseV T) T {
-	if cond {
-		return trueV
-	}
+// // rpZero returns result if v is zero value, otherwise returns v.
+// func rpZero[T comparable](v, result T) T {
+// 	var zero T
+// 	return rpEq(v, zero, result)
+// }
 
-	return falseV
-}
+// // rpEq returns result if v is eq, otherwise returns v.
+// func rpEq[T comparable](v, eq, result T) T {
+// 	if v == eq {
+// 		return result
+// 	}
 
-// rpZero returns result if v is zero value, otherwise returns v.
-func rpZero[T comparable](v, result T) T {
-	var zero T
-	return rpEq(v, zero, result)
-}
+// 	return v
+// }
 
-// rpEq returns result if v is eq, otherwise returns v.
-func rpEq[T comparable](v, eq, result T) T {
-	if v == eq {
-		return result
-	}
-
-	return v
-}
-
-// rpNeq returns result if v is not n, otherwise returns v.
-func rpNeq[T comparable](v, n, result T) T {
-	if v != n {
-		return result
-	}
-
-	return v
-}
-
-// sliceFirst returns the zero if slice is empty, otherwise returns the first element of slice.
-func sliceFirst[T any](slice []T, zero T) T {
+// first returns the zero if slice is empty, otherwise returns the first element of slice.
+func first[T any](slice []T, zero T) T {
 	if len(slice) != 0 {
 		return slice[0]
 	}

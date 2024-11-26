@@ -1,22 +1,21 @@
 package ebui
 
-// import (
-// 	"fmt"
-// 	"strings"
-// 	"testing"
-// )
+import (
+	"strings"
+	"testing"
+)
 
-// func assert[T comparable](t *testing.T, result, expected T, msg string, messages ...string) {
-// 	t.Helper()
-// 	if expected != result {
-// 		switch len(messages) {
-// 		case 0:
-// 			t.Fatalf("%s: expected %v, got %v", msg, expected, result)
-// 		default:
-// 			t.Fatalf("%s: expected %v, got %v\n %s", msg, expected, result, strings.Join(messages, "\n"))
-// 		}
-// 	}
-// }
+func assert[T comparable](t *testing.T, result, expected T, msg string, messages ...string) {
+	t.Helper()
+	if expected != result {
+		switch len(messages) {
+		case 0:
+			t.Fatalf("%s: expected %v, got %v", msg, expected, result)
+		default:
+			t.Fatalf("%s: expected %v, got %v\n %s", msg, expected, result, strings.Join(messages, "\n"))
+		}
+	}
+}
 
 // func TestViewCalculateVStack(t *testing.T) {
 // 	v3 := VStack().Frame(20, 20) /* 20, 20, 0, 80 */

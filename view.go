@@ -1,12 +1,11 @@
 package ebui
 
 import (
-	"fmt"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/font"
-	"github.com/yanun0323/pkg/logs"
+	"github.com/yanun0323/pkg/sys"
 )
 
 type View interface {
@@ -37,6 +36,28 @@ type SomeView interface {
 	LineSpacing(spacing float64) SomeView
 	Kerning(kerning int) SomeView
 	Italic() SomeView
+
+	// FIXME: SomeView private method
+
+	// clearCache 清除 getSize 的 cache
+	//
+	// 在每次 ebiten update 的時候調用
+	clearCache()
+	// getSize 取得這個視圖的大小，（如果沒設定大小，就會計算子視圖的總大小）
+	getSize() size
+	setSize(size)
+	getPosition() point
+	setPosition(point)
+	// stepSubView 設定 Stack 子視圖的位置，與子視圖大小的移動關係
+	//
+	// e.g. VStack：x 不會被子視圖大小影響；y 會加上「子視圖的高度」單位
+	stepSubView(pos point, childSize size) point
+
+	// getStackSubViewStart 取得 Stack 視圖，子視圖的起始位置
+	getStackSubViewStart(offset point) point
+	// setStackSubViewCenterOffset 設定子視圖的中心偏移
+	getStackSubViewCenterOffset(offset point) point
+	subView() []SomeView
 }
 
 type uiViewDelegator interface {
@@ -63,11 +84,12 @@ type uiView struct {
 	owner SomeView
 	types types
 
-	size      size
-	anchor    point
-	inner     point
-	modifiers []uiViewModifier
-	contents  []SomeView
+	isCached   bool
+	cachedSize size
+	anchor     point
+	inner      point
+	modifiers  []uiViewModifier
+	contents   []SomeView
 }
 
 func newView(types types, owner SomeView, contents ...View) *uiView {
@@ -85,127 +107,72 @@ func newView(types types, owner SomeView, contents ...View) *uiView {
 }
 
 /*
-	########  #######  ########  ##     ## ##     ## ##          ###    ########
-	##       ##     ## ##     ## ###   ### ##     ## ##         ## ##   ##     ##
-	##       ##     ## ##     ## #### #### ##     ## ##        ##   ##  ##     ##
-	######   ##     ## ########  ## ### ## ##     ## ##       ##     ## ########
-	##       ##     ## ##   ##   ##     ## ##     ## ##       ######### ##   ##
-	##       ##     ## ##    ##  ##     ## ##     ## ##       ##     ## ##    ##
-	##        #######  ##     ## ##     ##  #######  ######## ##     ## ##     ##
+	########  ########  #### ##     ##    ###    ######## ########
+	##     ## ##     ##  ##  ##     ##   ## ##      ##    ##
+	##     ## ##     ##  ##  ##     ##  ##   ##     ##    ##
+	########  ########   ##  ##     ## ##     ##    ##    ######
+	##        ##   ##    ##   ##   ##  #########    ##    ##
+	##        ##    ##   ##    ## ##   ##     ##    ##    ##
+	##        ##     ## ####    ###    ##     ##    ##    ########
 */
 
-type preloadSizes struct {
-	size    size
-	minSize size
+func (p *uiView) clearCache() {
+	p.isCached = false
 }
 
-func (p *uiView) preloadSize() preloadSizes {
-	l := logs.Default().
-		WithField("types", p.types)
-
-	preload := preloadSizes{}
-	maxed := _zeroSize
-
-	wSpacer, hSpacer := false, false
-	for _, content := range p.contents {
-		invokeSomeView(content, func(c *uiView) {
-			cp := c.preloadSize()
-			if cp.size.w != -1 {
-				preload.minSize.w += cp.size.w
-				maxed.w = max(maxed.w, cp.size.w)
-			} else {
-				wSpacer = true
-				preload.minSize.w += rpEq(cp.minSize.w, -1, 0)
-				maxed.w = max(maxed.w, cp.minSize.w)
-			}
-
-			if cp.size.h != -1 {
-				preload.minSize.h += cp.size.h
-				maxed.h = max(maxed.h, cp.size.h)
-			} else {
-				hSpacer = true
-				preload.minSize.h += rpEq(cp.minSize.h, -1, 0)
-				maxed.h = max(maxed.h, cp.minSize.h)
-			}
-		})
+func (p *uiView) getSize() size {
+	if p.isCached {
+		return p.cachedSize
 	}
 
-	pSize := p.getFrame()
-	switch p.types {
-	case typesZStack:
-		preload.minSize.w = max(maxed.w, pSize.w)
-		preload.minSize.h = max(maxed.h, pSize.h)
-	default:
-		preload.minSize.w = max(preload.minSize.w, pSize.w)
-		preload.minSize.h = max(preload.minSize.h, pSize.h)
+	size := p.getFrame()
+	if size.w != -1 && size.h != -1 {
+		p.isCached = true
+		p.cachedSize = size
+		return size
 	}
 
-	if wSpacer {
-		preload.size.w = -1
-	} else {
-		preload.size.w = rpZero(preload.minSize.w, -1)
+	result := _zeroSize
+	for _, child := range p.contents {
+		childSize := child.getSize()
+		result.w = max(result.w, childSize.w)
+		result.h = max(result.h, childSize.h)
 	}
 
-	if hSpacer {
-		preload.size.h = -1
-	} else {
-		preload.size.h = rpZero(preload.minSize.h, -1)
-	}
+	result.w = sys.If(size.w == -1, result.w, size.w)
+	result.h = sys.If(size.h == -1, result.h, size.h)
 
-	p.size = preload.size
-
-	l.Infof("preloadSize: size: %v, preload: %v", p.size, preload)
-
-	return preload
+	p.isCached = true
+	p.cachedSize = result
+	return result
 }
 
-func (p *uiView) presetSize(flexSize size) {
-	l := logs.Default().
-		WithField("types", p.types)
+func (p *uiView) setSize(size size) {
+	p.cachedSize = size
+}
 
-	p.size.w = rpEq(p.size.w, -1, flexSize.w)
-	p.size.h = rpEq(p.size.h, -1, flexSize.h)
+func (p *uiView) getPosition() point {
+	return p.start
+}
 
-	flexCount := p.getFlexibleCount()
-	nextFlexSize := size{
-		w: (p.size.w - flexCount.summedSize.w) / rpZero(flexCount.count.x, 1),
-		h: (p.size.h - flexCount.summedSize.h) / rpZero(flexCount.count.y, 1),
-	}
+func (p *uiView) setPosition(pos point) {
+	p.start = pos
+}
 
-	summed := size{}
-	maxed := size{}
-	for _, content := range p.contents {
-		invokeSomeView(content, func(c *uiView) {
-			c.presetSize(nextFlexSize)
-			summed = summed.Adds(c.size)
-			maxed.w = max(maxed.w, c.size.w)
-			maxed.h = max(maxed.h, c.size.h)
-		})
-	}
+func (p *uiView) getStackSubViewStart(offset point) point {
+	return point{}
+}
 
-	switch p.types {
-	case typesZStack:
-		// p.inner = point{
-		// 	x: ifs(flexCount.count.x != 0, 0, (p.size.w-maxed.w)/2),
-		// 	y: ifs(flexCount.count.y != 0, 0, (p.size.h-maxed.h)/2),
-		// }
-	default:
-		p.inner = point{
-			x: ifs(flexCount.count.x != 0, 0, (p.size.w-summed.w)/2),
-			y: ifs(flexCount.count.y != 0, 0, (p.size.h-summed.h)/2),
-		}
-	}
+func (p *uiView) getStackSubViewCenterOffset(offset point) point {
+	return offset
+}
 
-	for _, content := range p.contents {
-		invokeSomeView(content, func(c *uiView) {
-			c.anchor = point{
-				x: (p.size.w - c.size.w) / 2,
-				y: (p.size.h - c.size.h) / 2,
-			}
-		})
-	}
+func (p *uiView) stepSubView(pos point, childSize size) point {
+	return pos
+}
 
-	l.Infof("presetSize: size: %v, inner: %v", p.size, p.inner)
+func (p *uiView) subView() []SomeView {
+	return p.contents
 }
 
 func (p *uiView) getFrame() size {
@@ -215,137 +182,6 @@ func (p *uiView) getFrame() size {
 	}
 
 	return frame
-}
-
-func (p *uiView) setSizePosition(pos *point) {
-	p.start.x = pos.x
-	p.start.y = pos.y
-
-	var (
-		l          = logs.Default().WithField("types", p.types)
-		postCache  = pos.Add(0, 0)
-		setPos     = func(contentSize size) {} /* set init pos of child */
-		remainPos  = func(contentSize size) {} /* set pos after each child */
-		recoverPos = func() {}                 /* set pos after all children */
-		summed     = size{}
-	)
-
-	_ = l
-	_ = setPos
-	_ = recoverPos
-	_ = remainPos
-
-	switch p.types {
-	case typesVStack:
-		pos.y += p.inner.y
-
-		setPos = func(contentSize size) {
-			pos.x += (p.size.w - contentSize.w) / 2
-		}
-
-		remainPos = func(contentSize size) {
-			pos.x = postCache.x
-			pos.y += contentSize.h
-		}
-
-		recoverPos = func() {
-			pos.x = postCache.x
-			pos.y = postCache.y + p.size.h
-		}
-	case typesHStack:
-		pos.x += p.inner.x
-
-		setPos = func(contentSize size) {
-			pos.y += (p.size.h - contentSize.h) / 2
-		}
-
-		remainPos = func(contentSize size) {
-			pos.x += contentSize.w
-			pos.y = postCache.y
-		}
-
-		recoverPos = func() {
-			pos.x = postCache.x + p.size.w
-			pos.y = postCache.y
-		}
-	case typesZStack:
-		setPos = func(contentSize size) {
-			pos.x += (p.size.w - contentSize.w) / 2
-			pos.y += (p.size.h - contentSize.h) / 2
-		}
-
-		remainPos = func(contentSize size) {
-			pos.x = postCache.x
-			pos.y = postCache.y
-		}
-
-		recoverPos = func() {
-			pos.x = postCache.x + p.size.w
-			pos.y = postCache.y + p.size.h
-		}
-	default:
-		pos.x += p.inner.x
-		pos.y += p.inner.y
-
-		setPos = func(contentSize size) {
-			pos.x += (p.size.w - contentSize.w) / 2
-			pos.y += (p.size.h - contentSize.h) / 2
-		}
-
-		remainPos = func(contentSize size) {
-			pos.x += contentSize.w
-			pos.y += contentSize.h
-		}
-
-		recoverPos = func() {
-			pos.x = postCache.x + p.size.w
-			pos.y = postCache.y + p.size.h
-		}
-	}
-
-	for _, content := range p.contents {
-		invokeSomeView(content, func(c *uiView) {
-			pre := pos.Add(0, 0)
-			setPos(c.size)
-			l.WithField("content", fmt.Sprintf("(%d %d)", c.size.w, c.size.h)).
-				WithField("size", fmt.Sprintf("(%d %d)", p.size.w, p.size.h)).
-				Infof("子視圖前，設定開始錨點: (%d %d) -> (%d %d): (%d %d)", pre.x, pre.y, pos.x, pos.y, pos.x-pre.x, pos.y-pre.y)
-			c.setSizePosition(pos)
-			l.Infof("子視圖後錨點: (%d %d)", pos.x, pos.y)
-			summed = summed.Adds(c.size)
-			remainPos(c.size)
-			l.Infof("子視圖前，還原錨點: (%d %d)", pos.x, pos.y)
-		})
-	}
-	recoverPos()
-	l.Infof("設定結束錨點: (%d %d)", pos.x, pos.y)
-	println()
-}
-
-type flexibleCount struct {
-	count      point
-	summedSize size
-}
-
-func (p *uiView) getFlexibleCount() flexibleCount {
-	fc := flexibleCount{}
-	for _, content := range p.contents {
-		invokeSomeView(content, func(c *uiView) {
-			if c.size.w == -1 {
-				fc.count.x++
-			} else {
-				fc.summedSize.w += c.size.w
-			}
-
-			if c.size.h == -1 {
-				fc.count.y++
-			} else {
-				fc.summedSize.h += c.size.h
-			}
-		})
-	}
-
-	return fc
 }
 
 /*
@@ -441,15 +277,15 @@ func (p *uiView) Draw(screen *ebiten.Image) {
 
 func (p *uiView) drawModifiers(screen *ebiten.Image) {
 	for _, v := range p.modifiers {
-		w := rpEq(v.frame.w, -1, p.size.w) - v.padding.left - v.padding.right
-		h := rpEq(v.frame.h, -1, p.size.h) - v.padding.top - v.padding.bottom
+		w := sys.If(v.frame.w == -1, p.cachedSize.w, v.frame.w) - v.padding.left - v.padding.right
+		h := sys.If(v.frame.h == -1, p.cachedSize.h, v.frame.h) - v.padding.top - v.padding.bottom
 
 		if w <= 0 || h <= 0 {
 			continue
 		}
 
 		img := ebiten.NewImage(w, h)
-		img.Fill(rpZero(v.background, color.Color(color.Transparent)))
+		img.Fill(sys.If(v.background == nil, color.Color(color.Transparent), v.background))
 		opt := &ebiten.DrawImageOptions{}
 		opt.GeoM.Translate(float64(p.start.x), float64(p.start.y))
 		opt.GeoM.Translate(float64(v.offset.x), float64(v.offset.y))
@@ -460,7 +296,7 @@ func (p *uiView) drawModifiers(screen *ebiten.Image) {
 
 func (p *uiView) drawContent(screen *ebiten.Image) {
 	for _, p := range p.contents {
-		invokeSomeView(p, func(ui *uiView) {
+		safeInvoke(p, func(ui *uiView) {
 			ui.Draw(screen)
 		})
 	}
@@ -511,7 +347,7 @@ func (p *uiView) ForegroundColor(clr color.Color) SomeView {
 
 func (p *uiView) BackgroundColor(clr color.Color) SomeView {
 	last := p.last()
-	last.background = rpZero(last.background, clr)
+	last.background = sys.If(last.background == nil, clr, last.background)
 
 	// add frame to front views
 	w := last.frame.w
@@ -605,7 +441,7 @@ func (p *uiView) FontWeight(weight font.Weight) SomeView {
 }
 
 func (p *uiView) CornerRadius(radius ...int) SomeView {
-	p.cornerRadius = sliceFirst(radius, 7)
+	p.cornerRadius = first(radius, 7)
 	return p.owner
 }
 

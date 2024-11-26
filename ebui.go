@@ -79,15 +79,9 @@ func EbitenUpdate(sv SomeView) {
 	if sv != nil {
 		w, h := ebiten.WindowSize()
 		v := newView(typesNone, nil, sv.Body())
-
-		logs.Info("=== preloading...")
-		v.preloadSize()
-
-		logs.Info("=== presetting...")
-		v.presetSize(size{w, h})
-
-		logs.Info("=== setting size position...")
-		v.setSizePosition(&point{(w - v.size.w) / 2, (h - v.size.h) / 2})
+		clearCache(v)
+		v.Frame(w, h)
+		layout(v, point{}, size{w, h})
 		_rootViewCache.Store(sv.Body())
 	}
 
@@ -100,7 +94,7 @@ func EbitenDraw(screen *ebiten.Image) {
 	}
 }
 
-func invokeSomeView(sv SomeView, fn func(*uiView)) {
+func safeInvoke(sv SomeView, fn func(*uiView)) {
 	if sv, ok := sv.(uiViewDelegator); ok {
 		fn(sv.UIView())
 	}

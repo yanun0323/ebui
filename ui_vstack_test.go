@@ -1,5 +1,9 @@
 package ebui
 
+import (
+	"testing"
+)
+
 // import (
 // 	"fmt"
 // 	"testing"
@@ -52,3 +56,48 @@ package ebui
 // 		assert(t, opt.yy, 50, "opt.yy", msg)
 // 	}
 // }
+
+func TestVStackGetSize(t *testing.T) {
+	{
+		v := VStack()
+		size := v.getSize()
+		assert(t, size.w, -1, "size.w")
+		assert(t, size.h, -1, "size.h")
+	}
+
+	{
+		v := VStack().Frame(30, 10)
+		size := v.getSize()
+		assert(t, size.w, 30, "size.w")
+		assert(t, size.h, 10, "size.h")
+	}
+
+	{
+		v := VStack(
+			VStack().Frame(60, 20),
+		)
+		size := v.getSize()
+		assert(t, size.w, 60, "size.w")
+		assert(t, size.h, 20, "size.h")
+	}
+
+	{
+		v := VStack(
+			VStack().Frame(60, 20),
+			VStack().Frame(40, 80),
+		)
+		size := v.getSize()
+		assert(t, size.w, 60, "size.w")
+		assert(t, size.h, 100, "size.h")
+	}
+
+	{
+		v := VStack(
+			VStack().Frame(60, 20),
+			VStack().Frame(40, 80),
+		).Frame(30, 10)
+		size := v.getSize()
+		assert(t, size.w, 30, "size.w")
+		assert(t, size.h, 10, "size.h")
+	}
+}

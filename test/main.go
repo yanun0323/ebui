@@ -7,10 +7,10 @@ import (
 )
 
 var (
-	_blue   = color.RGBA{0, 0, 128, 128}
-	_red    = color.RGBA{128, 0, 0, 128}
-	_green  = color.RGBA{0, 128, 0, 128}
-	_yellow = color.RGBA{128, 128, 0, 128}
+	_blue   = color.RGBA{0, 0, 128, 64}
+	_red    = color.RGBA{128, 0, 0, 64}
+	_green  = color.RGBA{0, 128, 0, 64}
+	_yellow = color.RGBA{128, 128, 0, 64}
 )
 
 func main() {

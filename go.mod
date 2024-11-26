@@ -4,7 +4,7 @@ go 1.22.3
 
 require (
 	github.com/hajimehoshi/ebiten/v2 v2.7.8
-	github.com/yanun0323/pkg v1.5.4
+	github.com/yanun0323/pkg v1.5.9
 )
 
 require (
