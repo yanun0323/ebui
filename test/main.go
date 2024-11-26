@@ -4,13 +4,15 @@ import (
 	"image/color"
 
 	"github.com/yanun0323/ebui"
+	"github.com/yanun0323/ebui/font"
 )
 
 var (
-	_blue   = color.RGBA{0, 0, 128, 64}
-	_red    = color.RGBA{128, 0, 0, 64}
-	_green  = color.RGBA{0, 128, 0, 64}
-	_yellow = color.RGBA{128, 128, 0, 64}
+	_blue   = color.RGBA{0, 0, 128, 128}
+	_red    = color.RGBA{128, 0, 0, 128}
+	_green  = color.RGBA{0, 128, 0, 128}
+	_yellow = color.RGBA{128, 128, 0, 128}
+	_white  = color.RGBA{255, 255, 255, 128}
 )
 
 func main() {
@@ -18,7 +20,7 @@ func main() {
 		ebui.HStack(
 			ebui.VStack().
 				Frame(25, 25).
-				BackgroundColor(color.RGBA{0, 128, 0, 128}),
+				BackgroundColor(_green),
 			ebui.VStack().
 				Frame(25, 25).
 				BackgroundColor(color.RGBA{0, 128, 128, 128}),
@@ -34,6 +36,10 @@ func main() {
 				BackgroundColor(_yellow),
 		).
 			Frame(50, 50).
+			BackgroundColor(_green),
+		ebui.Text("Hello, World!!!!!!").
+			// Frame(150, 30).
+			FontSize(font.Body).
 			BackgroundColor(_green),
 		ebui.Spacer(),
 		ebui.HStack().

@@ -37,14 +37,14 @@ type SomeView interface {
 	Kerning(kerning int) SomeView
 	Italic() SomeView
 
-	// FIXME: SomeView private method
-
+	// PRIVATE
+	draw(screen *ebiten.Image)
 	getTypes() types
 	// clearCache 清除 getSize 的 cache
 	//
 	// 在每次 ebiten update 的時候調用
 	clearCache()
-	// getSize 取得這個視圖的大小，（如果沒設定大小，就會計算子視圖的總大小）
+	// getSize 取得這個視圖的大小並快取，（如果沒設定大小，就會計算子視圖的總大小）
 	getSize() size
 	setSize(size)
 	getPosition() point
@@ -59,10 +59,6 @@ type SomeView interface {
 	// setStackSubViewCenterOffset 設定子視圖的中心偏移
 	getStackSubViewCenterOffset(offset point) point
 	subView() []SomeView
-}
-
-type uiViewDelegator interface {
-	UIView() *uiView
 }
 
 type uiViewModifier struct {
@@ -117,75 +113,6 @@ func newView(types types, owner SomeView, contents ...View) *uiView {
 	##        ##     ## ####    ###    ##     ##    ##    ########
 */
 
-func (p *uiView) getTypes() types {
-	return p.types
-}
-
-func (p *uiView) clearCache() {
-	p.isCached = false
-}
-
-func (p *uiView) getSize() size {
-	if p.isCached {
-		return p.cachedSize
-	}
-
-	size := p.getFrame()
-	if size.w != -1 && size.h != -1 {
-		p.isCached = true
-		p.cachedSize = size
-		return size
-	}
-
-	result := _zeroSize
-	childNoWidthCount := 0
-	childNoHeightCount := 0
-	for _, child := range p.contents {
-		childSize := child.getSize()
-		result.w = max(result.w, childSize.w)
-		result.h = max(result.h, childSize.h)
-		childNoWidthCount += sys.If(childSize.w >= 0, 0, 1)
-		childNoHeightCount += sys.If(childSize.h >= 0, 0, 1)
-	}
-
-	result.w = sys.If(size.w == -1, result.w, size.w)
-	result.h = sys.If(size.h == -1, result.h, size.h)
-	result.w = sys.If(childNoWidthCount != 0, -1, result.w)
-	result.h = sys.If(childNoHeightCount != 0, -1, result.h)
-
-	p.isCached = true
-	p.cachedSize = result
-	return result
-}
-
-func (p *uiView) setSize(size size) {
-	p.cachedSize = size
-}
-
-func (p *uiView) getPosition() point {
-	return p.start
-}
-
-func (p *uiView) setPosition(pos point) {
-	p.start = pos
-}
-
-func (p *uiView) getStackSubViewStart(offset point) point {
-	return point{}
-}
-
-func (p *uiView) getStackSubViewCenterOffset(offset point) point {
-	return offset
-}
-
-func (p *uiView) stepSubView(pos point, childSize size) point {
-	return pos
-}
-
-func (p *uiView) subView() []SomeView {
-	return p.contents
-}
-
 func (p *uiView) getFrame() size {
 	frame := _zeroSize
 	for i := len(p.modifiers) - 1; i >= 0 && frame.IsZero(); i-- {
@@ -194,16 +121,6 @@ func (p *uiView) getFrame() size {
 
 	return frame
 }
-
-/*
-	########     ###    ########     ###    ##     ## ######## ######## ######## ########   ######
-	##     ##   ## ##   ##     ##   ## ##   ###   ### ##          ##    ##       ##     ## ##    ##
-	##     ##  ##   ##  ##     ##  ##   ##  #### #### ##          ##    ##       ##     ## ##
-	########  ##     ## ########  ##     ## ## ### ## ######      ##    ######   ########   ######
-	##        ######### ##   ##   ######### ##     ## ##          ##    ##       ##   ##         ##
-	##        ##     ## ##    ##  ##     ## ##     ## ##          ##    ##       ##    ##  ##    ##
-	##        ##     ## ##     ## ##     ## ##     ## ########    ##    ######## ##     ##  ######
-*/
 
 func (p *uiView) last() *uiViewModifier {
 	if len(p.modifiers) == 0 {
@@ -228,25 +145,33 @@ func (p *uiView) pushLast(v ...uiViewModifier) {
 	p.modifiers = append(p.modifiers, vv)
 }
 
-func (p *uiView) ActionUpdate() {
+func (p *uiView) actionUpdate() {
 	// TODO: Update for actions
 }
 
-func (p *uiView) Draw(screen *ebiten.Image) {
+/*
+	########  ########     ###    ##      ##
+	##     ## ##     ##   ## ##   ##  ##  ##
+	##     ## ##     ##  ##   ##  ##  ##  ##
+	##     ## ########  ##     ## ##  ##  ##
+	##     ## ##   ##   ######### ##  ##  ##
+	##     ## ##    ##  ##     ## ##  ##  ##
+	########  ##     ## ##     ##  ###  ###
+*/
+
+func (p *uiView) draw(screen *ebiten.Image) {
 	p.drawModifiers(screen)
 	p.drawContent(screen)
 }
 
 func (p *uiView) drawModifiers(screen *ebiten.Image) {
 	for _, v := range p.modifiers {
-		w := sys.If(v.frame.w == -1, p.cachedSize.w, v.frame.w) - v.padding.left - v.padding.right
-		h := sys.If(v.frame.h == -1, p.cachedSize.h, v.frame.h) - v.padding.top - v.padding.bottom
-
-		if w <= 0 || h <= 0 {
+		pos := v.getDrawSize(p.cachedSize)
+		if pos.w <= 0 || pos.h <= 0 {
 			continue
 		}
 
-		img := ebiten.NewImage(w, h)
+		img := ebiten.NewImage(pos.w, pos.h)
 		img.Fill(sys.If(v.background == nil, color.Color(color.Transparent), v.background))
 		opt := &ebiten.DrawImageOptions{}
 		opt.GeoM.Translate(float64(p.start.x), float64(p.start.y))
@@ -258,9 +183,7 @@ func (p *uiView) drawModifiers(screen *ebiten.Image) {
 
 func (p *uiView) drawContent(screen *ebiten.Image) {
 	for _, p := range p.contents {
-		safeInvoke(p, func(ui *uiView) {
-			ui.Draw(screen)
-		})
+		p.draw(screen)
 	}
 }
 
@@ -274,14 +197,6 @@ func (p *uiView) drawContent(screen *ebiten.Image) {
 	#### ##     ## ##        ######## ######## ##     ## ######## ##    ##    ##
 */
 
-/* Check Interface Implement */
-var _ uiViewDelegator = (*uiView)(nil)
-
-func (p *uiView) UIView() *uiView {
-	return p
-}
-
-/* Check Interface Implementation */
 var _ SomeView = (*uiView)(nil)
 
 func (p *uiView) Body() SomeView {
@@ -420,4 +335,74 @@ func (p *uiView) Kerning(kerning int) SomeView {
 func (p *uiView) Italic() SomeView {
 	p.italic = true
 	return p.owner
+}
+
+func (p *uiView) getTypes() types {
+	return p.types
+}
+
+func (p *uiView) clearCache() {
+	p.isCached = false
+}
+
+func (p *uiView) getSize() size {
+	if p.isCached {
+		return p.cachedSize
+	}
+
+	size := p.getFrame()
+	if size.w != -1 && size.h != -1 {
+		p.isCached = true
+		p.cachedSize = size
+		return size
+	}
+
+	result := _zeroSize
+	childNoWidthCount := 0
+	childNoHeightCount := 0
+	for _, child := range p.contents {
+		childSize := child.getSize()
+		result.w = max(result.w, childSize.w)
+		result.h = max(result.h, childSize.h)
+		childNoWidthCount += sys.If(childSize.w >= 0, 0, 1)
+		childNoHeightCount += sys.If(childSize.h >= 0, 0, 1)
+	}
+
+	result.w = sys.If(size.w == -1, result.w, size.w)
+	result.h = sys.If(size.h == -1, result.h, size.h)
+	result.w = sys.If(childNoWidthCount != 0, -1, result.w)
+	result.h = sys.If(childNoHeightCount != 0, -1, result.h)
+
+	p.isCached = true
+	p.cachedSize = result
+	return result
+}
+
+func (p *uiView) setSize(size size) {
+	p.isCached = true
+	p.cachedSize = size
+}
+
+func (p *uiView) getPosition() point {
+	return p.start
+}
+
+func (p *uiView) setPosition(pos point) {
+	p.start = pos
+}
+
+func (p *uiView) getStackSubViewStart(offset point) point {
+	return point{}
+}
+
+func (p *uiView) getStackSubViewCenterOffset(offset point) point {
+	return offset
+}
+
+func (p *uiView) stepSubView(pos point, childSize size) point {
+	return pos
+}
+
+func (p *uiView) subView() []SomeView {
+	return p.contents
 }

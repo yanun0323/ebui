@@ -89,13 +89,7 @@ func EbitenUpdate(sv SomeView) {
 }
 
 func EbitenDraw(screen *ebiten.Image) {
-	if r, ok := _rootViewCache.Load().(uiViewDelegator); ok {
-		r.UIView().Draw(screen)
-	}
-}
-
-func safeInvoke(sv SomeView, fn func(*uiView)) {
-	if sv, ok := sv.(uiViewDelegator); ok {
-		fn(sv.UIView())
+	if r, ok := _rootViewCache.Load().(SomeView); ok {
+		r.draw(screen)
 	}
 }

@@ -1,5 +1,14 @@
 package ebui
 
+import (
+	"image/color"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"github.com/yanun0323/ebui/font"
+	"github.com/yanun0323/pkg/sys"
+)
+
 // import (
 // 	"github.com/hajimehoshi/ebiten/v2"
 // 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -26,122 +35,137 @@ type textView struct {
 	t string
 }
 
-// func (*textView) textFace(opt *uiViewBack, size ...font.Size) *text.GoTextFace {
-// 	if len(size) != 0 {
-// 		return &text.GoTextFace{
-// 			Source: _defaultFontResource,
-// 			Size:   size[0].F64(),
-// 		}
-// 	}
+func (*textView) textFace(v *uiView, size ...font.Size) *text.GoTextFace {
+	if len(size) != 0 {
+		return &text.GoTextFace{
+			Source: _defaultFontResource,
+			Size:   size[0].F64(),
+		}
+	}
 
-// 	face := &text.GoTextFace{
-// 		Source: _defaultFontResource,
-// 		Size:   opt.fontSize().F64(),
-// 	}
+	face := &text.GoTextFace{
+		Source: _defaultFontResource,
+		Size:   sys.If(v.fontSize == 0, font.Body, v.fontSize).F64(),
+	}
 
-// 	face.SetVariation(_fontTagWeight, opt.weight())
-// 	face.SetVariation(_fontTagItalic, opt.italic())
+	face.SetVariation(_fontTagWeight, v.fontWeight.F32())
+	face.SetVariation(_fontTagItalic, sys.If[float32](v.italic, 1, 0))
 
-// 	return face
-// }
+	return face
+}
 
-// // calculateSizeFromText returns the width, height, text and text face of the text view.
-// //
-// // It will truncate the text to fit the bounds.
-// func (v *textView) calculateSizeFromText(view *uiViewBack) (int, int, string, *text.GoTextFace) {
-// 	if len(v.t) == 0 {
-// 		return 0, 0, "", nil
-// 	}
+// calculateSizeFromText returns the width, height, text and text face of the text view.
+//
+// It will truncate the text to fit the bounds.
+func (v *textView) calculateSizeFromText(view *uiView, skipTruncate ...bool) (int, int, string, *text.GoTextFace) {
+	if len(v.t) == 0 {
+		return 0, 0, "", nil
+	}
 
-// 	face := v.textFace(view)
-// 	w, h := v.getTextBounds(v.t, face)
-// 	if w <= view.size.h && h <= view.size.h {
-// 		return w, h, v.t, face
-// 	}
+	face := v.textFace(view)
+	w, h := v.getTextBounds(v.t, face)
+	drawSize := view.getDrawSize(view.cachedSize)
+	if w <= drawSize.w && h <= drawSize.h {
+		return w, h, v.t, face
+	}
 
-// 	tt := v.flexibleTruncateText(v.t, view, face)
-// 	if len(tt) == 0 {
-// 		t := "..."
-// 		f := v.textFace(view, font.Body)
-// 		w, h := text.Measure(t, f, view.lineSpacing())
-// 		return int(w), int(h), t, f
-// 	}
+	tt := v.t
+	if len(skipTruncate) == 0 || !skipTruncate[0] {
+		tt = v.flexibleTruncateText(v.t, view, face)
+	}
 
-// 	w, h = v.getTextBounds(tt, face)
-// 	return int(w), int(h), tt, face
-// }
+	if len(tt) == 0 {
+		t := "..."
+		f := v.textFace(view, font.Body)
+		w, h := text.Measure(t, f, view.lineSpacing)
+		return int(w), int(h), t, f
+	}
 
-// func (v *textView) getTextBounds(t string, face *text.GoTextFace) (int, int) {
-// 	w, h := text.Measure(t, face, v.lineSpacing())
-// 	return int(w) + v.kerning(), int(h)
-// }
+	w, h = v.getTextBounds(tt, face)
+	return int(w), int(h), tt, face
+}
 
-// func (v *textView) flexibleTruncateText(tt string, view *uiViewBack, face *text.GoTextFace, ignoreDots ...bool) string {
-// 	if len(tt) == 0 {
-// 		return tt
-// 	}
+func (v *textView) getTextBounds(t string, face *text.GoTextFace) (int, int) {
+	w, h := text.Measure(t, face, v.lineSpacing)
+	return int(w) + v.kerning, int(h)
+}
 
-// 	width, height := view.Width(), view.Height()
-// 	width -= view.kerning() * len(tt)
+func (v *textView) flexibleTruncateText(tt string, view *uiView, face *text.GoTextFace, ignoreDots ...bool) string {
+	if len(tt) == 0 {
+		return tt
+	}
 
-// 	wf, hf := text.Measure(tt, face, view.lineSpacing())
-// 	if int(hf) > height {
-// 		return ""
-// 	}
+	drawSize := view.getDrawSize(view.cachedSize)
+	drawSize.w -= view.kerning * len(tt)
 
-// 	if int(wf) <= width {
-// 		return tt
-// 	}
+	wf, _ := text.Measure(tt, face, view.lineSpacing)
+	// if int(hf) > drawSize.h {
+	// 	return ""
+	// }
 
-// 	l, m, r := 0, (len(tt)-2)/2, len(tt)-1
-// 	for l < r && m != l && m != r {
-// 		wf, _ := text.Measure(tt[:m], face, view.lineSpacing())
-// 		if int(wf) >= width {
-// 			r = m
-// 			m = (l + m) / 2
-// 		} else {
-// 			l = m
-// 			m = (r + m) / 2
-// 		}
-// 	}
+	if int(wf) <= drawSize.w {
+		return tt
+	}
 
-// 	if len(ignoreDots) != 0 && ignoreDots[0] {
-// 		return tt[:m]
-// 	}
+	l, m, r := 0, (len(tt)-2)/2, len(tt)-1
+	for l < r && m != l && m != r {
+		wf, _ := text.Measure(tt[:m], face, view.lineSpacing)
+		if int(wf) >= drawSize.w {
+			r = m
+			m = (l + m) / 2
+		} else {
+			l = m
+			m = (r + m) / 2
+		}
+	}
 
-// 	truncateNum := 2
-// 	if m <= truncateNum {
-// 		return v.flexibleTruncateText(tt, view, face, true)
-// 	}
+	if len(ignoreDots) != 0 && ignoreDots[0] {
+		return tt[:m]
+	}
 
-// 	return tt[:m-truncateNum] + "..."
-// }
+	truncateNum := 2
+	if m <= truncateNum {
+		return v.flexibleTruncateText(tt, view, face, true)
+	}
 
-// func (v *textView) draw(screen *ebiten.Image) {
-// 	cache := v.Copy()
-// 	cache.Draw(screen, func(screen *ebiten.Image) {
-// 		cache.ApplyViewModifiers(screen)
+	return tt[:m-truncateNum] + "..."
+}
 
-// 		w, h, tt, face := v.calculateSizeFromText(cache)
-// 		if len(tt) != 0 && face != nil {
-// 			dx := float64(cache.padding.left) + float64(cache.Width()-int(w))/2
-// 			dy := float64(cache.padding.top) + float64(cache.Height()-int(h))/2
+func (v *textView) getSize() size {
+	if v.isCached {
+		return v.cachedSize
+	}
 
-// 			for i, gl := range text.AppendGlyphs(nil, tt, face, &text.LayoutOptions{
-// 				LineSpacing: cache.lineSpacing(),
-// 			}) {
-// 				if gl.Image == nil {
-// 					continue
-// 				}
+	s := v.uiView.getSize()
+	if s.IsZero() {
+		w, h, _, _ := v.calculateSizeFromText(v.uiView, true)
+		s = size{w, h}
+	}
 
-// 				op := &ebiten.DrawImageOptions{}
-// 				op.ColorScale.ScaleWithColor(cache.foregroundColor())
-// 				// op.ColorScale.ScaleWithColor(color.Black)
-// 				op.GeoM.Translate(float64(i*cache.kerning()), 0)
-// 				op.GeoM.Translate(dx, dy)
-// 				op.GeoM.Translate(gl.X, gl.Y)
-// 				screen.DrawImage(gl.Image, op)
-// 			}
-// 		}
-// 	})
-// }
+	v.isCached = true
+	v.cachedSize = s
+	return v.cachedSize
+}
+
+func (v *textView) draw(screen *ebiten.Image) {
+	w, h, tt, face := v.calculateSizeFromText(v.uiView)
+	if len(tt) != 0 && face != nil {
+		size := v.getDrawSize(v.uiView.cachedSize)
+		dx := float64(v.uiView.start.x) + float64(size.w-int(w))/2
+		dy := float64(v.uiView.start.y) + float64(size.h-int(h))/2
+
+		for i, gl := range text.AppendGlyphs(nil, tt, face, &text.LayoutOptions{LineSpacing: v.uiView.lineSpacing}) {
+			if gl.Image == nil {
+				continue
+			}
+			op := &ebiten.DrawImageOptions{}
+			op.ColorScale.ScaleWithColor(sys.If(v.background == nil, color.Color(color.White), v.background))
+
+			op.GeoM.Translate(float64(i*v.uiView.kerning), 0)
+			op.GeoM.Translate(dx, dy)
+			op.GeoM.Translate(gl.X, gl.Y)
+			screen.DrawImage(gl.Image, op)
+		}
+	}
+	v.drawModifiers(screen)
+}

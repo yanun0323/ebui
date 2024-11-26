@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	_defaultForegroundColor = color.Black
-	_globalTicker           = atomic.Int64{}
+	_defaultForegroundColor color.Color = color.Black
+	_globalTicker                       = atomic.Int64{}
 )
 
 func currentTicker() int64 {
