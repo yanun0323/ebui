@@ -1,16 +1,23 @@
 package ebui
 
 import (
-	"bytes"
+	"embed"
 	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/pkg/logs"
 	"github.com/yanun0323/pkg/sys"
+)
+
+var (
+	supportedImageFormat = []string{".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp", ".avif", ".heic", ".heif"}
 )
 
 type uiImage struct {
@@ -19,7 +26,7 @@ type uiImage struct {
 	img *ebiten.Image
 }
 
-func Image(path string, embedFile ...fs.FS) SomeView {
+func Image(path string, embedFile ...embed.FS) SomeView {
 	ui := &uiImage{}
 
 	ui.uiView = newView(typesImage, ui)
@@ -27,45 +34,77 @@ func Image(path string, embedFile ...fs.FS) SomeView {
 	return ui
 }
 
-func (ui *uiImage) tryLoadingImage(path string, embedFile ...fs.FS) {
-	wd, err := os.Getwd()
-	if err != nil {
-		logs.Errorf("Failed to get working directory: %v", err)
-		return
+func (ui *uiImage) tryLoadingImage(path string, embedFile ...embed.FS) {
+	filenames := make([]string, 0, len(supportedImageFormat))
+	hasExtension := false
+	lowercasePath := strings.ToLower(path)
+	for _, format := range supportedImageFormat {
+		hasExtension = hasExtension || strings.HasSuffix(lowercasePath, format)
+		filenames = append(filenames, path+format)
 	}
 
-	exeDir, err := os.Executable()
-	if err != nil {
-		logs.Errorf("Failed to get executable directory: %v", err)
-		return
+	if hasExtension {
+		filenames = []string{path}
 	}
 
-	filenames := []string{filepath.Join(wd, path), filepath.Join(exeDir, path)}
+	paths := make([]string, 0, len(filenames)*2)
+	if len(embedFile) == 0 {
+		wd, err := os.Getwd()
+		if err != nil {
+			logs.Errorf("get working directory, err: %v", err)
+			return
+		}
 
-	var r io.Reader
-	for _, filename := range filenames {
-		if len(embedFile) != 0 && embedFile[0] != nil {
-			f, err := fs.ReadFile(embedFile[0], filename)
+		exeDir, err := os.Executable()
+		if err != nil {
+			logs.Errorf("get executable directory, err: %v", err)
+			return
+		}
+
+		for _, filename := range filenames {
+			paths = append(paths, filepath.Join(wd, filename), filepath.Join(exeDir, filename))
+		}
+	} else {
+		paths = append(paths, filenames...)
+	}
+
+	var (
+		r   io.ReadCloser
+		err error
+	)
+
+	for _, p := range paths {
+		if len(embedFile) != 0 {
+			if dir, err := embedFile[0].ReadDir("."); err == nil {
+				for _, f := range dir {
+					i, _ := f.Info()
+					logs.Infof("name: %s, size: %d", f.Name(), i.Size())
+				}
+			}
+
+			r, err = embedFile[0].Open(p)
 			if err != nil {
-				logs.Errorf("Failed to open image with embed file (%s): %v", filename, err)
+				logs.Warnf("open image with embed file (%s), err: %v", p, err)
 				continue
 			}
-			r = bytes.NewReader(f)
+			defer r.Close()
 		} else {
-			r, err = os.Open(filename)
+			r, err = os.Open(p)
 			if err != nil {
-				logs.Errorf("Failed to open image (%s): %v", filename, err)
+				logs.Warnf("open image (%s), err: %v", p, err)
 				continue
 			}
+			defer r.Close()
 		}
 
 		img, _, err := image.Decode(r)
 		if err != nil {
-			logs.Errorf("Failed to decode image (%s): %v", filename, err)
+			logs.Errorf("decode image (%s), err: %v", p, err)
 			continue
 		}
 
 		ui.img = ebiten.NewImageFromImage(img)
+		break
 	}
 }
 

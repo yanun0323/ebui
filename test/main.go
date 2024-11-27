@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"image/color"
 
 	"github.com/yanun0323/ebui"
@@ -13,6 +14,9 @@ var (
 	_green  = color.RGBA{0, 128, 0, 128}
 	_yellow = color.RGBA{128, 128, 0, 128}
 )
+
+//go:embed *
+var resource embed.FS
 
 func main() {
 	contentView := ebui.VStack(
@@ -37,12 +41,15 @@ func main() {
 			Frame(50, 50).
 			BackgroundColor(_green),
 		ebui.Text("Hello, World!!!!!!").
-			// Frame(150, 30).
 			FontSize(font.Body).
 			BackgroundColor(_green),
-		ebui.Image("./test/resource/avatar.jpg").
+		ebui.Image("icon", resource).
 			Resizable().
-			AspectRatio(),
+			AspectRatio().
+			Frame(100, 100),
+		ebui.Image("./test/icon").
+			Resizable().
+			Frame(80, 40),
 		ebui.Spacer(),
 		ebui.HStack().
 			Frame(25, 25).
