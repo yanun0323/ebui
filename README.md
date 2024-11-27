@@ -94,3 +94,45 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return outsideWidth, outsideHeight
 }
 ```
+
+## Developing Status
+
+### View
+
+- [x] VStack
+- [x] HStack
+- [x] ZStack
+- [x] EmptyView
+- [x] Text
+- [x] Image
+- [x] Button
+- [x] Spacer
+- [ ] Circle
+- [ ] Rectangle
+- [ ] Divider
+- [ ] Indicator
+- [ ] Menu
+- [ ] Sheet
+- [ ] TextField
+- [ ] TextEditor
+- [ ] ScrollView
+- [ ] ListView
+- [ ] TableView
+- [ ] Slider
+- [ ] Toggle
+- [ ] Navigation
+- [ ] Checkbox
+- [ ] Radio
+- [ ] Picker
+- [ ] DatePicker
+- [ ] TimePicker
+- [ ] ColorPicker
+- [ ] ProgressView
+
+### Feature
+
+- [ ] Animation
+- [ ] Gesture
+- [ ] Overlay
+- [ ] Mask
+- [ ] Clip
