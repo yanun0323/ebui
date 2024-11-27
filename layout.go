@@ -63,6 +63,10 @@ func layoutChildContainerDefault(container, summedChildrenSize size, childNoWidt
 	childContainer.h -= summedChildrenSize.h
 	childContainer.w /= childNoWidthCount
 	childContainer.h /= childNoHeightCount
+
+	childContainer.w = sys.If(childContainer.w < 1, 1, childContainer.w)
+	childContainer.h = sys.If(childContainer.h < 1, 1, childContainer.h)
+
 	return childContainer
 }
 

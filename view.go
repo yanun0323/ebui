@@ -37,6 +37,9 @@ type SomeView interface {
 	Kerning(kerning int) SomeView
 	Italic() SomeView
 
+	Resizable() SomeView
+	AspectRatio(ratio ...float64) SomeView
+
 	// PRIVATE
 	draw(screen *ebiten.Image)
 	getTypes() types
@@ -83,8 +86,6 @@ type uiView struct {
 
 	isCached   bool
 	cachedSize size
-	anchor     point
-	inner      point
 	modifiers  []uiViewModifier
 	contents   []SomeView
 }
@@ -334,6 +335,21 @@ func (p *uiView) Kerning(kerning int) SomeView {
 
 func (p *uiView) Italic() SomeView {
 	p.italic = true
+	return p.owner
+}
+
+func (p *uiView) Resizable() SomeView {
+	p.resizable = true
+	return p.owner
+}
+
+func (p *uiView) AspectRatio(ratio ...float64) SomeView {
+	if len(ratio) != 0 {
+		p.aspectRatio = ratio[0]
+	} else {
+		p.aspectRatio = 1
+	}
+
 	return p.owner
 }
 

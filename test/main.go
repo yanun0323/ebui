@@ -12,7 +12,6 @@ var (
 	_red    = color.RGBA{128, 0, 0, 128}
 	_green  = color.RGBA{0, 128, 0, 128}
 	_yellow = color.RGBA{128, 128, 0, 128}
-	_white  = color.RGBA{255, 255, 255, 128}
 )
 
 func main() {
@@ -41,6 +40,9 @@ func main() {
 			// Frame(150, 30).
 			FontSize(font.Body).
 			BackgroundColor(_green),
+		ebui.Image("./test/resource/avatar.jpg").
+			Resizable().
+			AspectRatio(),
 		ebui.Spacer(),
 		ebui.HStack().
 			Frame(25, 25).

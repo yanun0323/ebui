@@ -1,90 +1,115 @@
 package ebui
 
-// import (
-// 	"bytes"
-// 	"image"
-// 	"io"
-// 	"io/fs"
-// 	"os"
-// 	"path/filepath"
+import (
+	"bytes"
+	"image"
+	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
 
-// 	"github.com/hajimehoshi/ebiten/v2"
-// 	"github.com/yanun0323/pkg/logs"
-// )
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/yanun0323/pkg/logs"
+	"github.com/yanun0323/pkg/sys"
+)
 
-// type uiImage struct {
-// 	*uiViewBack
+type uiImage struct {
+	*uiView
 
-// 	img *ebiten.Image
-// }
+	img *ebiten.Image
+}
 
-// func Image(path string, embedFile ...fs.FS) SomeView {
-// 	ui := &uiImage{}
+func Image(path string, embedFile ...fs.FS) SomeView {
+	ui := &uiImage{}
 
-// 	ui.uiViewBack = newUIView(typesImage, ui)
-// 	ui.tryLoadingImage(path, embedFile...)
-// 	return ui
-// }
+	ui.uiView = newView(typesImage, ui)
+	ui.tryLoadingImage(path, embedFile...)
+	return ui
+}
 
-// func (ui *uiImage) tryLoadingImage(path string, embedFile ...fs.FS) {
-// 	wd, err := os.Getwd()
-// 	if err != nil {
-// 		logs.Errorf("Failed to get working directory: %v", err)
-// 		return
-// 	}
+func (ui *uiImage) tryLoadingImage(path string, embedFile ...fs.FS) {
+	wd, err := os.Getwd()
+	if err != nil {
+		logs.Errorf("Failed to get working directory: %v", err)
+		return
+	}
 
-// 	filename := filepath.Join(wd, path)
+	exeDir, err := os.Executable()
+	if err != nil {
+		logs.Errorf("Failed to get executable directory: %v", err)
+		return
+	}
 
-// 	var r io.Reader
-// 	if len(embedFile) != 0 && embedFile[0] != nil {
-// 		f, err := fs.ReadFile(embedFile[0], filename)
-// 		if err != nil {
-// 			logs.Errorf("Failed to open image with embed file (%s): %v", filename, err)
-// 			return
-// 		}
-// 		r = bytes.NewReader(f)
-// 	} else {
-// 		r, err = os.Open(filename)
-// 		if err != nil {
-// 			logs.Errorf("Failed to open image (%s): %v", filename, err)
-// 			return
-// 		}
-// 	}
+	filenames := []string{filepath.Join(wd, path), filepath.Join(exeDir, path)}
 
-// 	img, _, err := image.Decode(r)
-// 	if err != nil {
-// 		logs.Errorf("Failed to decode image (%s): %v", filename, err)
-// 		return
-// 	}
+	var r io.Reader
+	for _, filename := range filenames {
+		if len(embedFile) != 0 && embedFile[0] != nil {
+			f, err := fs.ReadFile(embedFile[0], filename)
+			if err != nil {
+				logs.Errorf("Failed to open image with embed file (%s): %v", filename, err)
+				continue
+			}
+			r = bytes.NewReader(f)
+		} else {
+			r, err = os.Open(filename)
+			if err != nil {
+				logs.Errorf("Failed to open image (%s): %v", filename, err)
+				continue
+			}
+		}
 
-// 	ui.img = ebiten.NewImageFromImage(img)
-// }
+		img, _, err := image.Decode(r)
+		if err != nil {
+			logs.Errorf("Failed to decode image (%s): %v", filename, err)
+			continue
+		}
 
-// func (ui *uiImage) draw(screen *ebiten.Image) {
-// 	if ui.img == nil {
-// 		return
-// 	}
+		ui.img = ebiten.NewImageFromImage(img)
+	}
+}
 
-// 	cache := ui.Copy()
-// 	cache.Draw(screen, func(screen *ebiten.Image) {
-// 		cache.ApplyViewModifiers(screen)
+func (v *uiImage) getSize() size {
+	if v.isCached {
+		return v.cachedSize
+	}
 
-// 		wRatio := float64(cache.Width()) / float64(ui.img.Bounds().Dx())
-// 		hRatio := float64(cache.Height()) / float64(ui.img.Bounds().Dy())
-// 		op := &ebiten.DrawImageOptions{}
-// 		ratio := min(wRatio, hRatio)
-// 		dx, dy := 0, 0
+	s := v.uiView.getSize()
+	if s.IsZero() && !v.resizable {
+		r := v.img.Bounds()
+		s = size{r.Dx(), r.Dy()}
+	}
 
-// 		if wRatio != ratio {
-// 			dx = abs(int(float64(ui.img.Bounds().Dx())*ratio - float64(cache.Width())))
-// 		}
+	v.isCached = true
+	v.cachedSize = s
+	return v.cachedSize
+}
 
-// 		if hRatio != ratio {
-// 			dy = abs(int(float64(ui.img.Bounds().Dy())*ratio - float64(cache.Height())))
-// 		}
+func (ui *uiImage) draw(screen *ebiten.Image) {
+	if ui.img == nil {
+		return
+	}
 
-// 		op.GeoM.Scale(ratio, ratio)
-// 		op.GeoM.Translate(float64(cache.padding.left+dx/2), float64(cache.padding.top+dy/2))
-// 		screen.DrawImage(ui.img, op)
-// 	})
-// }
+	drawSize := ui.getDrawSize(ui.cachedSize)
+	wRatio := float64(drawSize.w) / float64(ui.img.Bounds().Dx())
+	hRatio := float64(drawSize.h) / float64(ui.img.Bounds().Dy())
+	dx := sys.If(wRatio <= 0, 0.0, float64(ui.start.x))
+	dy := sys.If(hRatio <= 0, 0.0, float64(ui.start.y))
+	wRatio = sys.If(wRatio < _minimumFloat64, _minimumFloat64, wRatio)
+	hRatio = sys.If(hRatio < _minimumFloat64, _minimumFloat64, hRatio)
+
+	op := &ebiten.DrawImageOptions{}
+	if ui.aspectRatio != 0 {
+		if wRatio <= hRatio {
+			hRatio = wRatio * ui.aspectRatio
+			dy += (float64(drawSize.h) - float64(ui.img.Bounds().Dy())*hRatio) / 2
+		} else {
+			wRatio = hRatio / ui.aspectRatio
+			dx += (float64(drawSize.w) - float64(ui.img.Bounds().Dx())*wRatio) / 2
+		}
+	}
+
+	op.GeoM.Scale(wRatio, hRatio)
+	op.GeoM.Translate(dx, dy)
+	screen.DrawImage(ui.img, op)
+}

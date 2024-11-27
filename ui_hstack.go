@@ -32,10 +32,12 @@ func (p *hstackView) getSize() size {
 	childNoHeightCount := 0
 	for _, child := range p.contents {
 		childSize := child.getSize()
+		isSpacer := child.getTypes() == typesSpacer
+
 		result.w += sys.If(childSize.w >= 0, childSize.w, 0)
 		result.h = max(result.h, childSize.h)
 		childNoWidthCount += sys.If(childSize.w >= 0, 0, 1)
-		childNoHeightCount += sys.If(childSize.h >= 0 || child.getTypes() == typesSpacer, 0, 1)
+		childNoHeightCount += sys.If(childSize.h >= 0 || isSpacer, 0, 1)
 	}
 
 	result.w += sys.If(result.w != -1, 1, 0)

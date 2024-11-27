@@ -32,9 +32,11 @@ func (p *vstackView) getSize() size {
 	childNoHeightCount := 0
 	for _, child := range p.contents {
 		childSize := child.getSize()
+		isSpacer := child.getTypes() == typesSpacer
+
 		result.w = max(result.w, childSize.w)
 		result.h += sys.If(childSize.h >= 0, childSize.h, 0)
-		childNoWidthCount += sys.If(childSize.w >= 0 || child.getTypes() == typesSpacer, 0, 1)
+		childNoWidthCount += sys.If(childSize.w >= 0 || isSpacer, 0, 1)
 		childNoHeightCount += sys.If(childSize.h >= 0, 0, 1)
 	}
 

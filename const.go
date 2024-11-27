@@ -10,17 +10,21 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
+const (
+	_minimumFloat64 float64 = 0.001
+)
+
 var (
-	_defaultForegroundColor color.Color = color.Black
-	_globalTicker                       = atomic.Int64{}
+	defaultForegroundColor color.Color = color.Black
+	globalTicker                       = atomic.Int64{}
 )
 
 func currentTicker() int64 {
-	return _globalTicker.Load()
+	return globalTicker.Load()
 }
 
 func tickTock() {
-	_ = _globalTicker.Add(1)
+	_ = globalTicker.Add(1)
 }
 
 /*
