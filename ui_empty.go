@@ -1,5 +1,7 @@
 package ebui
 
+import "github.com/hajimehoshi/ebiten/v2"
+
 /* Check Interface Implementation */
 var _ SomeView = (*emptyView)(nil)
 
@@ -20,3 +22,5 @@ func (p *emptyView) getSize() size {
 func (p *emptyView) Frame(w, h int) SomeView {
 	return p
 }
+
+func (v *emptyView) draw(screen *ebiten.Image) {}

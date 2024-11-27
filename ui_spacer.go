@@ -1,5 +1,7 @@
 package ebui
 
+import "github.com/hajimehoshi/ebiten/v2"
+
 /* Check Interface Implementation */
 var _ SomeView = (*spacerView)(nil)
 
@@ -20,3 +22,5 @@ func (p *spacerView) getSize() size {
 func (p *spacerView) Frame(w, h int) SomeView {
 	return p
 }
+
+func (v *spacerView) draw(screen *ebiten.Image) {}

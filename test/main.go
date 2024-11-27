@@ -6,6 +6,7 @@ import (
 
 	"github.com/yanun0323/ebui"
 	"github.com/yanun0323/ebui/font"
+	"github.com/yanun0323/pkg/logs"
 )
 
 var (
@@ -50,6 +51,11 @@ func main() {
 		ebui.Image("./test/icon").
 			Resizable().
 			Frame(80, 40),
+		ebui.Button(func() {
+			logs.Info("button clicked")
+		}, ebui.Text("Button").
+			BackgroundColor(_green)).
+			Frame(100, 40),
 		ebui.Spacer(),
 		ebui.HStack().
 			Frame(25, 25).

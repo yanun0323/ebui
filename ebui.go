@@ -79,9 +79,12 @@ func EbitenUpdate(sv SomeView) {
 	if sv != nil {
 		w, h := ebiten.WindowSize()
 		v := newView(typesNone, nil, sv.Body())
-		clearCache(v)
-		v.Frame(w, h)
+		reset(v)
+		v.cachedSize = size{w, h}
 		layout(v, point{}, size{w, h})
+
+		update(sv.Body())
+
 		_rootViewCache.Store(sv.Body())
 	}
 

@@ -4,10 +4,17 @@ import (
 	"github.com/yanun0323/pkg/sys"
 )
 
-func clearCache(v SomeView) {
-	v.clearCache()
+func reset(v SomeView) {
+	v.reset()
 	for _, child := range v.subView() {
-		clearCache(child)
+		reset(child)
+	}
+}
+
+func update(v SomeView) {
+	v.update()
+	for _, sv := range v.subView() {
+		update(sv)
 	}
 }
 

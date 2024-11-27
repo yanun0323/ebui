@@ -1,5 +1,12 @@
 package ebui
 
+import (
+	"sync/atomic"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
+)
+
 // import (
 // 	"sync/atomic"
 
@@ -10,42 +17,40 @@ package ebui
 // /* Check Interface Implementation */
 // var _ SomeView = (*buttonView)(nil)
 
-// func Button(action func(), label View) *buttonView {
-// 	v := &buttonView{
-// 		action: action,
-// 	}
+func Button(action func(), label View) *buttonView {
+	v := &buttonView{
+		action: action,
+		label:  label.Body(),
+	}
 
-// 	v.uiViewBack = newUIView(typesButton, v, label)
-// 	return v
-// }
+	v.uiView = newView(typesButton, v, label)
+	return v
+}
 
-// type buttonView struct {
-// 	*uiViewBack
+type buttonView struct {
+	*uiView
+	label SomeView
 
-// 	action     func()
-// 	invokeTick atomic.Int64
-// }
+	action     func()
+	invokeTick atomic.Int64
+}
 
-// func (v *buttonView) Body() SomeView {
-// 	return v
-// }
+func (v *buttonView) Body() SomeView {
+	return v
+}
 
-// func (v *buttonView) draw(screen *ebiten.Image) {
-// 	cache := v.Copy()
-// 	cache.Draw(screen, func(screen *ebiten.Image) {
-// 		cX, cY := ebiten.CursorPosition()
-// 		cache.isPressing = cache.Contain(cX, cY) && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
-// 		if cache.Contain(cX, cY) {
-// 			if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-// 				currentTick := currentTicker()
-// 				previousTick := v.invokeTick.Load()
-// 				if previousTick != currentTicker() {
-// 					v.action()
-// 					v.invokeTick.Store(currentTick)
-// 				}
-// 			}
-// 		}
-
-// 		cache.ApplyViewModifiers(screen)
-// 	})
-// }
+func (v *buttonView) update() {
+	cX, cY := ebiten.CursorPosition()
+	isPressing := v.label.isPress(cX, cY)
+	v.isPressing = isPressing && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
+	if isPressing {
+		if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
+			currentTick := currentTicker()
+			if v.invokeTick.Load() != currentTicker() {
+				v.action()
+				v.invokeTick.Store(currentTick)
+			}
+		}
+	}
+	v.uiView.update()
+}

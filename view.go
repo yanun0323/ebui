@@ -43,10 +43,10 @@ type SomeView interface {
 	// PRIVATE
 	draw(screen *ebiten.Image)
 	getTypes() types
-	// clearCache 清除 getSize 的 cache
+	// reset 清除 getSize 的 cache
 	//
 	// 在每次 ebiten update 的時候調用
-	clearCache()
+	reset()
 	// getSize 取得這個視圖的大小並快取，（如果沒設定大小，就會計算子視圖的總大小）
 	getSize() size
 	setSize(size)
@@ -62,6 +62,10 @@ type SomeView interface {
 	// setStackSubViewCenterOffset 設定子視圖的中心偏移
 	getStackSubViewCenterOffset(offset point) point
 	subView() []SomeView
+	update()
+	isPress(x, y int) bool
+	setEnvironment(uiViewEnvironment)
+	handlePreference(*ebiten.DrawImageOptions)
 }
 
 type uiViewModifier struct {
@@ -178,6 +182,7 @@ func (p *uiView) drawModifiers(screen *ebiten.Image) {
 		opt.GeoM.Translate(float64(p.start.x), float64(p.start.y))
 		opt.GeoM.Translate(float64(v.offset.x), float64(v.offset.y))
 		opt.GeoM.Translate(float64(v.margin.left), float64(v.margin.top))
+		p.handlePreference(opt)
 		screen.DrawImage(img, opt)
 	}
 }
@@ -357,8 +362,9 @@ func (p *uiView) getTypes() types {
 	return p.types
 }
 
-func (p *uiView) clearCache() {
+func (p *uiView) reset() {
 	p.isCached = false
+	p.isPressing = false
 }
 
 func (p *uiView) getSize() size {
@@ -421,4 +427,28 @@ func (p *uiView) stepSubView(pos point, childSize size) point {
 
 func (p *uiView) subView() []SomeView {
 	return p.contents
+}
+
+func (p *uiView) update() {
+	p.actionUpdate()
+	for _, v := range p.contents {
+		v.setEnvironment(p.uiViewEnvironment)
+	}
+}
+
+func (p *uiView) isPress(x, y int) bool {
+	drawSize := p.getDrawSize(p.cachedSize)
+	start := p.start
+
+	return x >= start.x && x <= start.x+drawSize.w && y >= start.y && y <= start.y+drawSize.h
+}
+
+func (p *uiView) setEnvironment(env uiViewEnvironment) {
+	p.uiViewEnvironment.set(env)
+}
+
+func (p *uiView) handlePreference(opt *ebiten.DrawImageOptions) {
+	if p.isPressing {
+		opt.ColorScale.ScaleAlpha(0.3)
+	}
 }

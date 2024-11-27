@@ -137,7 +137,7 @@ func (ui *uiImage) draw(screen *ebiten.Image) {
 	wRatio = sys.If(wRatio < _minimumFloat64, _minimumFloat64, wRatio)
 	hRatio = sys.If(hRatio < _minimumFloat64, _minimumFloat64, hRatio)
 
-	op := &ebiten.DrawImageOptions{}
+	opt := &ebiten.DrawImageOptions{}
 	if ui.aspectRatio != 0 {
 		if wRatio <= hRatio {
 			hRatio = wRatio * ui.aspectRatio
@@ -148,7 +148,8 @@ func (ui *uiImage) draw(screen *ebiten.Image) {
 		}
 	}
 
-	op.GeoM.Scale(wRatio, hRatio)
-	op.GeoM.Translate(dx, dy)
-	screen.DrawImage(ui.img, op)
+	opt.GeoM.Scale(wRatio, hRatio)
+	opt.GeoM.Translate(dx, dy)
+	ui.handlePreference(opt)
+	screen.DrawImage(ui.img, opt)
 }

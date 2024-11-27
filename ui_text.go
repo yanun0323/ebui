@@ -99,10 +99,6 @@ func (v *textView) flexibleTruncateText(tt string, view *uiView, face *text.GoTe
 	drawSize.w -= view.kerning * len(tt)
 
 	wf, _ := text.Measure(tt, face, view.lineSpacing)
-	// if int(hf) > drawSize.h {
-	// 	return ""
-	// }
-
 	if int(wf) <= drawSize.w {
 		return tt
 	}
@@ -158,13 +154,14 @@ func (v *textView) draw(screen *ebiten.Image) {
 			if gl.Image == nil {
 				continue
 			}
-			op := &ebiten.DrawImageOptions{}
-			op.ColorScale.ScaleWithColor(sys.If(v.background == nil, color.Color(color.White), v.background))
+			opt := &ebiten.DrawImageOptions{}
+			opt.ColorScale.ScaleWithColor(sys.If(v.background == nil, color.Color(color.White), v.background))
 
-			op.GeoM.Translate(float64(i*v.uiView.kerning), 0)
-			op.GeoM.Translate(dx, dy)
-			op.GeoM.Translate(gl.X, gl.Y)
-			screen.DrawImage(gl.Image, op)
+			opt.GeoM.Translate(float64(i*v.uiView.kerning), 0)
+			opt.GeoM.Translate(dx, dy)
+			opt.GeoM.Translate(gl.X, gl.Y)
+			v.handlePreference(opt)
+			screen.DrawImage(gl.Image, opt)
 		}
 	}
 	v.drawModifiers(screen)
