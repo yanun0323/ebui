@@ -23,7 +23,9 @@ var (
 type uiImage struct {
 	*uiView
 
-	img *ebiten.Image
+	img         *ebiten.Image
+	resizable   bool
+	aspectRatio float64
 }
 
 func Image(path string, embedFile ...embed.FS) SomeView {
@@ -78,7 +80,7 @@ func (ui *uiImage) tryLoadingImage(path string, embedFile ...embed.FS) {
 			if dir, err := embedFile[0].ReadDir("."); err == nil {
 				for _, f := range dir {
 					i, _ := f.Info()
-					logs.Infof("name: %s, size: %d", f.Name(), i.Size())
+					logs.Debugf("name: %s, size: %d", f.Name(), i.Size())
 				}
 			}
 
@@ -106,6 +108,21 @@ func (ui *uiImage) tryLoadingImage(path string, embedFile ...embed.FS) {
 		ui.img = ebiten.NewImageFromImage(img)
 		break
 	}
+}
+
+func (p *uiImage) Resizable() SomeView {
+	p.resizable = true
+	return p.owner
+}
+
+func (p *uiImage) AspectRatio(ratio ...float64) SomeView {
+	if len(ratio) != 0 {
+		p.aspectRatio = ratio[0]
+	} else {
+		p.aspectRatio = 1
+	}
+
+	return p.owner
 }
 
 func (v *uiImage) getSize() size {

@@ -12,5 +12,6 @@ const (
 	typesButton    = "Button"
 	typesText      = "Text"
 	typesImage     = "Image"
+	typesCircle    = "Circle"
 	typesRectangle = "Rectangle"
 )

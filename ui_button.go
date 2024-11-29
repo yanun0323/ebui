@@ -7,17 +7,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
-// import (
-// 	"sync/atomic"
+/* Check Interface Implementation */
+var _ SomeView = (*buttonView)(nil)
 
-// 	"github.com/hajimehoshi/ebiten/v2"
-// 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-// )
-
-// /* Check Interface Implementation */
-// var _ SomeView = (*buttonView)(nil)
-
-func Button(action func(), label View) *buttonView {
+func Button(action func(), label View) SomeView {
 	v := &buttonView{
 		action: action,
 		label:  label.Body(),
@@ -39,7 +32,7 @@ func (v *buttonView) Body() SomeView {
 	return v
 }
 
-func (v *buttonView) update() {
+func (v *buttonView) deepUpdateAction() {
 	cX, cY := ebiten.CursorPosition()
 	isPressing := v.label.isPress(cX, cY)
 	v.isPressing = isPressing && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
@@ -52,5 +45,7 @@ func (v *buttonView) update() {
 			}
 		}
 	}
-	v.uiView.update()
+
+	v.uiView.deepUpdateAction()
+	v.uiView.deepUpdateEnvironment()
 }

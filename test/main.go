@@ -2,11 +2,11 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"image/color"
 
 	"github.com/yanun0323/ebui"
 	"github.com/yanun0323/ebui/font"
-	"github.com/yanun0323/pkg/logs"
 )
 
 var (
@@ -20,7 +20,10 @@ var (
 var resource embed.FS
 
 func main() {
-	contentView := ebui.VStack(
+	count := 0
+	countStr := fmt.Sprintf("count: %d", count)
+
+	leftView := ebui.VStack(
 		ebui.HStack(
 			ebui.VStack().
 				Frame(25, 25).
@@ -29,7 +32,7 @@ func main() {
 				Frame(25, 25).
 				BackgroundColor(color.RGBA{0, 128, 128, 128}),
 		).
-			Frame(100, 100).
+			Frame(70, 70).
 			BackgroundColor(_red),
 		ebui.HStack(
 			ebui.VStack().
@@ -47,13 +50,17 @@ func main() {
 		ebui.Image("icon", resource).
 			Resizable().
 			AspectRatio().
-			Frame(100, 100),
+			Frame(60, 60),
 		ebui.Image("./test/icon").
 			Resizable().
 			Frame(80, 40),
+		ebui.Text(&countStr).
+			FontSize(font.Body).
+			BackgroundColor(_red),
 		ebui.Button(func() {
-			logs.Info("button clicked")
-		}, ebui.Text("Button").
+			count++
+			countStr = fmt.Sprintf("count: %d", count)
+		}, ebui.Text("Add Count").
 			BackgroundColor(_green)).
 			Frame(100, 40),
 		ebui.Spacer(),
@@ -65,5 +72,18 @@ func main() {
 			ebui.VStack().Frame(80, 80).BackgroundColor(_blue),
 		),
 	).BackgroundColor(_blue)
-	ebui.Run("Windows Title", contentView, true)
+
+	rightView := ebui.VStack(
+		ebui.Circle().ForegroundColor(_green),
+	)
+
+	contentView := ebui.HStack(
+		leftView.Border(_red, 2),
+		rightView.Frame(80, 80).Border(_blue, 2),
+	)
+
+	ebui.Run("Windows Title", contentView,
+		ebui.WithDebug(),
+		ebui.WithMemMonitor(),
+	)
 }

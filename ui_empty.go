@@ -23,4 +23,6 @@ func (p *emptyView) Frame(w, h int) SomeView {
 	return p
 }
 
-func (v *emptyView) draw(screen *ebiten.Image) {}
+func (v *emptyView) draw(screen *ebiten.Image) {
+	v.drawModifiers(screen)
+}

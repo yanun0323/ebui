@@ -23,4 +23,6 @@ func (p *spacerView) Frame(w, h int) SomeView {
 	return p
 }
 
-func (v *spacerView) draw(screen *ebiten.Image) {}
+func (v *spacerView) draw(screen *ebiten.Image) {
+	v.drawModifiers(screen)
+}

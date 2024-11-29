@@ -1,8 +1,6 @@
 package ebui
 
 import (
-	"image/color"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/yanun0323/ebui/font"
@@ -20,9 +18,17 @@ var (
 	_ SomeView = (*textView)(nil)
 )
 
-func Text(t string) *textView {
+func Text[T string | *string](t T) SomeView {
+	var tt *string
+	switch any(t).(type) {
+	case string:
+		tt = any(&t).(*string)
+	case *string:
+		tt = any(t).(*string)
+	}
+
 	v := &textView{
-		t: t,
+		t: tt,
 	}
 
 	v.uiView = newView(typesText, v)
@@ -32,7 +38,7 @@ func Text(t string) *textView {
 type textView struct {
 	*uiView
 
-	t string
+	t *string
 }
 
 func (*textView) textFace(v *uiView, size ...font.Size) *text.GoTextFace {
@@ -58,20 +64,20 @@ func (*textView) textFace(v *uiView, size ...font.Size) *text.GoTextFace {
 //
 // It will truncate the text to fit the bounds.
 func (v *textView) calculateSizeFromText(view *uiView, skipTruncate ...bool) (int, int, string, *text.GoTextFace) {
-	if len(v.t) == 0 {
+	if len(*v.t) == 0 {
 		return 0, 0, "", nil
 	}
 
 	face := v.textFace(view)
-	w, h := v.getTextBounds(v.t, face)
+	w, h := v.getTextBounds(*v.t, face)
 	drawSize := view.getDrawSize(view.cachedSize)
 	if w <= drawSize.w && h <= drawSize.h {
-		return w, h, v.t, face
+		return w, h, *v.t, face
 	}
 
-	tt := v.t
+	tt := *v.t
 	if len(skipTruncate) == 0 || !skipTruncate[0] {
-		tt = v.flexibleTruncateText(v.t, view, face)
+		tt = v.flexibleTruncateText(*v.t, view, face)
 	}
 
 	if len(tt) == 0 {
@@ -155,7 +161,7 @@ func (v *textView) draw(screen *ebiten.Image) {
 				continue
 			}
 			opt := &ebiten.DrawImageOptions{}
-			opt.ColorScale.ScaleWithColor(sys.If(v.background == nil, color.Color(color.White), v.background))
+			opt.ColorScale.ScaleWithColor(sys.If(v.fColor == nil, defaultForegroundColor, v.fColor))
 
 			opt.GeoM.Translate(float64(i*v.uiView.kerning), 0)
 			opt.GeoM.Translate(dx, dy)

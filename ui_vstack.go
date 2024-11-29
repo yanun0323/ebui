@@ -57,7 +57,7 @@ func (p *vstackView) getStackSubViewStart(offset point) point {
 	return point{0, offset.y}
 }
 
-func (p *vstackView) getStackSubViewCenterOffset(offset point) point {
+func (p *vstackView) getStackSubViewOffsetToCenter(offset point) point {
 	return point{offset.x, 0}
 }
 

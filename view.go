@@ -40,13 +40,14 @@ type SomeView interface {
 	Resizable() SomeView
 	AspectRatio(ratio ...float64) SomeView
 
+	Border(clr color.Color, width ...int) SomeView
+
 	// PRIVATE
 	draw(screen *ebiten.Image)
 	getTypes() types
 	// reset 清除 getSize 的 cache
 	//
 	// 在每次 ebiten update 的時候調用
-	reset()
 	// getSize 取得這個視圖的大小並快取，（如果沒設定大小，就會計算子視圖的總大小）
 	getSize() size
 	setSize(size)
@@ -60,23 +61,13 @@ type SomeView interface {
 	// getStackSubViewStart 取得 Stack 視圖，子視圖的起始位置
 	getStackSubViewStart(offset point) point
 	// setStackSubViewCenterOffset 設定子視圖的中心偏移
-	getStackSubViewCenterOffset(offset point) point
+	getStackSubViewOffsetToCenter(offset point) point
 	subView() []SomeView
-	update()
 	isPress(x, y int) bool
-	setEnvironment(uiViewEnvironment)
+	deepReset()
+	deepUpdateAction()
+	deepUpdateEnvironment(...uiViewEnvironment)
 	handlePreference(*ebiten.DrawImageOptions)
-}
-
-type uiViewModifier struct {
-	uiViewLayout
-	uiViewParameter
-}
-
-func newViewModifier() uiViewModifier {
-	return uiViewModifier{
-		uiViewLayout: _zeroUIViewLayout,
-	}
 }
 
 type uiView struct {
@@ -170,20 +161,8 @@ func (p *uiView) draw(screen *ebiten.Image) {
 }
 
 func (p *uiView) drawModifiers(screen *ebiten.Image) {
-	for _, v := range p.modifiers {
-		pos := v.getDrawSize(p.cachedSize)
-		if pos.w <= 0 || pos.h <= 0 {
-			continue
-		}
-
-		img := ebiten.NewImage(pos.w, pos.h)
-		img.Fill(sys.If(v.background == nil, color.Color(color.Transparent), v.background))
-		opt := &ebiten.DrawImageOptions{}
-		opt.GeoM.Translate(float64(p.start.x), float64(p.start.y))
-		opt.GeoM.Translate(float64(v.offset.x), float64(v.offset.y))
-		opt.GeoM.Translate(float64(v.margin.left), float64(v.margin.top))
-		p.handlePreference(opt)
-		screen.DrawImage(img, opt)
+	for _, vm := range p.modifiers {
+		vm.drawModifiers(screen, p)
 	}
 }
 
@@ -225,6 +204,8 @@ func (p *uiView) Frame(w, h int) SomeView {
 }
 
 func (p *uiView) ForegroundColor(clr color.Color) SomeView {
+	p.fColor = clr
+	p.deepUpdateEnvironment()
 	return p.owner
 }
 
@@ -315,11 +296,13 @@ func (p *uiView) Offset(x, y int) SomeView {
 
 func (p *uiView) FontSize(size font.Size) SomeView {
 	p.fontSize = size
+	p.deepUpdateEnvironment()
 	return p.owner
 }
 
 func (p *uiView) FontWeight(weight font.Weight) SomeView {
 	p.fontWeight = weight
+	p.deepUpdateEnvironment()
 	return p.owner
 }
 
@@ -344,27 +327,24 @@ func (p *uiView) Italic() SomeView {
 }
 
 func (p *uiView) Resizable() SomeView {
-	p.resizable = true
 	return p.owner
 }
 
 func (p *uiView) AspectRatio(ratio ...float64) SomeView {
-	if len(ratio) != 0 {
-		p.aspectRatio = ratio[0]
-	} else {
-		p.aspectRatio = 1
-	}
+	return p.owner
+}
+
+func (p *uiView) Border(clr color.Color, width ...int) SomeView {
+	last := p.last()
+
+	last.borderWidth = first(width, 1)
+	last.borderColor = clr
 
 	return p.owner
 }
 
 func (p *uiView) getTypes() types {
 	return p.types
-}
-
-func (p *uiView) reset() {
-	p.isCached = false
-	p.isPressing = false
 }
 
 func (p *uiView) getSize() size {
@@ -417,7 +397,7 @@ func (p *uiView) getStackSubViewStart(offset point) point {
 	return point{}
 }
 
-func (p *uiView) getStackSubViewCenterOffset(offset point) point {
+func (p *uiView) getStackSubViewOffsetToCenter(offset point) point {
 	return offset
 }
 
@@ -429,22 +409,38 @@ func (p *uiView) subView() []SomeView {
 	return p.contents
 }
 
-func (p *uiView) update() {
-	p.actionUpdate()
-	for _, v := range p.contents {
-		v.setEnvironment(p.uiViewEnvironment)
-	}
-}
-
 func (p *uiView) isPress(x, y int) bool {
 	drawSize := p.getDrawSize(p.cachedSize)
 	start := p.start
 
-	return x >= start.x && x <= start.x+drawSize.w && y >= start.y && y <= start.y+drawSize.h
+	return p.isPressing && x >= start.x && x <= start.x+drawSize.w && y >= start.y && y <= start.y+drawSize.h
 }
 
-func (p *uiView) setEnvironment(env uiViewEnvironment) {
-	p.uiViewEnvironment.set(env)
+func (p *uiView) deepReset() {
+	p.isCached = false
+	p.isPressing = false
+	for _, v := range p.subView() {
+		v.deepReset()
+	}
+}
+
+func (p *uiView) deepUpdateAction() {
+	p.actionUpdate()
+	for _, v := range p.contents {
+		v.deepUpdateAction()
+	}
+}
+
+func (p *uiView) deepUpdateEnvironment(env ...uiViewEnvironment) {
+	e := p.uiViewEnvironment
+	if len(env) != 0 {
+		e = env[0]
+		p.uiViewEnvironment.set(e)
+	}
+
+	for _, v := range p.contents {
+		v.deepUpdateEnvironment(e)
+	}
 }
 
 func (p *uiView) handlePreference(opt *ebiten.DrawImageOptions) {

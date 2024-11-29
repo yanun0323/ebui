@@ -15,7 +15,8 @@ const (
 )
 
 var (
-	defaultForegroundColor color.Color = color.Black
+	defaultForegroundColor color.Color = color.White
+	defaultBackgroundColor color.Color = color.Black
 	globalTicker                       = atomic.Int64{}
 )
 
