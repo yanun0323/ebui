@@ -1,30 +1,30 @@
-package ebui
+package sync
 
 import "sync/atomic"
 
-type value[T any] struct {
+type Value[T any] struct {
 	val atomic.Value
 }
 
-func NewValue[T any](val ...T) value[T] {
+func NewValue[T any](val ...T) Value[T] {
 	v := atomic.Value{}
 	if len(val) != 0 {
 		v.Store(val[0])
 	}
 
-	return value[T]{
+	return Value[T]{
 		val: v,
 	}
 }
 
 // CompareAndSwap executes the compare-and-swap operation for the Value.
-func (v *value[T]) CompareAndSwap(old T, new T) (swapped bool) {
+func (v *Value[T]) CompareAndSwap(old T, new T) (swapped bool) {
 	return v.val.CompareAndSwap(old, new)
 }
 
 // Load returns the value set by the most recent Store.
 // It returns zero value if there has been no call to Store for this Value.
-func (v *value[T]) Load() T {
+func (v *Value[T]) Load() T {
 	if vv, ok := v.val.Load().(T); ok {
 		return vv
 	}
@@ -33,7 +33,7 @@ func (v *value[T]) Load() T {
 	return zero
 }
 
-func (v *value[T]) TryLoad() (T, bool) {
+func (v *Value[T]) TryLoad() (T, bool) {
 	raw := v.val.Load()
 	if raw == nil {
 		return *new(T), false
@@ -44,13 +44,13 @@ func (v *value[T]) TryLoad() (T, bool) {
 }
 
 // Store sets the value of the Value v to val.
-func (v *value[T]) Store(val T) {
+func (v *Value[T]) Store(val T) {
 	v.val.Store(val)
 }
 
 // Swap stores new into Value and returns the previous value. It returns zero value if
 // the Value is empty.
-func (v *value[T]) Swap(new T) (old T) {
+func (v *Value[T]) Swap(new T) (old T) {
 	if vv, ok := v.val.Swap(new).(T); ok {
 		return vv
 	}

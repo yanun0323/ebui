@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/yanun0323/ebui/sync"
 	"github.com/yanun0323/pkg/logs"
 )
 
@@ -25,15 +25,15 @@ type app struct {
 	contentView SomeView
 	debug       bool
 	memMonitor  bool
-	memStatus   value[memStats]
+	memStatus   sync.Value[memStats]
 }
 
-func Run(title string, contentView View, options ...RunOption) error {
+func Run(title string, contentView SomeView, options ...RunOption) error {
 	logs.Info("initializing app...")
 	ebiten.SetWindowTitle(title)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	app := &app{
-		contentView: contentView.Body(),
+		contentView: contentView,
 	}
 
 	for _, option := range options {
@@ -57,7 +57,7 @@ func Run(title string, contentView View, options ...RunOption) error {
 	return nil
 }
 
-func (a *app) SetWindowSize(w, h int) {
+func SetWindowSize(w, h int) {
 	ebiten.SetWindowSize(w, h)
 }
 
@@ -70,7 +70,7 @@ func (a *app) Update() error {
 }
 
 func (a *app) Draw(screen *ebiten.Image) {
-	EbitenDraw(screen)
+	EbitenDraw(a.contentView, screen)
 
 	if a.debug {
 		ebitenutil.DebugPrint(screen, fmt.Sprintf("[Frame Rate] TPS: %.1f, FPS: %.1f\n%s", ebiten.ActualTPS(), ebiten.ActualFPS(), a.memStatus.Load().string()))
@@ -81,27 +81,25 @@ func (a *app) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight
 	return outsideWidth, outsideHeight
 }
 
-func EbitenUpdate(sv SomeView) {
-	if sv != nil {
-		w, h := ebiten.WindowSize()
-		println(w, h)
-		v := newView(typesNone, nil, sv.Body())
-		v.deepReset()
-		v.setSize(size{w, h})
-		layout(v, point{}, size{w, h})
+func EbitenUpdate(v SomeView) {
+	if v != nil {
+		// 		w, h := ebiten.WindowSize()
+		// 		println(w, h)
+		// 		v := newView(typesNone, nil, sv.Body())
+		// 		v.deepReset()
+		// 		v.setSize(size{w, h})
+		// 		layout(v, point{}, size{w, h})
 
-		v.deepUpdateAction()
-		v.deepUpdateEnvironment()
-
-		rootViewCache.Store(sv.Body())
+		// 		v.deepUpdateAction()
+		// 		v.deepUpdateEnvironment()
 	}
 
-	tickTock()
+	// tickTock()
 }
 
-func EbitenDraw(screen *ebiten.Image) {
-	if r, ok := rootViewCache.Load().(SomeView); ok {
-		r.draw(screen)
+func EbitenDraw(v SomeView, screen *ebiten.Image) {
+	if v != nil {
+		v.draw(screen)
 	}
 }
 

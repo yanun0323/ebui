@@ -1,14 +1,25 @@
 package ebui
 
-/* Check Interface Implementation */
-var _ SomeView = (*zstackView)(nil)
+import "github.com/hajimehoshi/ebiten/v2"
 
-func ZStack(views ...View) SomeView {
-	v := &zstackView{}
-	v.uiView = newView(typesZStack, v, views...)
+type zstack struct {
+	view
+
+	views []SomeView
+}
+
+func ZStack(views ...SomeView) SomeView {
+	v := &zstack{
+		views: views,
+	}
+	v.view = newView(v)
 	return v
 }
 
-type zstackView struct {
-	*uiView
+func (v *zstack) draw(screen *ebiten.Image) {
+	v.modify()
+
+	for _, child := range v.views {
+		child.draw(screen)
+	}
 }
