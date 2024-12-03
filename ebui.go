@@ -64,7 +64,13 @@ func (a *app) SetWindowSize(w, h int) {
 func (a *app) Update() error {
 
 	EbitenUpdate(a.contentView)
+
+	ts := time.Now().UnixMicro()
 	runtime.GC()
+	duration := time.Now().UnixMicro() - ts
+	if duration >= 3000 {
+		logs.Warnf("slow GC!!! took %d ns", time.Now().UnixMicro()-ts)
+	}
 
 	return nil
 }
@@ -84,7 +90,6 @@ func (a *app) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight
 func EbitenUpdate(sv SomeView) {
 	if sv != nil {
 		w, h := ebiten.WindowSize()
-		println(w, h)
 		v := newView(typesNone, nil, sv.Body())
 		v.deepReset()
 		v.setSize(size{w, h})
