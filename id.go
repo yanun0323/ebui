@@ -1,17 +1,17 @@
 package ebui
 
-type types string
+type identity uint8
 
 const (
-	typesNone      = ""
-	typesEmpty     = "Empty"
-	typesSpacer    = "Spacer"
-	typesHStack    = "HStack"
-	typesVStack    = "VStack"
-	typesZStack    = "ZStack"
-	typesButton    = "Button"
-	typesText      = "Text"
-	typesImage     = "Image"
-	typesCircle    = "Circle"
-	typesRectangle = "Rectangle"
+	idNone identity = iota
+	idEmpty
+	idSpacer
+	idHStack
+	idVStack
+	idZStack
+	idButton
+	idText
+	idImage
+	idCircle
+	idRectangle
 )

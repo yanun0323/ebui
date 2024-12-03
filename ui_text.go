@@ -7,7 +7,7 @@ import (
 )
 
 type texts struct {
-	view
+	*view
 
 	localeKey Binding[string]
 }
@@ -16,12 +16,12 @@ func Text(localeKey Binding[string]) SomeView {
 	v := &texts{
 		localeKey: localeKey,
 	}
-	v.view = newView(v)
+	v.view = newView(idText, v)
 	return v
 }
 
 func (v *texts) draw(screen *ebiten.Image) {
-	v.modify()
+	v.updateRenderCache()
 
 	t := v.localeKey.Get()
 	face := &text.GoTextFace{
@@ -51,6 +51,6 @@ func (v *texts) draw(screen *ebiten.Image) {
 		opt.GeoM.Translate(float64(i*v.param.fontKerning), 0)
 		opt.GeoM.Translate(dx, dy)
 		opt.GeoM.Translate(gl.X, gl.Y)
-		screen.DrawImage(gl.Image, opt)
+		v.drawResult(screen, gl.Image, opt)
 	}
 }

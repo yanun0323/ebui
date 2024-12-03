@@ -45,6 +45,8 @@ type SomeView interface {
 }
 
 type internalView interface {
+	id() identity
 	bounds() (min, current, max Size)
+	update(container Size)
 	draw(screen *ebiten.Image)
 }

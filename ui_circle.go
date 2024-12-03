@@ -5,17 +5,17 @@ import (
 )
 
 type circle struct {
-	view
+	*view
 }
 
 func Circle() SomeView {
 	v := &circle{}
-	v.view = newView(v)
+	v.view = newView(idCircle, v)
 	return v
 }
 
 func (v *circle) draw(screen *ebiten.Image) {
-	v.modify()
+	v.updateRenderCache()
 
 	size := v.param.frameSize
 	clr := v.param.foregroundColor
@@ -40,5 +40,5 @@ func (v *circle) draw(screen *ebiten.Image) {
 		}
 	}
 
-	screen.DrawImage(img, v.drawOption())
+	v.drawResult(screen, img, nil)
 }

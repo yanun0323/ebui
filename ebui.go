@@ -64,7 +64,13 @@ func SetWindowSize(w, h int) {
 func (a *app) Update() error {
 
 	EbitenUpdate(a.contentView)
+
+	ts := time.Now().UnixMicro()
 	runtime.GC()
+	duration := time.Now().UnixMicro() - ts
+	if duration >= 3000 {
+		logs.Warnf("slow GC!!! took %d ns", time.Now().UnixMicro()-ts)
+	}
 
 	return nil
 }
@@ -82,8 +88,13 @@ func (a *app) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight
 }
 
 func EbitenUpdate(v SomeView) {
+	if !ebiten.IsFocused() {
+		return
+	}
+
 	if v != nil {
-		// 		w, h := ebiten.WindowSize()
+		w, h := ebiten.WindowSize()
+		v.update(Size{W: w, H: h})
 		// 		println(w, h)
 		// 		v := newView(typesNone, nil, sv.Body())
 		// 		v.deepReset()
@@ -94,7 +105,7 @@ func EbitenUpdate(v SomeView) {
 		// 		v.deepUpdateEnvironment()
 	}
 
-	// tickTock()
+	tickTock()
 }
 
 func EbitenDraw(v SomeView, screen *ebiten.Image) {
@@ -112,7 +123,7 @@ func (a *app) monitorMem() {
 		stats.update(mStats)
 		a.memStatus.Store(stats)
 
-		time.Sleep(time.Second)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -129,6 +140,8 @@ type memStats struct {
 	HeapObjects uint64
 	StackSys    uint64
 	StackInuse  uint64
+	GCSys       uint64
+	GCNext      uint64
 }
 
 func (m *memStats) update(s runtime.MemStats) {
@@ -141,6 +154,8 @@ func (m *memStats) update(s runtime.MemStats) {
 		m.HeapObjects = s.HeapObjects
 		m.StackSys = s.StackSys
 		m.StackInuse = s.StackInuse
+		m.GCSys = s.GCSys
+		m.GCNext = s.NextGC
 
 		return
 	}
@@ -151,6 +166,8 @@ func (m *memStats) update(s runtime.MemStats) {
 	m.HeapObjects = (m.HeapObjects + s.HeapObjects) / 2
 	m.StackSys = (m.StackSys + s.StackSys) / 2
 	m.StackInuse = (m.StackInuse + s.StackInuse) / 2
+	m.GCSys = s.GCSys
+	m.GCNext = s.NextGC
 }
 
 func (m memStats) string() string {
@@ -158,8 +175,11 @@ func (m memStats) string() string {
 		return ""
 	}
 
-	return fmt.Sprintf("[Heap] sys: %s, alloc: %s, inuse: %s, objects: %s \n[Stack] sys: %s, inuse: %s",
-		m.truncate(m.HeapSys), m.truncate(m.HeapAlloc), m.truncate(m.HeapInuse), m.truncate(m.HeapObjects), m.truncate(m.StackSys), m.truncate(m.StackInuse))
+	return fmt.Sprintf("[Heap] sys: %s, alloc: %s, inuse: %s, objects: %s \n[Stack] sys: %s, inuse: %s \n[GC] sys: %s, next: %s",
+		m.truncate(m.HeapSys), m.truncate(m.HeapAlloc), m.truncate(m.HeapInuse), m.truncate(m.HeapObjects),
+		m.truncate(m.StackSys), m.truncate(m.StackInuse),
+		m.truncate(m.GCSys), m.truncate(m.GCNext),
+	)
 }
 
 func (memStats) truncate(bytes uint64) string {

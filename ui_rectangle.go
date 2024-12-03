@@ -1,11 +1,11 @@
 package ebui
 
 type rectangle struct {
-	view
+	*view
 }
 
 func Rectangle() SomeView {
 	v := &rectangle{}
-	v.view = newView(v)
+	v.view = newView(idRectangle, v)
 	return v
 }
