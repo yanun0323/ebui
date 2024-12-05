@@ -4,7 +4,6 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/yanun0323/ebui/font"
 )
 
 type View interface {
@@ -18,8 +17,8 @@ type SomeView interface {
 	Offset(Binding[Point]) SomeView
 	ForegroundColor(Binding[color.Color]) SomeView
 	BackgroundColor(Binding[color.Color]) SomeView
-	Opacity(Binding[float64]) SomeView
-	Disable(...Binding[bool]) SomeView
+	// Opacity(Binding[float64]) SomeView
+	// Disable(...Binding[bool]) SomeView
 
 	// Padding makes view have padding.
 	//
@@ -28,13 +27,13 @@ type SomeView interface {
 	// 	 - [1] all
 	// 	 - [2] vertical, horizontal
 	// 	 - [4] top, right, bottom, left
-	Padding(...Binding[int]) SomeView
+	// Padding(...Binding[int]) SomeView
 
-	FontSize(Binding[font.Size]) SomeView
-	FontWeight(Binding[font.Weight]) SomeView
-	LineSpacing(Binding[float64]) SomeView
-	Kerning(Binding[int]) SomeView
-	Italic(...Binding[bool]) SomeView
+	// FontSize(Binding[font.Size]) SomeView
+	// FontWeight(Binding[font.Weight]) SomeView
+	// LineSpacing(Binding[float64]) SomeView
+	// Kerning(Binding[int]) SomeView
+	// Italic(...Binding[bool]) SomeView
 
 	// CornerRadius(radius ...int) SomeView
 
@@ -48,5 +47,7 @@ type internalView interface {
 	id() identity
 	bounds() (min, current, max Size)
 	update(container Size)
+	getRenderImage() *ebiten.Image
+	drawable() bool
 	draw(screen *ebiten.Image)
 }

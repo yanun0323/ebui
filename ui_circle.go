@@ -14,12 +14,15 @@ func Circle() SomeView {
 	return v
 }
 
-func (v *circle) draw(screen *ebiten.Image) {
-	v.updateRenderCache()
+func (v *circle) getRenderImage() *ebiten.Image {
+	if v.noChange.Swap(true) {
+		return v.img.Load()
+	}
 
-	size := v.param.frameSize
-	clr := v.param.foregroundColor
+	size := v.render.size
+	clr := v.param.foregroundColor.Get()
 	diameter := max(size.W, size.H)
+
 	radius := diameter / 2
 	img := ebiten.NewImage(diameter, diameter)
 
@@ -40,5 +43,7 @@ func (v *circle) draw(screen *ebiten.Image) {
 		}
 	}
 
-	v.drawResult(screen, img, nil)
+	v.img.Store(img)
+
+	return img
 }

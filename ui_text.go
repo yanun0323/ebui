@@ -20,37 +20,46 @@ func Text(localeKey Binding[string]) SomeView {
 	return v
 }
 
-func (v *texts) draw(screen *ebiten.Image) {
-	v.updateRenderCache()
+func (v *texts) getRenderImage() *ebiten.Image {
+	if v.noChange.Swap(true) {
+		return v.img.Load()
+	}
+
+	size := v.render.size
 
 	t := v.localeKey.Get()
 	face := &text.GoTextFace{
 		Source: _defaultFontResource,
-		Size:   v.param.fontSize.F64(),
+		Size:   v.param.fontSize.Get().F64(),
 	}
 
-	face.SetVariation(_fontTagWeight, v.param.fontWeight.F32())
-	face.SetVariation(_fontTagItalic, sys.If[float32](v.param.fontItalic, 1, 0))
-	wf, hf := text.Measure(t, face, v.param.fontLineSpacing)
+	face.SetVariation(_fontTagWeight, v.param.fontWeight.Get().F32())
+	face.SetVariation(_fontTagItalic, sys.If[float32](v.param.fontItalic.Get(), 1, 0))
+	wf, hf := text.Measure(t, face, v.param.fontLineSpacing.Get())
 
-	w := int(wf) + v.param.fontKerning
+	chars := text.AppendGlyphs(nil, t, face, &text.LayoutOptions{LineSpacing: v.param.fontLineSpacing.Get()})
+	w := int(wf) + (v.param.fontKerning.Get() * len(chars))
 	h := int(hf)
 
-	size := v.param.frameSize
+	w = max(w, size.W)
+	h = max(h, size.H)
 
-	dx := /*  float64(v.uiView.start.x) */ +float64(size.W-int(w)) / 2
-	dy := /*  float64(v.uiView.start.y) */ +float64(size.H-int(h)) / 2
-
-	for i, gl := range text.AppendGlyphs(nil, t, face, &text.LayoutOptions{LineSpacing: v.param.fontLineSpacing}) {
+	img := ebiten.NewImage(w, h)
+	// dx := /*  float64(v.uiView.start.x) */ +float64(size.W-int(w)) / 2
+	// dy := /*  float64(v.uiView.start.y) */ +float64(size.H-int(h)) / 2
+	for i, gl := range chars {
 		if gl.Image == nil {
 			continue
 		}
 		opt := &ebiten.DrawImageOptions{}
-		opt.ColorScale.ScaleWithColor(v.param.foregroundColor)
+		opt.ColorScale.ScaleWithColor(v.param.foregroundColor.Get())
 
-		opt.GeoM.Translate(float64(i*v.param.fontKerning), 0)
-		opt.GeoM.Translate(dx, dy)
+		opt.GeoM.Translate(float64(i*v.param.fontKerning.Get()), 0)
+		// opt.GeoM.Translate(dx, dy)
 		opt.GeoM.Translate(gl.X, gl.Y)
-		v.drawResult(screen, gl.Image, opt)
+		img.DrawImage(gl.Image, opt)
 	}
+
+	v.img.Store(img)
+	return img
 }

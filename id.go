@@ -15,3 +15,13 @@ const (
 	idCircle
 	idRectangle
 )
+
+type paramIdentity uint8
+
+const (
+	paramIDFrame paramIdentity = iota
+	paramIDOffset
+	paramIDForegroundColor
+	paramIDBackgroundColor
+	paramIDOpacity
+)

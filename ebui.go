@@ -68,7 +68,7 @@ func (a *app) Update() error {
 	ts := time.Now().UnixMicro()
 	runtime.GC()
 	duration := time.Now().UnixMicro() - ts
-	if duration >= 3000 {
+	if duration >= 5000 {
 		logs.Warnf("slow GC!!! took %d ns", time.Now().UnixMicro()-ts)
 	}
 
@@ -91,6 +91,7 @@ func EbitenUpdate(v SomeView) {
 	if !ebiten.IsFocused() {
 		return
 	}
+	defer tickTock()
 
 	if v != nil {
 		w, h := ebiten.WindowSize()
@@ -104,8 +105,6 @@ func EbitenUpdate(v SomeView) {
 		// 		v.deepUpdateAction()
 		// 		v.deepUpdateEnvironment()
 	}
-
-	tickTock()
 }
 
 func EbitenDraw(v SomeView, screen *ebiten.Image) {

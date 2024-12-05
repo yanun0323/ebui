@@ -17,7 +17,7 @@ func ZStack(views ...SomeView) SomeView {
 }
 
 func (v *zstack) update(container Size) {
-	v.view.updateRenderCache()
+	v.view.update(container)
 
 	for _, child := range v.views {
 		child.update(container)
@@ -25,8 +25,6 @@ func (v *zstack) update(container Size) {
 }
 
 func (v *zstack) draw(screen *ebiten.Image) {
-	v.updateRenderCache()
-
 	for _, child := range v.views {
 		child.draw(screen)
 	}

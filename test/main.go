@@ -2,6 +2,8 @@ package main
 
 import (
 	"embed"
+	"image/color"
+	"math/rand"
 	"time"
 
 	. "github.com/yanun0323/ebui"
@@ -12,14 +14,14 @@ var resource embed.FS
 
 func main() {
 	clr := New(ColorGray)
-	size := New(Size{W: 150, H: 150})
-	offset := New(Point{X: 0, Y: 0})
+	size := New(Size{W: 30, H: 30})
+	offset := New(Point{X: 0, Y: 100})
 
 	go func() {
 		for {
 			time.Sleep(time.Second)
 			if clr.Get() == ColorGray {
-				clr.Set(ColorWhite)
+				clr.Set(color.Gray{50})
 			} else {
 				clr.Set(ColorGray)
 			}
@@ -50,17 +52,51 @@ func main() {
 		}
 	}()
 
-	contentView := ZStack(
-		Circle().
+	gen := func(count int) []SomeView {
+		views := make([]SomeView, 0, count*5)
+
+		ofs := New(Point{X: rand.Intn(500), Y: rand.Intn(500)})
+		views = append(views, Rectangle().
 			Frame(size).
 			Offset(offset).
-			ForegroundColor(clr).
-			Opacity(New(0.5)),
-		Text(New("Hello")).
-			Offset(offset).
-			Frame(New(Size{W: 100, H: 100})).
-			ForegroundColor(New(ColorWhite)),
-	)
+			Offset(ofs).
+			ForegroundColor(clr),
+		)
+
+		for i := 0; i < count; i++ {
+			ofs := New(Point{X: rand.Intn(500), Y: rand.Intn(500)})
+			views = append(views, Rectangle().
+				Frame(size).
+				Offset(offset).
+				Offset(ofs).
+				ForegroundColor(clr),
+			)
+		}
+
+		for i := 0; i < count; i++ {
+			ofs := New(Point{X: rand.Intn(500), Y: rand.Intn(500)})
+			views = append(views, Circle().
+				Frame(size).
+				Offset(offset).
+				Offset(ofs).
+				ForegroundColor(clr),
+			)
+		}
+
+		for i := 0; i < count; i++ {
+			ofs := New(Point{X: rand.Intn(500), Y: rand.Intn(500)})
+			views = append(views, Text(New("Hello")).
+				Frame(size).
+				Offset(offset).
+				Offset(ofs).
+				ForegroundColor(clr),
+			)
+		}
+
+		return views
+	}
+
+	contentView := ZStack(gen(100)...)
 
 	SetWindowSize(640, 480)
 	Run("Windows Title", contentView,
