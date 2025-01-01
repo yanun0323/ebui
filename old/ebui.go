@@ -9,7 +9,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/yanun0323/ebui/sync"
+	"github.com/yanun0323/ebui/old/sync"
 	"github.com/yanun0323/pkg/logs"
 )
 

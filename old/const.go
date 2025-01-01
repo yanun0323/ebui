@@ -32,7 +32,7 @@ func tickTock() {
 */
 
 var (
-	//go:embed resource/NotoSansTC.ttf
+	//go:embed *.*
 	_defaultTTF          embed.FS
 	_defaultFontResource = defaultFont()
 	_fontTagWeight       = parseTag("wght") /* 100-900 */
