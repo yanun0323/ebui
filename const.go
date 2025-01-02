@@ -15,7 +15,8 @@ const (
 )
 
 var (
-	defaultForegroundColor color.Color = color.Black
+	defaultForegroundColor color.Color = color.White
+	defaultBackgroundColor color.Color = color.Black
 	globalTicker                       = atomic.Int64{}
 )
 
@@ -32,7 +33,7 @@ func tickTock() {
 */
 
 var (
-	//go:embed *.*
+	//go:embed resource/NotoSansTC.ttf
 	_defaultTTF          embed.FS
 	_defaultFontResource = defaultFont()
 	_fontTagWeight       = parseTag("wght") /* 100-900 */

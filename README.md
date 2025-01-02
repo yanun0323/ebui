@@ -23,26 +23,26 @@ type contentView struct {
 	content string
 }
 
-func ContentView(title, content string) ebui.View {
+func ContentView(title, content string) View {
 	return &contentView{
 		title:   title,
 		content: content,
 	}
 }
 
-func (view *contentView) Body() ebui.SomeView {
-	return ebui.HStack(
-		ebui.Spacer(),
-		ebui.VStack(
-			ebui.Spacer(),
-			ebui.Text(view.title).
+func (view *contentView) Body() SomeView {
+	return HStack(
+		Spacer(),
+		VStack(
+			Spacer(),
+			Text(view.title).
 				Padding(0, 15, 0, 15).
 				ForegroundColor(color.White).
 				BackgroundColor(color.Gray{128}),
-			ebui.Text(view.content),
-			ebui.Spacer(),
+			Text(view.content),
+			Spacer(),
 		).Frame(200, -1),
-		ebui.Spacer(),
+		Spacer(),
 	).
 		ForegroundColor(color.RGBA{200, 200, 200, 255}).
 		BackgroundColor(color.RGBA{255, 0, 0, 255}).
@@ -55,7 +55,7 @@ func (view *contentView) Body() ebui.SomeView {
 ```go
 func main() {
 	contentView := ContentView("title", "content")
-	ebui.Run("Windows Title", contentView)
+	Run("Windows Title", contentView)
 }
 ```
 
@@ -71,23 +71,23 @@ func main() {
 	}
 }
 
-func NewGame(contentView ebui.View) *Game {
+func NewGame(contentView View) *Game {
 	return &Game{
 		contentView: contentView.Body(),
 	}
 }
 
 type Game struct {
-	contentView ebui.SomeView
+	contentView SomeView
 }
 
 func (g *Game) Update() error {
-	ebui.EbitenUpdate(g.contentView)
+	EbitenUpdate(g.contentView)
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	ebui.EbitenDraw(screen, g.contentView)
+	EbitenDraw(screen, g.contentView)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

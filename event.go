@@ -33,11 +33,24 @@ type KeyEvent struct {
 
 // 事件管理器
 type EventManager struct {
-	handlers []EventHandler
+	handlers   []EventHandler
+	isTracking bool
+}
+
+func NewEventManager() *EventManager {
+	return &EventManager{
+		handlers:   make([]EventHandler, 0),
+		isTracking: false,
+	}
 }
 
 func (em *EventManager) DispatchTouchEvent(event TouchEvent) bool {
-	// 從上到下傳遞事件
+	if event.Phase == TouchPhaseBegan {
+		em.isTracking = true
+	} else if event.Phase == TouchPhaseEnded || event.Phase == TouchPhaseCancelled {
+		em.isTracking = false
+	}
+
 	for i := len(em.handlers) - 1; i >= 0; i-- {
 		if em.handlers[i].HandleTouchEvent(event) {
 			return true
@@ -45,3 +58,13 @@ func (em *EventManager) DispatchTouchEvent(event TouchEvent) bool {
 	}
 	return false
 }
+
+func (em *EventManager) RegisterHandler(handler EventHandler) {
+	em.handlers = append(em.handlers, handler)
+}
+
+func RegisterEventHandler(handler EventHandler) {
+	defaultEventManager.RegisterHandler(handler)
+}
+
+var defaultEventManager = NewEventManager()

@@ -1,4 +1,4 @@
-package zstack
+package ebui
 
 import (
 	"image"
@@ -23,6 +23,11 @@ func ZStack(views ...SomeView) ViewBuilder {
 	}
 }
 
+// 實現 View 介面
+func (z *zStackImpl) Build() View {
+	return z
+}
+
 func (z *zStackImpl) Layout(bounds image.Rectangle) image.Rectangle {
 	z.frame = bounds
 	maxWidth, maxHeight := 0, 0
@@ -40,8 +45,8 @@ func (z *zStackImpl) Layout(bounds image.Rectangle) image.Rectangle {
 	return image.Rect(
 		bounds.Min.X,
 		bounds.Min.Y,
-		bounds.Min.X + maxWidth,
-		bounds.Min.Y + maxHeight,
+		bounds.Min.X+maxWidth,
+		bounds.Min.Y+maxHeight,
 	)
 }
 
@@ -49,4 +54,4 @@ func (z *zStackImpl) Draw(screen *ebiten.Image) {
 	for _, child := range z.children {
 		child.Draw(screen)
 	}
-} 
+}

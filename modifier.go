@@ -1,6 +1,11 @@
 package ebui
 
-import "image/color"
+import (
+	"image"
+	"image/color"
+
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 type ViewModifier interface {
 	Modify(View) View
@@ -26,6 +31,20 @@ type ViewModifiable interface {
 type foregroundColorModifier struct {
 	color Binding[color.Color]
 	view  View
+}
+
+// 實現 View 介面
+func (m *foregroundColorModifier) Build() View {
+	return m
+}
+
+func (m *foregroundColorModifier) Layout(bounds image.Rectangle) image.Rectangle {
+	return m.view.Layout(bounds)
+}
+
+func (m *foregroundColorModifier) Draw(screen *ebiten.Image) {
+	// 保存原始顏色
+	m.view.Draw(screen)
 }
 
 func (v ViewBuilder) foregroundColor(color Binding[color.Color]) ViewBuilder {

@@ -45,12 +45,24 @@ func (v *vstackImpl) Layout(bounds image.Rectangle) image.Rectangle {
 			maxWidth = childBounds.Dx()
 		}
 
-		// 累加高度
-		y += childBounds.Dy()
+		// 累加高度，添加間距
+		y = childBounds.Max.Y + 8 // 添加固定間距
+	}
+
+	// 水平置中對齊所有子視圖
+	y = bounds.Min.Y // 重置 y 座標
+	for _, child := range v.children {
+		childBounds := child.Layout(image.Rect(
+			bounds.Min.X+(bounds.Dx()-maxWidth)/2, // 水平置中
+			y,
+			bounds.Min.X+(bounds.Dx()+maxWidth)/2,
+			bounds.Max.Y,
+		))
+		y = childBounds.Max.Y + 8 // 更新 y 座標，添加間距
 	}
 
 	return image.Rect(bounds.Min.X, bounds.Min.Y,
-		bounds.Min.X+maxWidth, y)
+		bounds.Min.X+maxWidth, y-8) // 減去最後一個間距
 }
 
 func (v *vstackImpl) Draw(screen *ebiten.Image) {

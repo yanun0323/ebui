@@ -8,47 +8,75 @@ import (
 )
 
 type Application struct {
-	StateManager    *StateManager
-	EventManager    *EventManager
-	AnimManager     *AnimationManager
-	RootView        View
-	BackgroundColor color.Color
-	Bounds          image.Rectangle
+	stateManager    *StateManager
+	eventManager    *EventManager
+	animManager     *AnimationManager
+	rootView        View
+	backgroundColor color.Color
+	bounds          image.Rectangle
+}
+
+func NewApplication(root SomeView) *Application {
+	bounds := image.Rect(0, 0, 400, 300)
+	defaultStateManager.SetBounds(bounds)
+
+	app := &Application{
+		stateManager:    defaultStateManager,
+		eventManager:    defaultEventManager,
+		animManager:     NewAnimationManager(),
+		backgroundColor: color.White,
+		bounds:          bounds,
+	}
+
+	app.rootView = root.Build()
+
+	return app
+}
+
+func (app *Application) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	bounds := image.Rect(0, 0, outsideWidth, outsideHeight)
+	app.rootView.Layout(bounds)
+	return outsideWidth, outsideHeight
 }
 
 func (app *Application) Update() error {
 	// 1. 更新動畫
-	app.AnimManager.Update()
+	app.animManager.Update()
 
 	// 2. 處理狀態更新
-	if app.StateManager.isDirty() {
-		// 重新構建視圖樹
-		app.RootView = app.RootView.Build()
-		// 重新計算佈局
-		app.RootView.Layout(app.Bounds)
+	if app.stateManager.isDirty() {
+		app.rootView = app.rootView.Build()
+		app.rootView.Layout(app.bounds)
+		app.stateManager.clearDirty()
 	}
 
 	// 3. 處理輸入事件
-	app.handleInput()
+	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		pos := image.Pt(x, y)
+
+		if !app.eventManager.isTracking {
+			app.eventManager.DispatchTouchEvent(TouchEvent{
+				Phase:    TouchPhaseBegan,
+				Position: pos,
+			})
+		} else {
+			app.eventManager.DispatchTouchEvent(TouchEvent{
+				Phase:    TouchPhaseMoved,
+				Position: pos,
+			})
+		}
+	} else if app.eventManager.isTracking {
+		x, y := ebiten.CursorPosition()
+		app.eventManager.DispatchTouchEvent(TouchEvent{
+			Phase:    TouchPhaseEnded,
+			Position: image.Pt(x, y),
+		})
+	}
 
 	return nil
 }
 
-func (app *Application) handleInput() {
-	// 處理輸入
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		x, y := ebiten.CursorPosition()
-		app.EventManager.DispatchTouchEvent(TouchEvent{
-			Phase:    TouchPhaseBegan,
-			Position: image.Pt(x, y),
-		})
-	}
-}
-
 func (app *Application) Draw(screen *ebiten.Image) {
-	// 清空畫面
-	screen.Fill(app.BackgroundColor)
-
-	// 繪製視圖樹
-	app.RootView.Draw(screen)
+	app.rootView.Draw(screen)
 }

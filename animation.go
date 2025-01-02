@@ -8,52 +8,13 @@ type Animatable interface {
 
 // 動畫管理器
 type AnimationManager struct {
-	running []Animation
+	running []*Animation
 }
 
-func (am *AnimationManager) Update() {
-	now := time.Now()
-	for i := len(am.running) - 1; i >= 0; i-- {
-		anim := am.running[i]
-		if now.Sub(anim.startTime) >= anim.duration {
-			// 動畫完成
-			am.running = append(am.running[:i], am.running[i+1:]...)
-		}
+func NewAnimationManager() *AnimationManager {
+	return &AnimationManager{
+		running: make([]*Animation, 0),
 	}
-}
-
-func (b Binding[float64]) Animate(to float64, duration time.Duration) Animation {
-	return Animation{
-		startValue: b.value,
-		duration:   duration,
-		from:       b.value,
-		to:         to,
-		startTime:  time.Now(),
-	}
-}
-
-type AnimationCurve interface {
-	Value(progress float64) float64
-}
-
-// 預定義的動畫曲線
-type (
-	LinearCurve struct{}
-	EaseInCurve struct{}
-	EaseOutCurve struct{}
-	EaseInOutCurve struct{}
-)
-
-func (LinearCurve) Value(p float64) float64     { return p }
-func (EaseInCurve) Value(p float64) float64     { return p * p }
-func (EaseOutCurve) Value(p float64) float64    { return -(p * (p - 2)) }
-func (EaseInOutCurve) Value(p float64) float64 {
-	p *= 2
-	if p < 1 {
-		return 0.5 * p * p
-	}
-	p--
-	return -0.5 * (p*(p-2) - 1)
 }
 
 type Animation struct {
@@ -62,9 +23,27 @@ type Animation struct {
 	duration   time.Duration
 	startTime  time.Time
 	curve      AnimationCurve
-	onComplete func()    // 新增：動畫完成回調
+	onComplete func()
 }
 
+func (am *AnimationManager) Update() {
+	now := time.Now()
+	for i := len(am.running) - 1; i >= 0; i-- {
+		anim := am.running[i]
+		if now.Sub(anim.startTime) >= anim.duration {
+			if anim.onComplete != nil {
+				anim.onComplete()
+			}
+			am.running = append(am.running[:i], am.running[i+1:]...)
+		}
+	}
+}
+
+func (am *AnimationManager) Add(anim *Animation) {
+	am.running = append(am.running, anim)
+}
+
+// 修改為返回指標
 func NewAnimation(from, to float64, duration time.Duration) *Animation {
 	return &Animation{
 		startValue: from,
@@ -73,6 +52,76 @@ func NewAnimation(from, to float64, duration time.Duration) *Animation {
 		startTime:  time.Now(),
 		curve:      LinearCurve{},
 	}
+}
+
+// 添加數值類型約束
+type Number interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~float32 | ~float64
+}
+
+// 修改 Binding 的 Animate 方法
+func (b *Binding[T]) Animate(to T, duration time.Duration) *Animation {
+	// 將 T 轉換為 float64
+	toFloat64 := func(v T) float64 {
+		switch val := any(v).(type) {
+		case int:
+			return float64(val)
+		case int8:
+			return float64(val)
+		case int16:
+			return float64(val)
+		case int32:
+			return float64(val)
+		case int64:
+			return float64(val)
+		case uint:
+			return float64(val)
+		case uint8:
+			return float64(val)
+		case uint16:
+			return float64(val)
+		case uint32:
+			return float64(val)
+		case uint64:
+			return float64(val)
+		case float32:
+			return float64(val)
+		case float64:
+			return val
+		default:
+			return 0
+		}
+	}
+
+	return NewAnimation(
+		toFloat64(b.value),
+		toFloat64(to),
+		duration,
+	)
+}
+
+type AnimationCurve interface {
+	Value(progress float64) float64
+}
+
+// 預定義的動畫曲線
+type (
+	LinearCurve    struct{}
+	EaseInCurve    struct{}
+	EaseOutCurve   struct{}
+	EaseInOutCurve struct{}
+)
+
+func (LinearCurve) Value(p float64) float64  { return p }
+func (EaseInCurve) Value(p float64) float64  { return p * p }
+func (EaseOutCurve) Value(p float64) float64 { return -(p * (p - 2)) }
+func (EaseInOutCurve) Value(p float64) float64 {
+	p *= 2
+	if p < 1 {
+		return 0.5 * p * p
+	}
+	p--
+	return -0.5 * (p*(p-2) - 1)
 }
 
 func (a *Animation) WithCurve(curve AnimationCurve) *Animation {
@@ -93,7 +142,6 @@ func (a *Animation) CurrentValue() float64 {
 		return a.endValue
 	}
 
-	// 使用動畫曲線計算當前值
 	curveProgress := a.curve.Value(progress)
 	return a.startValue + (a.endValue-a.startValue)*curveProgress
 }
