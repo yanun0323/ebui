@@ -39,18 +39,21 @@ const (
 )
 
 type textImpl struct {
-	content       string
-	style         TextStyle
-	frame         image.Rectangle
-	cache         *ViewCache
-	face          text.Face
-	contentGetter func() string
+	content *Binding[string]
+	style   TextStyle
+	frame   image.Rectangle
+	cache   *ViewCache
+	face    text.Face
 }
 
-func Text(content string) ViewBuilder {
+func TextStatic(content string) ViewBuilder {
+	return Text(NewBinding(content))
+}
+
+func Text(content *Binding[string]) ViewBuilder {
 	return ViewBuilder{
 		build: func() View {
-			return &textImpl{
+			v := &textImpl{
 				content: content,
 				style: TextStyle{
 					Size:          FontSizeBody,
@@ -64,6 +67,13 @@ func Text(content string) ViewBuilder {
 				cache: NewViewCache(),
 				face:  createDefaultFace(),
 			}
+
+			// 添加監聽器，當內容改變時標記需要更新
+			content.AddListener(func() {
+				defaultStateManager.markDirty()
+			})
+
+			return v
 		},
 	}
 }
@@ -79,7 +89,7 @@ func createDefaultFace() text.Face {
 }
 
 func (t *textImpl) Layout(bounds image.Rectangle) image.Rectangle {
-	w, h := text.Measure(t.content, t.face, t.style.LineHeight)
+	w, h := text.Measure(t.content.Get(), t.face, t.style.LineHeight)
 
 	t.frame = image.Rect(
 		bounds.Min.X,
@@ -92,11 +102,8 @@ func (t *textImpl) Layout(bounds image.Rectangle) image.Rectangle {
 }
 
 func (t *textImpl) Draw(screen *ebiten.Image) {
-	if t.contentGetter != nil {
-		t.content = t.contentGetter()
-	}
-
-	if t.content == "" {
+	content := t.content.Get()
+	if content == "" {
 		return
 	}
 
@@ -105,7 +112,7 @@ func (t *textImpl) Draw(screen *ebiten.Image) {
 	y := float64(t.frame.Min.Y)
 
 	// 處理對齊
-	w, _ := text.Measure(t.content, t.face, t.style.LineHeight)
+	w, _ := text.Measure(content, t.face, t.style.LineHeight)
 	switch t.style.Alignment {
 	case TextAlignCenter:
 		x += float64(t.frame.Dx()-int(w)) / 2
@@ -114,7 +121,7 @@ func (t *textImpl) Draw(screen *ebiten.Image) {
 	}
 
 	// 繪製文字
-	for i, gl := range text.AppendGlyphs(nil, t.content, t.face, &text.LayoutOptions{
+	for i, gl := range text.AppendGlyphs(nil, content, t.face, &text.LayoutOptions{
 		LineSpacing: t.style.LineHeight,
 	}) {
 		if gl.Image == nil {
@@ -124,7 +131,6 @@ func (t *textImpl) Draw(screen *ebiten.Image) {
 		opt := &ebiten.DrawImageOptions{}
 		opt.ColorScale.ScaleWithColor(t.style.Color)
 
-		// 處理字間距
 		opt.GeoM.Translate(float64(i)*t.style.LetterSpacing, 0)
 		opt.GeoM.Translate(x+gl.X, y+gl.Y)
 
@@ -139,9 +145,12 @@ func (t *textImpl) Build() View {
 func (v ViewBuilder) WithStyle(style TextStyle) ViewBuilder {
 	return ViewBuilder{
 		build: func() View {
-			t := v.Build().(*textImpl)
+			result := v.Build()
+			t, ok := result.(*textImpl)
+			if !ok {
+				return result
+			}
 
-			// 創建新的字體
 			face := &text.GoTextFace{
 				Source: _defaultFontResource,
 				Size:   style.Size,
@@ -164,26 +173,4 @@ func boolToFloat32(b bool) float32 {
 		return 1.0
 	}
 	return 0.0
-}
-
-func DynamicText(getter func() string) ViewBuilder {
-	return ViewBuilder{
-		build: func() View {
-			return &textImpl{
-				content: getter(),
-				style: TextStyle{
-					Size:          FontSizeBody,
-					Weight:        FontWeightNormal,
-					Color:         color.Black,
-					LineHeight:    defaultLineSpacing,
-					LetterSpacing: defaultKerning,
-					Alignment:     TextAlignLeft,
-					Italic:        false,
-				},
-				cache:         NewViewCache(),
-				face:          createDefaultFace(),
-				contentGetter: getter,
-			}
-		},
-	}
 }

@@ -54,11 +54,6 @@ func NewAnimation(from, to float64, duration time.Duration) *Animation {
 	}
 }
 
-// 添加數值類型約束
-type Number interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~float32 | ~float64
-}
-
 // 修改 Binding 的 Animate 方法
 func (b *Binding[T]) Animate(to T, duration time.Duration) *Animation {
 	// 將 T 轉換為 float64
@@ -94,7 +89,7 @@ func (b *Binding[T]) Animate(to T, duration time.Duration) *Animation {
 	}
 
 	return NewAnimation(
-		toFloat64(b.value),
+		toFloat64(b.Get()),
 		toFloat64(to),
 		duration,
 	)

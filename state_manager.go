@@ -13,7 +13,7 @@ func NewStateManager(bounds image.Rectangle) *StateManager {
 	}
 }
 
-func (sm *StateManager) MarkDirty() {
+func (sm *StateManager) markDirty() {
 	sm.dirty = true
 }
 
@@ -28,8 +28,12 @@ func (sm *StateManager) isDirty() bool {
 func (sm *StateManager) SetBounds(bounds image.Rectangle) {
 	if sm.bounds != bounds {
 		sm.bounds = bounds
-		sm.MarkDirty()
+		sm.markDirty()
 	}
 }
 
 var defaultStateManager = NewStateManager(image.Rect(0, 0, 0, 0))
+
+func MarkDirty() {
+	defaultStateManager.markDirty()
+}

@@ -1,15 +1,21 @@
 package ebui
 
-type Binding[T comparable] struct {
-	value     T
-	listeners []func()
-}
+func NewBinding[T comparable](initialValue ...T) *Binding[T] {
+	var value T
+	if len(initialValue) != 0 {
+		value = initialValue[0]
+	}
 
-func NewBinding[T comparable](initialValue T) Binding[T] {
-	return Binding[T]{
-		value:     initialValue,
+	return &Binding[T]{
+		value:     value,
 		listeners: make([]func(), 0),
 	}
+}
+
+type Binding[T comparable] struct {
+	_         noCopy
+	value     T
+	listeners []func()
 }
 
 func (b *Binding[T]) Get() T {
@@ -20,7 +26,7 @@ func (b *Binding[T]) Set(v T) {
 	if b.value != v {
 		b.value = v
 		b.notifyListeners()
-		defaultStateManager.MarkDirty()
+		defaultStateManager.markDirty()
 	}
 }
 

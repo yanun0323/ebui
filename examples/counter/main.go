@@ -10,12 +10,14 @@ import (
 )
 
 type ContentView struct {
-	count ebui.Binding[int]
+	count     *ebui.Binding[int]
+	countText *ebui.Binding[string]
 }
 
 func NewContentView() *ContentView {
 	return &ContentView{
-		count: ebui.NewBinding(0),
+		count:     ebui.NewBinding(0),
+		countText: ebui.NewBinding(""),
 	}
 }
 
@@ -25,15 +27,13 @@ func (v *ContentView) Build() ebui.View {
 
 func (v *ContentView) Body() ebui.SomeView {
 	return ebui.VStack(
-		ebui.Text("計數器示例").WithStyle(ebui.TextStyle{
+		ebui.TextStatic("計數器示例").WithStyle(ebui.TextStyle{
 			Size:       12,
 			Color:      color.Black,
 			Alignment:  ebui.TextAlignCenter,
 			LineHeight: 2.0,
 		}),
-		ebui.DynamicText(func() string {
-			return fmt.Sprintf("當前數值: %d", v.count.Get())
-		}).WithStyle(ebui.TextStyle{
+		ebui.Text(v.countText).WithStyle(ebui.TextStyle{
 			Size:       12,
 			Color:      color.Black,
 			Alignment:  ebui.TextAlignCenter,
@@ -42,15 +42,17 @@ func (v *ContentView) Body() ebui.SomeView {
 		ebui.VStack(
 			ebui.Button(func() {
 				v.count.Set(v.count.Get() + 1)
-				println(v.count.Get())
-			}, ebui.Text("增加")),
+				v.countText.Set(fmt.Sprintf("當前數值: %d", v.count.Get()))
+				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
+			}, ebui.TextStatic("增加")),
 			ebui.Button(func() {
 				v.count.Set(v.count.Get() - 1)
-				println(v.count.Get())
-			}, ebui.Text("減少")),
+				v.countText.Set(fmt.Sprintf("當前數值: %d", v.count.Get()))
+				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
+			}, ebui.TextStatic("減少")),
 			ebui.Spacer().WithSize(8),
 		).WithPadding(8),
-	).WithPadding(32).BackgroundColor(color.White)
+	).WithPadding(15).BackgroundColor(color.White)
 }
 
 func main() {
