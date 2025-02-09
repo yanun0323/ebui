@@ -8,7 +8,9 @@ import (
 )
 
 type ScrollView struct {
-	content     View
+	*viewContext
+
+	content     SomeView
 	frame       image.Rectangle
 	contentSize image.Point
 	offset      image.Point
@@ -19,22 +21,20 @@ type ScrollView struct {
 	cache       *ViewCache
 }
 
-func NewScrollView(content SomeView) ViewBuilder {
-	return ViewBuilder{
-		build: func() View {
-			return &ScrollView{
-				content: content.Build(),
-				cache:   NewViewCache(),
-			}
-		},
+func NewScrollView(content SomeView) SomeView {
+	sv := &ScrollView{
+		content: content,
+		cache:   NewViewCache(),
 	}
+	sv.viewContext = NewViewContext(sv)
+	return sv
 }
 
-func (sv *ScrollView) Layout(bounds image.Rectangle) image.Rectangle {
+func (sv *ScrollView) layout(bounds image.Rectangle) image.Rectangle {
 	sv.frame = bounds
 
 	// 計算內容大小
-	contentBounds := sv.content.Layout(image.Rectangle{
+	contentBounds := sv.content.Body().layout(image.Rectangle{
 		Min: bounds.Min.Sub(sv.offset),
 		Max: image.Point{X: bounds.Max.X * 2, Y: bounds.Max.Y * 2},
 	})
@@ -48,7 +48,7 @@ func (sv *ScrollView) Layout(bounds image.Rectangle) image.Rectangle {
 	return bounds
 }
 
-func (sv *ScrollView) Draw(screen *ebiten.Image) {
+func (sv *ScrollView) draw(screen *ebiten.Image) {
 	// 創建裁剪遮罩
 	mask := ebiten.NewImage(sv.frame.Dx(), sv.frame.Dy())
 	mask.Fill(color.White)
@@ -61,7 +61,7 @@ func (sv *ScrollView) Draw(screen *ebiten.Image) {
 	// 繪製內容
 	contentOp := &ebiten.DrawImageOptions{}
 	contentOp.GeoM.Translate(float64(-sv.offset.X), float64(-sv.offset.Y))
-	sv.content.Draw(screen)
+	sv.content.Body().draw(screen)
 }
 
 func (sv *ScrollView) HandleTouchEvent(event TouchEvent) bool {
@@ -93,12 +93,6 @@ func (sv *ScrollView) HandleTouchEvent(event TouchEvent) bool {
 	return false
 }
 
-// 實現 View 介面
-func (sv *ScrollView) Build() View {
-	return sv
-}
-
-// 實現 EventHandler 介面
 func (sv *ScrollView) HandleKeyEvent(event KeyEvent) bool {
 	return false
 }

@@ -19,15 +19,15 @@ func NewViewCache() *ViewCache {
 	}
 }
 
-func (vc *ViewCache) Draw(screen *ebiten.Image, view View, currentHash uint64) {
+func (vc *ViewCache) Draw(screen *ebiten.Image, view SomeView, currentHash uint64) {
 	if currentHash != vc.lastHash {
 		vc.isDirty = true
 		vc.lastHash = currentHash
 	}
 
-	if !vc.lastFrame.Eq(view.Layout(screen.Bounds())) {
+	if !vc.lastFrame.Eq(view.layout(screen.Bounds())) {
 		vc.isDirty = true
-		vc.lastFrame = view.Layout(screen.Bounds())
+		vc.lastFrame = view.layout(screen.Bounds())
 	}
 
 	if vc.isDirty || vc.cachedImage == nil {
@@ -35,7 +35,7 @@ func (vc *ViewCache) Draw(screen *ebiten.Image, view View, currentHash uint64) {
 			vc.cachedImage = ebiten.NewImage(vc.lastFrame.Dx(), vc.lastFrame.Dy())
 		}
 		vc.cachedImage.Clear()
-		view.Draw(vc.cachedImage)
+		view.draw(vc.cachedImage)
 		vc.isDirty = false
 	}
 

@@ -2,94 +2,55 @@ package ebui
 
 import (
 	"image"
-	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
-)
-
-// 字體相關常數
-const (
-	FontSizeBody     = 16.0
-	FontSizeTitle    = 24.0
-	FontWeightNormal = 400.0
-	FontWeightBold   = 700.0
-
-	defaultFontWeight  = FontWeightNormal
-	defaultLineSpacing = 1.2
-	defaultKerning     = 1
-)
-
-type TextStyle struct {
-	Size          float64
-	Weight        float32
-	Color         color.Color
-	LineHeight    float64
-	LetterSpacing float64
-	Alignment     TextAlignment
-	Italic        bool
-}
-
-type TextAlignment int
-
-const (
-	TextAlignLeft TextAlignment = iota
-	TextAlignCenter
-	TextAlignRight
+	"github.com/yanun0323/ebui/font"
 )
 
 type textImpl struct {
+	*viewContext
+
 	content *Binding[string]
-	style   TextStyle
 	frame   image.Rectangle
 	cache   *ViewCache
 	face    text.Face
 }
 
-func TextStatic(content string) ViewBuilder {
-	return Text(NewBinding(content))
-}
+func Text[T string | *Binding[string]](content T) SomeView {
+	switch content := any(content).(type) {
+	case string:
+		return Text(NewBinding(content))
+	case *Binding[string]:
+		v := &textImpl{
+			content: content,
+			cache:   NewViewCache(),
+			face:    createDefaultFace(),
+		}
+		v.viewContext = NewViewContext(v)
+		// 添加監聽器，當內容改變時標記需要更新
+		content.addListener(func() {
+			defaultStateManager.markDirty()
+		})
 
-func Text(content *Binding[string]) ViewBuilder {
-	return ViewBuilder{
-		build: func() View {
-			v := &textImpl{
-				content: content,
-				style: TextStyle{
-					Size:          FontSizeBody,
-					Weight:        FontWeightNormal,
-					Color:         color.Black,
-					LineHeight:    defaultLineSpacing,
-					LetterSpacing: defaultKerning,
-					Alignment:     TextAlignLeft,
-					Italic:        false,
-				},
-				cache: NewViewCache(),
-				face:  createDefaultFace(),
-			}
-
-			// 添加監聽器，當內容改變時標記需要更新
-			content.addListener(func() {
-				defaultStateManager.markDirty()
-			})
-
-			return v
-		},
+		return v
 	}
+
+	return nil
 }
 
 func createDefaultFace() text.Face {
 	face := &text.GoTextFace{
 		Source: _defaultFontResource,
-		Size:   FontSizeBody,
+		Size:   font.Body.F64(),
 	}
-	face.SetVariation(_fontTagWeight, float32(FontWeightNormal))
+	face.SetVariation(_fontTagWeight, font.Normal.F32())
 	face.SetVariation(_fontTagItalic, 0)
 	return face
 }
 
-func (t *textImpl) Layout(bounds image.Rectangle) image.Rectangle {
-	w, h := text.Measure(t.content.Get(), t.face, t.style.LineHeight)
+func (t *textImpl) layout(bounds image.Rectangle) image.Rectangle {
+	w, h := text.Measure(t.content.Get(), t.face, t.viewContext.fontLineHeight.Get())
 
 	t.frame = image.Rect(
 		bounds.Min.X,
@@ -101,7 +62,7 @@ func (t *textImpl) Layout(bounds image.Rectangle) image.Rectangle {
 	return t.frame
 }
 
-func (t *textImpl) Draw(screen *ebiten.Image) {
+func (t *textImpl) draw(screen *ebiten.Image) {
 	content := t.content.Get()
 	if content == "" {
 		return
@@ -112,65 +73,28 @@ func (t *textImpl) Draw(screen *ebiten.Image) {
 	y := float64(t.frame.Min.Y)
 
 	// 處理對齊
-	w, _ := text.Measure(content, t.face, t.style.LineHeight)
-	switch t.style.Alignment {
-	case TextAlignCenter:
+	w, _ := text.Measure(content, t.face, t.viewContext.fontLineHeight.Get())
+	switch t.viewContext.fontAlignment.Get() {
+	case font.AlignCenter:
 		x += float64(t.frame.Dx()-int(w)) / 2
-	case TextAlignRight:
+	case font.AlignRight:
 		x += float64(t.frame.Dx() - int(w))
 	}
 
 	// 繪製文字
 	for i, gl := range text.AppendGlyphs(nil, content, t.face, &text.LayoutOptions{
-		LineSpacing: t.style.LineHeight,
+		LineSpacing: t.viewContext.fontLineHeight.Get(),
 	}) {
 		if gl.Image == nil {
 			continue
 		}
 
 		opt := &ebiten.DrawImageOptions{}
-		opt.ColorScale.ScaleWithColor(t.style.Color)
+		opt.ColorScale.ScaleWithColor(t.viewContext.foregroundColor.Get())
 
-		opt.GeoM.Translate(float64(i)*t.style.LetterSpacing, 0)
+		opt.GeoM.Translate(float64(i)*t.viewContext.fontLetterSpacing.Get(), 0)
 		opt.GeoM.Translate(x+gl.X, y+gl.Y)
 
 		screen.DrawImage(gl.Image, opt)
 	}
-}
-
-func (t *textImpl) Build() View {
-	return t
-}
-
-func (v ViewBuilder) WithStyle(style TextStyle) ViewBuilder {
-	return ViewBuilder{
-		build: func() View {
-			result := v.Build()
-			t, ok := result.(*textImpl)
-			if !ok {
-				return result
-			}
-
-			face := &text.GoTextFace{
-				Source: _defaultFontResource,
-				Size:   style.Size,
-			}
-			face.SetVariation(_fontTagWeight, style.Weight)
-			face.SetVariation(_fontTagItalic, boolToFloat32(style.Italic))
-
-			return &textImpl{
-				content: t.content,
-				style:   style,
-				cache:   NewViewCache(),
-				face:    face,
-			}
-		},
-	}
-}
-
-func boolToFloat32(b bool) float32 {
-	if b {
-		return 1.0
-	}
-	return 0.0
 }

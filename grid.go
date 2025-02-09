@@ -7,7 +7,7 @@ import (
 )
 
 type GridItem struct {
-	View    View
+	View    SomeView
 	Column  int
 	Row     int
 	ColSpan int
@@ -15,6 +15,8 @@ type GridItem struct {
 }
 
 type GridLayout struct {
+	*viewContext
+
 	columns   int
 	rows      int
 	columnGap float64
@@ -25,29 +27,21 @@ type GridLayout struct {
 	cache     *ViewCache
 }
 
-func Grid(columns, rows int, items ...GridItem) ViewBuilder {
-	return ViewBuilder{
-		build: func() View {
-			grid := &GridLayout{
-				columns:   columns,
-				rows:      rows,
-				items:     items,
-				columnGap: 8,
-				rowGap:    8,
-				cache:     NewViewCache(),
-			}
-
-			// 構建子視圖
-			for i := range grid.items {
-				grid.items[i].View = grid.items[i].View.Build()
-			}
-
-			return grid
-		},
+func Grid(columns, rows int, items ...GridItem) SomeView {
+	grid := &GridLayout{
+		columns:   columns,
+		rows:      rows,
+		items:     items,
+		columnGap: 8,
+		rowGap:    8,
+		cache:     NewViewCache(),
 	}
+	grid.viewContext = NewViewContext(grid)
+
+	return grid
 }
 
-func (g *GridLayout) Layout(bounds image.Rectangle) image.Rectangle {
+func (g *GridLayout) layout(bounds image.Rectangle) image.Rectangle {
 	g.frame = bounds
 
 	// 計算單元格大小
@@ -73,19 +67,26 @@ func (g *GridLayout) Layout(bounds image.Rectangle) image.Rectangle {
 
 		// 設置項目邊界
 		itemBounds := image.Rect(x, y, x+width, y+height)
-		item.View.Layout(itemBounds)
+		item.View.layout(itemBounds)
 	}
 
 	return bounds
 }
 
-func (g *GridLayout) Draw(screen *ebiten.Image) {
+func (g *GridLayout) draw(screen *ebiten.Image) {
 	for _, item := range g.items {
-		item.View.Draw(screen)
+		item.View.draw(screen)
 	}
 }
 
-// 實現 View 介面
-func (g *GridLayout) Build() View {
+// 新增的方法，用於設置列間距
+func (g *GridLayout) WithColumnGap(gap float64) *GridLayout {
+	g.columnGap = gap
+	return g
+}
+
+// 新增的方法，用於設置行間距
+func (g *GridLayout) WithRowGap(gap float64) *GridLayout {
+	g.rowGap = gap
 	return g
 }

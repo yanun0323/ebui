@@ -19,6 +19,10 @@ type Binding[T comparable] struct {
 }
 
 func (b *Binding[T]) Get() T {
+	if b == nil {
+		return *new(T)
+	}
+
 	return b.value
 }
 
@@ -31,10 +35,18 @@ func (b *Binding[T]) Set(v T) {
 }
 
 func (b *Binding[T]) addListener(listener func()) {
+	if b == nil {
+		return
+	}
+
 	b.listeners = append(b.listeners, listener)
 }
 
 func (b *Binding[T]) notifyListeners() {
+	if b == nil {
+		return
+	}
+
 	for _, listener := range b.listeners {
 		listener()
 	}

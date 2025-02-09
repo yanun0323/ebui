@@ -7,6 +7,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	. "github.com/yanun0323/ebui"
+	"github.com/yanun0323/ebui/font"
 )
 
 type ContentView struct {
@@ -14,45 +15,43 @@ type ContentView struct {
 	countText *Binding[string]
 }
 
-func NewContentView() *ContentView {
+func NewContentView() View {
 	return &ContentView{
 		count:     NewBinding(0),
-		countText: NewBinding(""),
+		countText: NewBinding("當前數值: "),
 	}
-}
-
-func (v *ContentView) Build() View {
-	return v.Body().Build()
 }
 
 func (v *ContentView) Body() SomeView {
 	return VStack(
-		TextStatic("計數器示例").WithStyle(TextStyle{
-			Size:       12,
-			Color:      color.Black,
-			Alignment:  TextAlignCenter,
-			LineHeight: 2.0,
-		}),
-		Text(v.countText).WithStyle(TextStyle{
-			Size:       12,
-			Color:      color.Black,
-			Alignment:  TextAlignCenter,
-			LineHeight: 2.0,
-		}),
+		Text("計數器示例").
+			FontSize(NewBinding(font.Body)).
+			FontAlignment(NewBinding(font.AlignCenter)).
+			FontLineHeight(NewBinding(2.0)),
+		Text(v.countText).
+			FontSize(NewBinding(font.Body)).
+			FontAlignment(NewBinding(font.AlignCenter)).
+			FontLineHeight(NewBinding(2.0)),
 		VStack(
 			Button(func() {
 				v.count.Set(v.count.Get() + 1)
 				v.countText.Set(fmt.Sprintf("當前數值: %d", v.count.Get()))
 				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
-			}, TextStatic("增加")),
-			Button(func() {
-				v.count.Set(v.count.Get() - 1)
-				v.countText.Set(fmt.Sprintf("當前數值: %d", v.count.Get()))
-				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
-			}, TextStatic("減少")),
-			Spacer().WithSize(8),
-		).WithPadding(8),
-	).WithPadding(15).BackgroundColor(color.White)
+			}, func() SomeView {
+				return Text("增加")
+				// BackgroundColor(NewBinding[color.Color](color.Gray{200}))
+			}),
+			// Button(func() {
+			// 	v.count.Set(v.count.Get() - 1)
+			// 	v.countText.Set(fmt.Sprintf("當前數值: %d", v.count.Get()))
+			// 	println(fmt.Sprintf("set text to: %s", v.countText.Get()))
+			// }, func() SomeView {
+			// 	return Text("減少").
+			// 		BackgroundColor(NewBinding[color.Color](color.Gray{200}))
+			// }),
+			// Spacer(),
+		),
+	).Padding(NewBinding(15.0)).BackgroundColor(NewBinding[color.Color](color.Gray{30}))
 }
 
 func main() {

@@ -33,7 +33,3 @@ func (sm *StateManager) SetBounds(bounds image.Rectangle) {
 }
 
 var defaultStateManager = NewStateManager(image.Rect(0, 0, 0, 0))
-
-func MarkDirty() {
-	defaultStateManager.markDirty()
-}

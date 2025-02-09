@@ -7,24 +7,24 @@ import (
 )
 
 type ImageView struct {
+	*viewContext
+
 	image    *ebiten.Image
 	frame    image.Rectangle
 	scale    float64
 	rotation float64
 }
 
-func Image(img *ebiten.Image) ViewBuilder {
-	return ViewBuilder{
-		build: func() View {
-			return &ImageView{
-				image: img,
-				scale: 1.0,
-			}
-		},
+func Image(img *ebiten.Image) SomeView {
+	iv := &ImageView{
+		image: img,
+		scale: 1.0,
 	}
+	iv.viewContext = NewViewContext(iv)
+	return iv
 }
 
-func (iv *ImageView) Layout(bounds image.Rectangle) image.Rectangle {
+func (iv *ImageView) layout(bounds image.Rectangle) image.Rectangle {
 	size := iv.image.Bounds().Size()
 	iv.frame = image.Rect(
 		bounds.Min.X,
@@ -35,7 +35,8 @@ func (iv *ImageView) Layout(bounds image.Rectangle) image.Rectangle {
 	return iv.frame
 }
 
-func (iv *ImageView) Draw(screen *ebiten.Image) {
+func (iv *ImageView) draw(screen *ebiten.Image) {
+	iv.viewContext.draw(screen)
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-float64(iv.image.Bounds().Dx())/2, -float64(iv.image.Bounds().Dy())/2)
 	op.GeoM.Rotate(iv.rotation)
@@ -47,6 +48,14 @@ func (iv *ImageView) Draw(screen *ebiten.Image) {
 	screen.DrawImage(iv.image, op)
 }
 
-func (iv *ImageView) Build() View {
+// 新增的方法，用於設置縮放比例
+func (iv *ImageView) WithScale(scale float64) *ImageView {
+	iv.scale = scale
+	return iv
+}
+
+// 新增的方法，用於設置旋轉角度
+func (iv *ImageView) WithRotation(rotation float64) *ImageView {
+	iv.rotation = rotation
 	return iv
 }

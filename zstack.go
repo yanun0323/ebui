@@ -6,34 +6,29 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type zStackImpl struct {
-	children []View
+func ZStack(views ...SomeView) SomeView {
+	zs := &zstackImpl{
+		children: views,
+	}
+	zs.viewContext = NewViewContext(zs)
+	return zs
+}
+
+type zstackImpl struct {
+	*viewContext
+
+	children []SomeView
 	frame    image.Rectangle
 }
 
-func ZStack(views ...SomeView) ViewBuilder {
-	return ViewBuilder{
-		build: func() View {
-			children := make([]View, len(views))
-			for i, v := range views {
-				children[i] = v.Build()
-			}
-			return &zStackImpl{children: children}
-		},
-	}
-}
+func (z *zstackImpl) layout(bounds image.Rectangle) image.Rectangle {
+	// 先應用修飾器的佈局
+	bounds = z.viewContext.layout(bounds)
 
-// 實現 View 介面
-func (z *zStackImpl) Build() View {
-	return z
-}
-
-func (z *zStackImpl) Layout(bounds image.Rectangle) image.Rectangle {
-	z.frame = bounds
 	maxWidth, maxHeight := 0, 0
 
 	for _, child := range z.children {
-		childBounds := child.Layout(bounds)
+		childBounds := child.Body().layout(bounds)
 		if childBounds.Dx() > maxWidth {
 			maxWidth = childBounds.Dx()
 		}
@@ -42,16 +37,20 @@ func (z *zStackImpl) Layout(bounds image.Rectangle) image.Rectangle {
 		}
 	}
 
-	return image.Rect(
+	z.frame = image.Rect(
 		bounds.Min.X,
 		bounds.Min.Y,
 		bounds.Min.X+maxWidth,
 		bounds.Min.Y+maxHeight,
 	)
+	return z.frame
 }
 
-func (z *zStackImpl) Draw(screen *ebiten.Image) {
-	for _, child := range z.children {
-		child.Draw(screen)
-	}
+func (z *zstackImpl) draw(screen *ebiten.Image) {
+	z.viewContext.draw(screen)
+	z.viewContext.drawHelper(screen, z.frame, func(screen *ebiten.Image) {
+		for _, child := range z.children {
+			child.Body().draw(screen)
+		}
+	})
 }

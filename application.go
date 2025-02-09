@@ -11,31 +11,30 @@ type Application struct {
 	stateManager    *StateManager
 	eventManager    *EventManager
 	animManager     *AnimationManager
-	rootView        View
+	rootView        SomeView
 	backgroundColor color.Color
 	bounds          image.Rectangle
 }
 
-func NewApplication(root SomeView) *Application {
+func NewApplication(root View) *Application {
 	bounds := image.Rect(0, 0, 400, 300)
 	defaultStateManager.SetBounds(bounds)
 
 	app := &Application{
-		stateManager:    defaultStateManager,
-		eventManager:    defaultEventManager,
-		animManager:     NewAnimationManager(),
-		backgroundColor: color.White,
-		bounds:          bounds,
+		stateManager: defaultStateManager,
+		eventManager: defaultEventManager,
+		animManager:  defaultAnimationManager,
+		rootView:     root.Body(),
+		bounds:       bounds,
 	}
-
-	app.rootView = root.Build()
 
 	return app
 }
 
 func (app *Application) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	bounds := image.Rect(0, 0, outsideWidth, outsideHeight)
-	app.rootView.Layout(bounds)
+	app.bounds = bounds
+	app.rootView.layout(bounds)
 	return outsideWidth, outsideHeight
 }
 
@@ -45,8 +44,7 @@ func (app *Application) Update() error {
 
 	// 2. 處理狀態更新
 	if app.stateManager.isDirty() {
-		app.rootView = app.rootView.Build()
-		app.rootView.Layout(app.bounds)
+		app.rootView.layout(app.bounds)
 		app.stateManager.clearDirty()
 	}
 
@@ -78,5 +76,20 @@ func (app *Application) Update() error {
 }
 
 func (app *Application) Draw(screen *ebiten.Image) {
-	app.rootView.Draw(screen)
+	if app.backgroundColor != nil {
+		screen.Fill(app.backgroundColor)
+	}
+	app.rootView.Body().draw(screen)
+}
+
+// 設置背景顏色
+func (app *Application) SetBackgroundColor(color color.Color) {
+	app.backgroundColor = color
+}
+
+// 設置視窗大小
+func (app *Application) SetBounds(bounds image.Rectangle) {
+	app.bounds = bounds
+	app.stateManager.SetBounds(bounds)
+	app.rootView.Body().layout(bounds)
 }
