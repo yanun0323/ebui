@@ -69,7 +69,7 @@ func Text(content *Binding[string]) ViewBuilder {
 			}
 
 			// 添加監聽器，當內容改變時標記需要更新
-			content.AddListener(func() {
+			content.addListener(func() {
 				defaultStateManager.markDirty()
 			})
 

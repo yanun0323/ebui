@@ -54,8 +54,8 @@ func NewAnimation(from, to float64, duration time.Duration) *Animation {
 	}
 }
 
-// 修改 Binding 的 Animate 方法
-func (b *Binding[T]) Animate(to T, duration time.Duration) *Animation {
+// 修改 Binding 的 animate 方法
+func (b *Binding[T]) animate(to T, duration time.Duration) *Animation {
 	// 將 T 轉換為 float64
 	toFloat64 := func(v T) float64 {
 		switch val := any(v).(type) {

@@ -30,7 +30,7 @@ func (b *Binding[T]) Set(v T) {
 	}
 }
 
-func (b *Binding[T]) AddListener(listener func()) {
+func (b *Binding[T]) addListener(listener func()) {
 	b.listeners = append(b.listeners, listener)
 }
 
