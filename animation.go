@@ -11,12 +11,8 @@ type AnimationManager struct {
 	running []*Animation
 }
 
-var defaultAnimationManager = NewAnimationManager()
-
-func NewAnimationManager() *AnimationManager {
-	return &AnimationManager{
-		running: make([]*Animation, 0),
-	}
+var globalAnimationManager = &AnimationManager{
+	running: make([]*Animation, 0),
 }
 
 type Animation struct {

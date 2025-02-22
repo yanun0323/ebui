@@ -1,6 +1,6 @@
 package ebui
 
-func NewBinding[T comparable](initialValue ...T) *Binding[T] {
+func Bind[T comparable](initialValue ...T) *Binding[T] {
 	var value T
 	if len(initialValue) != 0 {
 		value = initialValue[0]
@@ -27,10 +27,14 @@ func (b *Binding[T]) Get() T {
 }
 
 func (b *Binding[T]) Set(v T) {
+	if b == nil {
+		return
+	}
+
 	if b.value != v {
 		b.value = v
 		b.notifyListeners()
-		defaultStateManager.markDirty()
+		globalStateManager.markDirty()
 	}
 }
 

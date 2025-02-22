@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"log"
 
@@ -17,41 +16,54 @@ type ContentView struct {
 
 func NewContentView() View {
 	return &ContentView{
-		count:     NewBinding(0),
-		countText: NewBinding("當前數值: "),
+		count:     Bind(0),
+		countText: Bind("Current Value: "),
 	}
 }
 
 func (v *ContentView) Body() SomeView {
 	return VStack(
-		Text("計數器示例").
-			FontSize(NewBinding(font.Body)).
-			FontAlignment(NewBinding(font.AlignCenter)).
-			FontLineHeight(NewBinding(2.0)),
+		Text("Counter Example").
+			FontSize(Bind(font.Body)).
+			FontAlignment(Bind(font.AlignCenter)).
+			FontLineHeight(Bind(2.0)).
+			BackgroundColor(Bind[color.Color](color.RGBA{125, 125, 255, 0})),
 		Text(v.countText).
-			FontSize(NewBinding(font.Body)).
-			FontAlignment(NewBinding(font.AlignCenter)).
-			FontLineHeight(NewBinding(2.0)),
-		VStack(
-			Button(func() {
-				v.count.Set(v.count.Get() + 1)
-				v.countText.Set(fmt.Sprintf("當前數值: %d", v.count.Get()))
-				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
-			}, func() SomeView {
-				return Text("增加")
-				// BackgroundColor(NewBinding[color.Color](color.Gray{200}))
-			}),
-			// Button(func() {
-			// 	v.count.Set(v.count.Get() - 1)
-			// 	v.countText.Set(fmt.Sprintf("當前數值: %d", v.count.Get()))
-			// 	println(fmt.Sprintf("set text to: %s", v.countText.Get()))
-			// }, func() SomeView {
-			// 	return Text("減少").
-			// 		BackgroundColor(NewBinding[color.Color](color.Gray{200}))
-			// }),
-			// Spacer(),
-		),
-	).Padding(NewBinding(15.0)).BackgroundColor(NewBinding[color.Color](color.Gray{30}))
+			FontSize(Bind(font.Body)).
+			FontAlignment(Bind(font.AlignCenter)).
+			FontLineHeight(Bind(2.0)),
+		ZStack(
+			VStack(
+				Spacer(),
+				Text("TEST TEXT").
+					FontSize(Bind(font.Title3)),
+			).
+				// Padding(NewBinding(20.0)).
+				BackgroundColor(Bind[color.Color](color.Gray{200})),
+		).
+			BackgroundColor(Bind[color.Color](color.Gray{100})),
+		// VStack(
+		// 	Button(func() {
+		// 		v.count.Set(v.count.Get() + 1)
+		// 		v.countText.Set(fmt.Sprintf("當前數值: %d", v.count.Get()))
+		// 		println(fmt.Sprintf("set text to: %s", v.countText.Get()))
+		// 	}, func() SomeView {
+		// 		return Text("增加")
+		// 		// BackgroundColor(NewBinding[color.Color](color.Gray{200}))
+		// 	}),
+		// 	Button(func() {
+		// 		v.count.Set(v.count.Get() - 1)
+		// 		v.countText.Set(fmt.Sprintf("當前數值: %d", v.count.Get()))
+		// 		println(fmt.Sprintf("set text to: %s", v.countText.Get()))
+		// 	}, func() SomeView {
+		// 		return Text("減少").
+		// 			BackgroundColor(NewBinding[color.Color](color.Gray{200}))
+		// 	}),
+		// 	Spacer(),
+		// ),
+	).
+		// BackgroundColor(NewBinding[color.Color](color.RGBA{255, 0, 0, 0})).
+		Padding(Bind(15.0))
 }
 
 func main() {
@@ -60,6 +72,7 @@ func main() {
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	app := NewApplication(NewContentView())
+	app.SetBackgroundColor(color.RGBA{100, 0, 0, 0})
 
 	if err := ebiten.RunGame(app); err != nil {
 		log.Fatal(err)

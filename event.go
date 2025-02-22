@@ -1,8 +1,6 @@
 package ebui
 
 import (
-	"image"
-
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -23,7 +21,7 @@ const (
 
 type TouchEvent struct {
 	Phase    TouchPhase
-	Position image.Point
+	Position CGPoint
 }
 
 type KeyEvent struct {
@@ -31,17 +29,15 @@ type KeyEvent struct {
 	Pressed bool
 }
 
+var globalEventManager = &EventManager{
+	handlers:   make([]EventHandler, 0),
+	isTracking: false,
+}
+
 // 事件管理器
 type EventManager struct {
 	handlers   []EventHandler
 	isTracking bool
-}
-
-func NewEventManager() *EventManager {
-	return &EventManager{
-		handlers:   make([]EventHandler, 0),
-		isTracking: false,
-	}
 }
 
 func (em *EventManager) DispatchTouchEvent(event TouchEvent) bool {
@@ -64,7 +60,5 @@ func (em *EventManager) RegisterHandler(handler EventHandler) {
 }
 
 func RegisterEventHandler(handler EventHandler) {
-	defaultEventManager.RegisterHandler(handler)
+	globalEventManager.RegisterHandler(handler)
 }
-
-var defaultEventManager = NewEventManager()

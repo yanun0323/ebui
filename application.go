@@ -1,7 +1,6 @@
 package ebui
 
 import (
-	"image"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -13,18 +12,20 @@ type Application struct {
 	animManager     *AnimationManager
 	rootView        SomeView
 	backgroundColor color.Color
-	bounds          image.Rectangle
+	bounds          CGRect
 }
 
 func NewApplication(root View) *Application {
-	bounds := image.Rect(0, 0, 400, 300)
-	defaultStateManager.SetBounds(bounds)
+	bounds := rect(0, 0, 400, 300)
+	globalStateManager.SetBounds(bounds)
+
+	rootView := ZStack(root.Body())
 
 	app := &Application{
-		stateManager: defaultStateManager,
-		eventManager: defaultEventManager,
-		animManager:  defaultAnimationManager,
-		rootView:     root.Body(),
+		stateManager: globalStateManager,
+		eventManager: globalEventManager,
+		animManager:  globalAnimationManager,
+		rootView:     rootView,
 		bounds:       bounds,
 	}
 
@@ -32,9 +33,7 @@ func NewApplication(root View) *Application {
 }
 
 func (app *Application) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	bounds := image.Rect(0, 0, outsideWidth, outsideHeight)
-	app.bounds = bounds
-	app.rootView.layout(bounds)
+	app.SetBounds(outsideWidth, outsideHeight)
 	return outsideWidth, outsideHeight
 }
 
@@ -44,14 +43,14 @@ func (app *Application) Update() error {
 
 	// 2. 處理狀態更新
 	if app.stateManager.isDirty() {
-		app.rootView.layout(app.bounds)
+		app.reLayout()
 		app.stateManager.clearDirty()
 	}
 
 	// 3. 處理輸入事件
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
-		pos := image.Pt(x, y)
+		pos := pt(float64(x), float64(y))
 
 		if !app.eventManager.isTracking {
 			app.eventManager.DispatchTouchEvent(TouchEvent{
@@ -68,7 +67,7 @@ func (app *Application) Update() error {
 		x, y := ebiten.CursorPosition()
 		app.eventManager.DispatchTouchEvent(TouchEvent{
 			Phase:    TouchPhaseEnded,
-			Position: image.Pt(x, y),
+			Position: pt(float64(x), float64(y)),
 		})
 	}
 
@@ -79,7 +78,8 @@ func (app *Application) Draw(screen *ebiten.Image) {
 	if app.backgroundColor != nil {
 		screen.Fill(app.backgroundColor)
 	}
-	app.rootView.Body().draw(screen)
+
+	app.rootView.draw(screen)
 }
 
 // 設置背景顏色
@@ -88,8 +88,15 @@ func (app *Application) SetBackgroundColor(color color.Color) {
 }
 
 // 設置視窗大小
-func (app *Application) SetBounds(bounds image.Rectangle) {
+func (app *Application) SetBounds(width, height int) {
+	bounds := rect(0, 0, float64(width), float64(height))
 	app.bounds = bounds
 	app.stateManager.SetBounds(bounds)
-	app.rootView.Body().layout(bounds)
+	app.reLayout()
+}
+
+func (app *Application) reLayout() {
+	_, _, layoutFn := app.rootView.preload()
+	result := layoutFn(ptZero, app.bounds.Size())
+	logf("[APP] bounds: %+v, result: %+v\n", app.bounds, result)
 }

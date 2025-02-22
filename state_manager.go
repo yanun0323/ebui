@@ -1,16 +1,12 @@
 package ebui
 
-import "image"
-
 type StateManager struct {
 	dirty  bool
-	bounds image.Rectangle
+	bounds CGRect
 }
 
-func NewStateManager(bounds image.Rectangle) *StateManager {
-	return &StateManager{
-		bounds: bounds,
-	}
+var globalStateManager = &StateManager{
+	bounds: rect(0, 0, 0, 0),
 }
 
 func (sm *StateManager) markDirty() {
@@ -25,11 +21,10 @@ func (sm *StateManager) isDirty() bool {
 	return sm.dirty
 }
 
-func (sm *StateManager) SetBounds(bounds image.Rectangle) {
+func (sm *StateManager) SetBounds(bounds CGRect) {
 	if sm.bounds != bounds {
+		println("[APP] bounds changed!!")
 		sm.bounds = bounds
 		sm.markDirty()
 	}
 }
-
-var defaultStateManager = NewStateManager(image.Rect(0, 0, 0, 0))

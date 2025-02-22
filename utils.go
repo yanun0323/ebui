@@ -1,60 +1,63 @@
 package ebui
 
 import (
-	"image"
+	"fmt"
 	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+func logf(format string, args ...any) {
+	fmt.Printf(format+"\n", args...)
+}
+
+func logfTo(v SomeView, id int64, format string, args ...any) {
+	if v.id() == id {
+		logf(format, args...)
+	}
+}
+
+func someViews(views ...View) []SomeView {
+	someViews := make([]SomeView, 0, len(views))
+	for _, view := range views {
+		someViews = append(someViews, view.Body())
+	}
+	return someViews
+}
+
 // 繪製圓角矩形
-func drawRoundedRect(screen *ebiten.Image, rect image.Rectangle, radius float64, col color.Color) {
+func drawRoundedRect(screen *ebiten.Image, bounds CGRect, radius float64, col color.Color, op *ebiten.DrawImageOptions) {
 	if radius <= 0 {
-		screen.SubImage(rect).(*ebiten.Image).Fill(col)
 		return
 	}
 
 	// 創建臨時圖像
-	w, h := rect.Dx(), rect.Dy()
-	tmp := ebiten.NewImage(w, h)
+	w, h := bounds.Dx(), bounds.Dy()
+	tmp := ebiten.NewImage(int(w), int(h))
 
 	// 繪製四個角
-	drawCorner := func(x, y int, startAngle float64) {
-		for i := 0; i < int(radius); i++ {
-			for j := 0; j < int(radius); j++ {
-				dx, dy := float64(i), float64(j)
-				dist := math.Sqrt(dx*dx + dy*dy)
-				if dist <= radius {
-					// 根據不同角落調整像素位置
-					switch startAngle {
-					case math.Pi: // 左上
-						tmp.Set(x+(int(radius)-i), y+(int(radius)-j), col)
-					case math.Pi * 1.5: // 右上
-						tmp.Set(x+i, y+(int(radius)-j), col)
-					case math.Pi * 0.5: // 左下
-						tmp.Set(x+(int(radius)-i), y+j, col)
-					case 0: // 右下
-						tmp.Set(x+i, y+j, col)
-					}
-				}
-			}
+	drawCorner := func(x, y float64, startAngle float64) {
+		const segments = 16
+		angleStep := math.Pi / 2 / segments
+
+		for i := 0; i <= segments; i++ {
+			angle := startAngle + angleStep*float64(i)
+			px := x + radius*math.Cos(angle)
+			py := y + radius*math.Sin(angle)
+			tmp.Set(int(px), int(py), col)
 		}
 	}
 
 	// 繪製四個角
-	drawCorner(0, 0, math.Pi)                   // 左上
-	drawCorner(w-int(radius), 0, math.Pi*1.5)   // 右上
-	drawCorner(0, h-int(radius), math.Pi*0.5)   // 左下
-	drawCorner(w-int(radius), h-int(radius), 0) // 右下
+	drawCorner(0, 0, math.Pi)            // 左上
+	drawCorner(w-radius, 0, math.Pi*1.5) // 右上
+	drawCorner(0, h-radius, math.Pi*0.5) // 左下
+	drawCorner(w-radius, h-radius, 0)    // 右下
 
 	// 填充中間部分
-	tmp.SubImage(image.Rect(int(radius), 0, w-int(radius), h)).(*ebiten.Image).Fill(col)
-	tmp.SubImage(image.Rect(0, int(radius), w, h-int(radius))).(*ebiten.Image).Fill(col)
+	tmp.SubImage(bounds.Rect()).(*ebiten.Image).Fill(col)
 
-	// 繪製到目標
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(rect.Min.X), float64(rect.Min.Y))
 	screen.DrawImage(tmp, op)
 }
 
@@ -83,22 +86,4 @@ func clampF(v, min, max float64) float64 {
 func dp(value float64) float64 {
 	// 這裡可以根據螢幕 DPI 進行調整
 	return value
-}
-
-func pt(value float64) float64 {
-	return value
-}
-
-func drawRoundedRectBorder(screen *ebiten.Image, rect image.Rectangle, radius, width float64, col color.Color) {
-	// 外框
-	drawRoundedRect(screen, rect, radius, col)
-
-	// 內框
-	inner := image.Rect(
-		rect.Min.X+int(width),
-		rect.Min.Y+int(width),
-		rect.Max.X-int(width),
-		rect.Max.Y-int(width),
-	)
-	drawRoundedRect(screen, inner, radius-width, screen.At(0, 0))
 }
