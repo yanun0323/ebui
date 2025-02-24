@@ -8,10 +8,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
-const (
-	_minimumFloat64 float64 = 0.001
-)
-
 /*
 	FONT
 */

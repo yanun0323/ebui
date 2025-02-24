@@ -6,6 +6,6 @@ type rectangleImpl struct {
 
 func Rectangle() SomeView {
 	rect := &rectangleImpl{}
-	rect.ctx = newViewContext(tagRectangle, rect)
+	rect.ctx = newViewContext(rect)
 	return rect
 }

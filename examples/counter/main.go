@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"log"
 
@@ -17,12 +18,24 @@ type ContentView struct {
 func NewContentView() View {
 	return &ContentView{
 		count:     Bind(0),
-		countText: Bind("Current Value: "),
+		countText: Bind("Current Value: 0"),
 	}
 }
 
 func (v *ContentView) Body() SomeView {
 	return VStack(
+		Rectangle().BackgroundColor(Bind[color.Color](color.RGBA{125, 125, 255, 0})),
+		Rectangle().BackgroundColor(Bind[color.Color](color.RGBA{255, 125, 125, 0})),
+		VStack(
+			Rectangle().BackgroundColor(Bind[color.Color](color.RGBA{0, 0, 125, 0})),
+			HStack(
+				Rectangle().BackgroundColor(Bind[color.Color](color.RGBA{125, 0, 0, 0})),
+				Rectangle().BackgroundColor(Bind[color.Color](color.RGBA{0, 125, 0, 0})),
+			),
+		),
+		Image(Bind("image.jpg")).
+			ScaleToFit().
+			KeepAspectRatio(),
 		Text("Counter Example").
 			FontSize(Bind(font.Body)).
 			FontAlignment(Bind(font.AlignCenter)).
@@ -35,44 +48,54 @@ func (v *ContentView) Body() SomeView {
 		ZStack(
 			VStack(
 				Spacer(),
-				Text("TEST TEXT").
-					FontSize(Bind(font.Title3)),
+				HStack(
+					Spacer(),
+					Text("TEXT").
+						FontSize(Bind(font.Title3)).
+						BackgroundColor(Bind[color.Color](color.RGBA{125, 64, 64, 125})),
+					Spacer(),
+				),
+				Spacer(),
 			).
-				// Padding(NewBinding(20.0)).
+				Padding(Bind(20.0)).
 				BackgroundColor(Bind[color.Color](color.Gray{200})),
 		).
 			BackgroundColor(Bind[color.Color](color.Gray{100})),
-		// VStack(
-		// 	Button(func() {
-		// 		v.count.Set(v.count.Get() + 1)
-		// 		v.countText.Set(fmt.Sprintf("當前數值: %d", v.count.Get()))
-		// 		println(fmt.Sprintf("set text to: %s", v.countText.Get()))
-		// 	}, func() SomeView {
-		// 		return Text("增加")
-		// 		// BackgroundColor(NewBinding[color.Color](color.Gray{200}))
-		// 	}),
-		// 	Button(func() {
-		// 		v.count.Set(v.count.Get() - 1)
-		// 		v.countText.Set(fmt.Sprintf("當前數值: %d", v.count.Get()))
-		// 		println(fmt.Sprintf("set text to: %s", v.countText.Get()))
-		// 	}, func() SomeView {
-		// 		return Text("減少").
-		// 			BackgroundColor(NewBinding[color.Color](color.Gray{200}))
-		// 	}),
-		// 	Spacer(),
-		// ),
+		HStack(
+			Button(func() {
+				v.count.Set(v.count.Get() + 1)
+				v.countText.Set(fmt.Sprintf("Current Value: %d", v.count.Get()))
+				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
+			}, func() SomeView {
+				return Text("Increase").
+					Padding(Bind(5.0))
+			}).
+				Padding(Bind(15.0)).
+				RoundCorner(Bind(10.0)).
+				BackgroundColor(Bind[color.Color](color.Gray{100})),
+			Spacer(),
+			Button(func() {
+				v.count.Set(v.count.Get() - 1)
+				v.countText.Set(fmt.Sprintf("Current Value: %d", v.count.Get()))
+				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
+			}, func() SomeView {
+				return Text("Decrease").
+					BackgroundColor(Bind[color.Color](color.Gray{200}))
+			}),
+		),
 	).
-		// BackgroundColor(NewBinding[color.Color](color.RGBA{255, 0, 0, 0})).
-		Padding(Bind(15.0))
+		Padding(Bind(15.0)).
+		BackgroundColor(Bind[color.Color](color.RGBA{255, 0, 0, 0}))
 }
 
 func main() {
-	ebiten.SetWindowSize(400, 300)
+	ebiten.SetWindowSize(600, 500)
 	ebiten.SetWindowTitle("EBUI Demo")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	app := NewApplication(NewContentView())
 	app.SetBackgroundColor(color.RGBA{100, 0, 0, 0})
+	app.SetResourceFolder("resource")
 
 	if err := ebiten.RunGame(app); err != nil {
 		log.Fatal(err)

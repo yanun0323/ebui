@@ -1,7 +1,6 @@
 package ebui
 
 import (
-	"fmt"
 	"image/color"
 	"math"
 
@@ -23,9 +22,8 @@ const (
 // ctx 提供所有 View 共用的修飾器方法和狀態
 type ctx struct {
 	_owner          SomeView
-	_id             int64
-	_tag            tag
-	_systemSetFrame CGRect // 視圖的邊界，用 padding 修飾過的邊界
+	_tag            string
+	_systemSetFrame CGRect // 不包含 Padding 的內部邊界
 	_padding        *Binding[float64]
 
 	frameWidth      *Binding[float64]
@@ -40,14 +38,15 @@ type ctx struct {
 	fontAlignment     *Binding[font.Alignment]
 	fontItalic        *Binding[bool]
 	roundCorner       *Binding[float64]
+
+	scaleToFit      *Binding[bool]
+	keepAspectRatio *Binding[bool]
 }
 
 // 初始化 ViewContext
-func newViewContext(viewType tag, owner SomeView) *ctx {
+func newViewContext(owner SomeView) *ctx {
 	return &ctx{
 		_owner:          owner,
-		_id:             getID(),
-		_tag:            viewType,
 		_systemSetFrame: rect(0, 0, 0, 0),
 		_padding:        Bind(0.0),
 
@@ -68,26 +67,11 @@ func (ctx *ctx) Body() SomeView {
 	return ctx._owner
 }
 
-func (ctx *ctx) id() int64 {
-	if ctx._id == 0 {
-		ctx._id = getID()
-	}
-	return ctx._id
+func (ctx *ctx) userSetFrameSize() flexibleCGSize {
+	return newFlexibleCGSize(ctx.frameWidth.Get(), ctx.frameHeight.Get())
 }
 
-func (ctx *ctx) types() string {
-	return ctx._tag.String()
-}
-
-func (ctx *ctx) debug() string {
-	return fmt.Sprintf("\t\x1b[%dm[%d]\x1b[0m \x1b[%dm[%s]\x1b[0m\t", 35, ctx.id(), 32, ctx.types())
-}
-
-func (ctx *ctx) userSetFrame() CGRect {
-	return CGRect{ptZero, CGPoint{ctx.frameWidth.Get(), ctx.frameHeight.Get()}}
-}
-
-// systemSetFrame 回傳的是去除 padding 後的內部邊界
+// systemSetFrame 回傳的是內部邊界
 func (ctx *ctx) systemSetFrame() CGRect {
 	return ctx._systemSetFrame
 }
@@ -97,43 +81,61 @@ func (ctx *ctx) padding() Inset {
 	return ins(p, p, p, p)
 }
 
-func (ctx *ctx) preload() (CGSize, Inset, func(CGPoint, CGSize) CGRect) {
-	padding := ctx.padding()
-	return ctx.userSetFrame().Size(), padding, func(start CGPoint, flexSize CGSize) CGRect {
-		frame := ctx.userSetFrame()
-		finalSize := frame.Size()
-		if isInf(finalSize.Width) {
-			finalSize.Width = flexSize.Width
-		}
-
-		if isInf(finalSize.Height) {
-			finalSize.Height = flexSize.Height
-		}
-
-		frame = rect(start.X, start.Y, start.X+finalSize.Width, start.Y+finalSize.Height)
-		ctx._systemSetFrame = frame.Shrink(padding)
-
-		return frame
+func (ctx *ctx) debugPrint(frame CGRect) {
+	if len(ctx._tag) != 0 {
+		logf("\x1b[35m[%s]\x1b[0m\tStart(%4.f, %4.f)\tEnd(%4.f, %4.f)\tSize(%4.f, %4.f)",
+			ctx._tag,
+			frame.Start.X, frame.Start.Y,
+			frame.End.X, frame.End.Y,
+			frame.Dx(), frame.Dy(),
+		)
 	}
 }
 
-func (ctx *ctx) draw(screen *ebiten.Image, bounds ...CGRect) {
-	bgColor := ctx.backgroundColor.Get()
-	if bgColor == nil {
-		return
+func (ctx *ctx) preload() (flexibleCGSize, Inset, layoutFunc) {
+	padding := ctx.padding()
+	userSetFrameSize := ctx._owner.userSetFrameSize()
+	return userSetFrameSize, padding, func(start CGPoint, flexFrameSize CGSize) CGRect {
+		finalFrame := CGRect{start, start.Add(flexFrameSize.ToCGPoint())}
+		finalFrameSize := userSetFrameSize
+		if !finalFrameSize.IsInfX {
+			finalFrame.End.X = start.X + finalFrameSize.Frame.Width
+		}
+
+		if !finalFrameSize.IsInfY {
+			finalFrame.End.Y = start.Y + finalFrameSize.Frame.Height
+		}
+
+		ctx._systemSetFrame = rect(
+			finalFrame.Start.X+padding.Left,
+			finalFrame.Start.Y+padding.Top,
+			finalFrame.End.X+padding.Left,
+			finalFrame.End.Y+padding.Top,
+		)
+
+		result := finalFrame.Expand(padding)
+		ctx.debugPrint(result)
+		return result
+	}
+}
+
+func (ctx *ctx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+
+	drawFrame := ctx._owner.systemSetFrame()
+	opt := &ebiten.DrawImageOptions{}
+	opt.GeoM.Translate(drawFrame.Start.X, drawFrame.Start.Y)
+	for _, h := range hook {
+		h(opt)
 	}
 
-	drawFrame := ctx.systemSetFrame()
-	if len(bounds) != 0 {
-		drawFrame = bounds[0]
+	bgColor := ctx.backgroundColor.Get()
+	if bgColor == nil {
+		return opt
 	}
 
 	if !drawFrame.drawable() {
-		return
+		return opt
 	}
-
-	opt := &ebiten.DrawImageOptions{}
-	opt.GeoM.Translate(drawFrame.Start.X, drawFrame.Start.Y)
 
 	if radius := ctx.roundCorner.Get(); radius > 0 {
 		drawRoundedRect(screen, drawFrame, radius, bgColor, opt)
@@ -141,9 +143,9 @@ func (ctx *ctx) draw(screen *ebiten.Image, bounds ...CGRect) {
 		img := ebiten.NewImage(int(drawFrame.Dx()), int(drawFrame.Dy()))
 		img.Fill(bgColor)
 		screen.DrawImage(img, opt)
-
-		// logf("[DRAW] %s frame: %+v\n", ctx._owner.debug(), drawFrame)
 	}
+
+	return opt
 }
 
 // Frame 修飾器
@@ -221,5 +223,30 @@ func (ctx *ctx) RoundCorner(radius ...*Binding[float64]) SomeView {
 	} else {
 		ctx.roundCorner = Bind(_defaultRoundCorner)
 	}
+	return ctx._owner
+}
+
+func (ctx *ctx) Debug(tag string) SomeView {
+	ctx._tag = tag
+	return ctx._owner
+}
+
+func (ctx *ctx) ScaleToFit(enable ...*Binding[bool]) SomeView {
+	if len(enable) != 0 {
+		ctx.scaleToFit = enable[0]
+	} else {
+		ctx.scaleToFit = Bind(true)
+	}
+
+	return ctx._owner
+}
+
+func (ctx *ctx) KeepAspectRatio(enable ...*Binding[bool]) SomeView {
+	if len(enable) != 0 {
+		ctx.keepAspectRatio = enable[0]
+	} else {
+		ctx.keepAspectRatio = Bind(true)
+	}
+
 	return ctx._owner
 }

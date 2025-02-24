@@ -8,7 +8,7 @@ func VStack(views ...View) SomeView {
 	vs := &vstackImpl{
 		children: someViews(views...),
 	}
-	vs.ctx = newViewContext(tagVStack, vs)
+	vs.ctx = newViewContext(vs)
 	return vs
 }
 
@@ -18,8 +18,9 @@ type vstackImpl struct {
 	children []SomeView
 }
 
-func (v *vstackImpl) preload() (CGSize, Inset, func(CGPoint, CGSize) CGRect) {
+func (v *vstackImpl) preload() (flexibleCGSize, Inset, layoutFunc) {
 	StackFormula := &formulaStack{
+		types:    formulaVStack,
 		stackCtx: v.ctx,
 		children: v.children,
 	}
@@ -27,9 +28,11 @@ func (v *vstackImpl) preload() (CGSize, Inset, func(CGPoint, CGSize) CGRect) {
 	return StackFormula.preload()
 }
 
-func (v *vstackImpl) draw(screen *ebiten.Image, bounds ...CGRect) {
-	v.ctx.draw(screen, bounds...)
+func (v *vstackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+	op := v.ctx.draw(screen, hook...)
 	for _, child := range v.children {
 		child.draw(screen)
 	}
+
+	return op
 }

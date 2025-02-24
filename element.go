@@ -29,7 +29,7 @@ func (p CGPoint) Sub(other CGPoint) CGPoint {
 }
 
 func (p CGPoint) In(r CGRect) bool {
-	return p.X >= r.Start.X && p.X < r.End.X && p.Y >= r.Start.Y && p.Y < r.End.Y
+	return p.X >= r.Start.X && p.X <= r.End.X && p.Y >= r.Start.Y && p.Y <= r.End.Y
 }
 
 func (p CGPoint) Max(other CGPoint, d direction.D) CGPoint {
@@ -152,7 +152,8 @@ func (r CGRect) Empty() bool {
 }
 
 func (r CGRect) drawable() bool {
-	return !isInf(r.End.X) && !isInf(r.End.Y) && r.Dx() > 0 && r.Dy() > 0
+	w, h := r.Dx(), r.Dy()
+	return int(w) > 0 && int(h) > 0 && !isInf(w) && !isInf(h)
 }
 
 func (r CGRect) Dx() float64 {
@@ -188,10 +189,6 @@ func (r CGRect) Rect() image.Rectangle {
 	return image.Rect(int(r.Start.X), int(r.Start.Y), int(r.End.X), int(r.End.Y))
 }
 
-func (r CGRect) Shrink(inset Inset) CGRect {
-	return rect(r.Start.X+inset.Left, r.Start.Y+inset.Top, r.End.X-inset.Right, r.End.Y-inset.Bottom)
-}
-
 func (r CGRect) Expand(inset Inset) CGRect {
 	return rect(r.Start.X, r.Start.Y, r.End.X+inset.Left+inset.Right, r.End.Y+inset.Top+inset.Bottom)
 }
@@ -213,5 +210,33 @@ func (i Inset) MaxBounds(other Inset) Inset {
 		Right:  max(i.Right, other.Right),
 		Bottom: max(i.Bottom, other.Bottom),
 		Left:   max(i.Left, other.Left),
+	}
+}
+
+// flexibleCGSize 表示一個可能包含無限維度的彈性尺寸
+type flexibleCGSize struct {
+	Frame    CGSize // 實際的有限尺寸
+	IsInfX   bool   // X 軸是否無限
+	IsInfY   bool   // Y 軸是否無限
+	IsSpacer bool
+}
+
+func newFlexibleCGSize(width, height float64, isSpacer ...bool) flexibleCGSize {
+	isInfX := isInf(width) || width < 0
+	isInfY := isInf(height) || height < 0
+
+	if isInfX {
+		width = 0
+	}
+
+	if isInfY {
+		height = 0
+	}
+
+	return flexibleCGSize{
+		Frame:    sz(width, height),
+		IsInfX:   isInfX,
+		IsInfY:   isInfY,
+		IsSpacer: len(isSpacer) != 0 && isSpacer[0],
 	}
 }

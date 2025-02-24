@@ -10,7 +10,6 @@ type textImpl struct {
 	*ctx
 
 	content *Binding[string]
-	cache   *ViewCache
 	face    text.Face
 }
 
@@ -21,10 +20,9 @@ func Text[T string | *Binding[string]](content T) SomeView {
 	case *Binding[string]:
 		v := &textImpl{
 			content: content,
-			cache:   NewViewCache(),
 			face:    createDefaultFace(),
 		}
-		v.ctx = newViewContext(tagText, v)
+		v.ctx = newViewContext(v)
 		return v
 	}
 
@@ -41,57 +39,62 @@ func createDefaultFace() text.Face {
 	return face
 }
 
-func (t *textImpl) getCtxFrame() CGRect {
-	frame := t.ctx.systemSetFrame()
-	ist := t.ctx.padding()
+func (t *textImpl) userSetFrameSize() flexibleCGSize {
+	ctxUserSetFrameSize := t.ctx.userSetFrameSize()
 	w, h := text.Measure(t.content.Get(), t.face, t.ctx.fontLineHeight.Get())
 
-	start := frame.Start.Add(pt(ist.Left, ist.Top))
-	end := start.Add(frame.Size().ToCGPoint())
-	if isInf(frame.End.X) {
-		end.X = start.X + w
+	if ctxUserSetFrameSize.IsInfX {
+		ctxUserSetFrameSize.Frame.Width = w
+		ctxUserSetFrameSize.IsInfX = false
 	}
 
-	if isInf(frame.End.Y) {
-		end.Y = start.Y + h
+	if ctxUserSetFrameSize.IsInfY {
+		ctxUserSetFrameSize.Frame.Height = h
+		ctxUserSetFrameSize.IsInfY = false
 	}
 
-	frame.Start = start
-	frame.End = end
-
-	return frame
+	return ctxUserSetFrameSize
 }
 
-func (t *textImpl) preload() (CGSize, Inset, func(CGPoint, CGSize) CGRect) {
-	_, inset, layoutFn := t.ctx.preload()
-	frameSize := t.getCtxFrame().Size()
+func (t *textImpl) preload() (flexibleCGSize, Inset, layoutFunc) {
+	frameSize, padding, layoutFn := t.ctx.preload()
+	w, h := text.Measure(t.content.Get(), t.face, t.ctx.fontLineHeight.Get())
+	return frameSize, padding, func(start CGPoint, flexFrameSize CGSize) CGRect {
+		if isInf(flexFrameSize.Width) {
+			flexFrameSize.Width = w
+		}
 
-	return frameSize, inset, func(start CGPoint, flexSize CGSize) CGRect {
-		return layoutFn(start, frameSize)
+		if isInf(flexFrameSize.Height) {
+			flexFrameSize.Height = h
+		}
+
+		result := layoutFn(start, flexFrameSize)
+		t.ctx.debugPrint(result)
+		return result
 	}
 }
 
-func (t *textImpl) draw(screen *ebiten.Image, bounds ...CGRect) {
-	t.ctx.draw(screen, bounds...)
+func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+	op := t.ctx.draw(screen, hook...)
 
 	content := t.content.Get()
 	if content == "" {
-		return
+		return &ebiten.DrawImageOptions{}
 	}
 
 	// 計算文字位置
-	frame := t.getCtxFrame()
-	x := frame.Start.X
-	y := frame.Start.Y
+	// frame := t.systemSetFrame()
+	// x := frame.Start.X
+	// y := frame.Start.Y
 
 	// 處理對齊
-	w, _ := text.Measure(content, t.face, t.ctx.fontLineHeight.Get())
-	switch t.ctx.fontAlignment.Get() {
-	case font.AlignCenter:
-		x += float64(frame.Dx()-w) / 2
-	case font.AlignRight:
-		x += float64(frame.Dx() - w)
-	}
+	// w, _ := text.Measure(content, t.face, t.ctx.fontLineHeight.Get())
+	// switch t.ctx.fontAlignment.Get() {
+	// case font.AlignCenter:
+	// 	x += float64(frame.Dx()-w) / 2
+	// case font.AlignRight:
+	// 	x += float64(frame.Dx() - w)
+	// }
 
 	// 繪製文字
 	for i, gl := range text.AppendGlyphs(nil, content, t.face, &text.LayoutOptions{
@@ -105,8 +108,12 @@ func (t *textImpl) draw(screen *ebiten.Image, bounds ...CGRect) {
 		opt.ColorScale.ScaleWithColor(t.ctx.foregroundColor.Get())
 
 		opt.GeoM.Translate(float64(i)*t.ctx.fontLetterSpacing.Get(), 0)
-		opt.GeoM.Translate(x+gl.X, y+gl.Y)
+		opt.GeoM.Translate(gl.X, gl.Y)
+		opt.GeoM.Concat(op.GeoM)
+		opt.ColorScale.ScaleWithColorScale(op.ColorScale)
 
 		screen.DrawImage(gl.Image, opt)
 	}
+
+	return op
 }

@@ -6,15 +6,24 @@ func Bind[T comparable](initialValue ...T) *Binding[T] {
 		value = initialValue[0]
 	}
 
+	return NewBind(
+		func() T { return value },
+		func(v T) { value = v },
+	)
+}
+
+func NewBind[T comparable](get func() T, set func(T)) *Binding[T] {
 	return &Binding[T]{
-		value:     value,
+		getter:    get,
+		setter:    set,
 		listeners: make([]func(), 0),
 	}
 }
 
 type Binding[T comparable] struct {
 	_         noCopy
-	value     T
+	getter    func() T
+	setter    func(T)
 	listeners []func()
 }
 
@@ -23,7 +32,7 @@ func (b *Binding[T]) Get() T {
 		return *new(T)
 	}
 
-	return b.value
+	return b.getter()
 }
 
 func (b *Binding[T]) Set(v T) {
@@ -31,8 +40,8 @@ func (b *Binding[T]) Set(v T) {
 		return
 	}
 
-	if b.value != v {
-		b.value = v
+	if b.getter() != v {
+		b.setter(v)
 		b.notifyListeners()
 		globalStateManager.markDirty()
 	}

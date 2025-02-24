@@ -8,7 +8,7 @@ func ZStack(views ...View) SomeView {
 	zs := &zstackImpl{
 		children: someViews(views...),
 	}
-	zs.ctx = newViewContext(tagZStack, zs)
+	zs.ctx = newViewContext(zs)
 	return zs
 }
 
@@ -18,17 +18,20 @@ type zstackImpl struct {
 	children []SomeView
 }
 
-func (z *zstackImpl) preload() (CGSize, Inset, func(CGPoint, CGSize) CGRect) {
+func (z *zstackImpl) preload() (flexibleCGSize, Inset, layoutFunc) {
 	StackFormula := &formulaStack{
+		types:    formulaZStack,
 		stackCtx: z.ctx,
 		children: z.children,
 	}
 
 	return StackFormula.preload()
 }
-func (z *zstackImpl) draw(screen *ebiten.Image, bounds ...CGRect) {
-	z.ctx.draw(screen, bounds...)
+func (z *zstackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+	op := z.ctx.draw(screen, hook...)
 	for _, child := range z.children {
 		child.draw(screen)
 	}
+
+	return op
 }

@@ -23,7 +23,6 @@ func (sm *StateManager) isDirty() bool {
 
 func (sm *StateManager) SetBounds(bounds CGRect) {
 	if sm.bounds != bounds {
-		println("[APP] bounds changed!!")
 		sm.bounds = bounds
 		sm.markDirty()
 	}

@@ -2,8 +2,18 @@ package ebui
 
 import (
 	"image/color"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2"
+)
+
+const (
+	_defaultWidth  = 500
+	_defaultHeight = 500
+)
+
+var (
+	resourceDir atomic.Value
 )
 
 type Application struct {
@@ -16,19 +26,15 @@ type Application struct {
 }
 
 func NewApplication(root View) *Application {
-	bounds := rect(0, 0, 400, 300)
-	globalStateManager.SetBounds(bounds)
-
-	rootView := ZStack(root.Body())
-
 	app := &Application{
 		stateManager: globalStateManager,
 		eventManager: globalEventManager,
 		animManager:  globalAnimationManager,
-		rootView:     rootView,
-		bounds:       bounds,
+		rootView:     ZStack(root.Body()),
+		bounds:       rect(0, 0, _defaultWidth, _defaultHeight),
 	}
 
+	app.SetBounds(_defaultWidth, _defaultHeight)
 	return app
 }
 
@@ -75,11 +81,12 @@ func (app *Application) Update() error {
 }
 
 func (app *Application) Draw(screen *ebiten.Image) {
+	baseHiDPI := ebiten.NewImage(int(app.bounds.Dx()), int(app.bounds.Dy()))
 	if app.backgroundColor != nil {
-		screen.Fill(app.backgroundColor)
+		baseHiDPI.Fill(app.backgroundColor)
 	}
-
-	app.rootView.draw(screen)
+	app.rootView.draw(baseHiDPI)
+	screen.DrawImage(baseHiDPI, nil)
 }
 
 // 設置背景顏色
@@ -95,8 +102,11 @@ func (app *Application) SetBounds(width, height int) {
 	app.reLayout()
 }
 
+func (app *Application) SetResourceFolder(folder string) {
+	resourceDir.Store(folder)
+}
+
 func (app *Application) reLayout() {
 	_, _, layoutFn := app.rootView.preload()
-	result := layoutFn(ptZero, app.bounds.Size())
-	logf("[APP] bounds: %+v, result: %+v\n", app.bounds, result)
+	_ = layoutFn(ptZero, app.bounds.Size())
 }

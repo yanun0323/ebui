@@ -1,47 +1,119 @@
 package ebui
 
 import (
+	"image"
+	"os"
+	"path/filepath"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type ImageView struct {
+type imageImpl struct {
 	*ctx
 
-	image    *ebiten.Image
-	frame    CGRect
-	scale    float64
-	rotation float64
+	image *Binding[*ebiten.Image]
 }
 
-func Image(img *ebiten.Image) SomeView {
-	iv := &ImageView{
-		image: img,
-		scale: 1.0,
+func Image[T string | *ebiten.Image](img *Binding[T]) SomeView {
+	switch content := any(img).(type) {
+	case *Binding[*ebiten.Image]:
+		v := &imageImpl{
+			image: content,
+		}
+		v.ctx = newViewContext(v)
+		return v
+	case *Binding[string]:
+		var img *ebiten.Image
+		content.addListener(func() {
+			img = getImage(content.Get())
+		})
+		constraint := NewBind(func() *ebiten.Image {
+			if img == nil {
+				img = getImage(content.Get())
+				if img == nil {
+					img = ebiten.NewImage(1, 1)
+				}
+			}
+
+			return img
+		}, func(i *ebiten.Image) {})
+
+		return Image(constraint)
 	}
-	iv.ctx = newViewContext(tagImage, iv)
-	return iv
+
+	return nil
 }
 
-func (iv *ImageView) layout(bounds CGRect) (CGRect, func(CGRect)) {
-	size := iv.image.Bounds().Size()
-	iv.frame = rect(
-		bounds.Start.X,
-		bounds.Start.Y,
-		bounds.Start.X+float64(size.X)*iv.scale,
-		bounds.Start.Y+float64(size.Y)*iv.scale,
-	)
-	return iv.frame, nil
+func (v *imageImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+	op := v.ctx.draw(screen, hook...)
+	img := v.image.Get()
+	if img == nil {
+		return op
+	}
+
+	frame := v.ctx.systemSetFrame()
+	if !frame.drawable() {
+		return op
+	}
+
+	frameSize := frame.Size()
+	imgSize := sz(float64(img.Bounds().Dx()), float64(img.Bounds().Dy()))
+	scale := v.getScale(frameSize, imgSize)
+
+	opt := &ebiten.DrawImageOptions{}
+	opt.ColorScale.ScaleWithColorScale(op.ColorScale)
+	opt.GeoM.Scale(scale.X, scale.Y)
+	opt.GeoM.Concat(op.GeoM)
+
+	screen.DrawImage(img, opt)
+
+	return opt
 }
 
-func (iv *ImageView) draw(screen *ebiten.Image, bounds ...CGRect) {
-	iv.ctx.draw(screen)
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(-float64(iv.image.Bounds().Dx())/2, -float64(iv.image.Bounds().Dy())/2)
-	op.GeoM.Rotate(iv.rotation)
-	op.GeoM.Scale(iv.scale, iv.scale)
-	op.GeoM.Translate(
-		float64(iv.frame.Start.X)+float64(iv.frame.Dx())/2,
-		float64(iv.frame.Start.Y)+float64(iv.frame.Dy())/2,
-	)
-	screen.DrawImage(iv.image, op)
+func (v *imageImpl) getScale(frameSize, imgSize CGSize) CGPoint {
+	scale := pt(1, 1)
+	if !v.ctx.scaleToFit.Get() {
+		return scale
+	}
+
+	keepAspectRatio := v.ctx.keepAspectRatio.Get()
+	if !keepAspectRatio {
+		return pt(frameSize.Width/imgSize.Width, frameSize.Height/imgSize.Height)
+	}
+
+	scaleX := frameSize.Width / imgSize.Width
+	scaleY := frameSize.Height / imgSize.Height
+	s := scaleX
+	if scaleY < scaleX {
+		s = scaleY
+	}
+
+	return pt(s, s)
+}
+
+func getImage(filename string) *ebiten.Image {
+	path := filename
+	if dir, ok := resourceDir.Load().(string); ok && len(dir) != 0 {
+		println("resourceDir:", dir)
+		if !filepath.IsAbs(dir) {
+			println("not abs:", dir)
+			dir, _ = filepath.Abs(dir)
+		}
+		path = filepath.Join(dir, filename)
+	}
+
+	println("image:", path)
+
+	f, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+
+	img, _, err := image.Decode(f)
+	if err != nil {
+		return nil
+	}
+
+	return ebiten.NewImageFromImage(img)
 }

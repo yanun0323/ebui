@@ -3,7 +3,6 @@ package ebui
 import (
 	"fmt"
 	"image/color"
-	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -12,10 +11,11 @@ func logf(format string, args ...any) {
 	fmt.Printf(format+"\n", args...)
 }
 
-func logfTo(v SomeView, id int64, format string, args ...any) {
-	if v.id() == id {
-		logf(format, args...)
+func ifs[T any](condition bool, trueReturn, falseReturn T) T {
+	if condition {
+		return trueReturn
 	}
+	return falseReturn
 }
 
 func someViews(views ...View) []SomeView {
@@ -26,39 +26,67 @@ func someViews(views ...View) []SomeView {
 	return someViews
 }
 
-// 繪製圓角矩形
-func drawRoundedRect(screen *ebiten.Image, bounds CGRect, radius float64, col color.Color, op *ebiten.DrawImageOptions) {
-	if radius <= 0 {
-		return
+// getFitSize 計算大小，如果父視圖大小無限，則使用子視圖大小
+func getFitSize(parent, child flexibleCGSize) flexibleCGSize {
+	if parent.IsInfX {
+		parent.Frame.Width = child.Frame.Width
+		parent.IsInfX = false
 	}
 
-	// 創建臨時圖像
-	w, h := bounds.Dx(), bounds.Dy()
-	tmp := ebiten.NewImage(int(w), int(h))
+	if parent.IsInfY {
+		parent.Frame.Height = child.Frame.Height
+		parent.IsInfY = false
+	}
 
-	// 繪製四個角
-	drawCorner := func(x, y float64, startAngle float64) {
-		const segments = 16
-		angleStep := math.Pi / 2 / segments
+	return parent
+}
 
-		for i := 0; i <= segments; i++ {
-			angle := startAngle + angleStep*float64(i)
-			px := x + radius*math.Cos(angle)
-			py := y + radius*math.Sin(angle)
-			tmp.Set(int(px), int(py), col)
+// 繪製圓角矩形色塊
+func drawRoundedRect(screen *ebiten.Image, bounds CGRect, radius float64, col color.Color, op *ebiten.DrawImageOptions) {
+	scale := 3.0
+	w := int(bounds.Dx() * scale)
+	h := int(bounds.Dy() * scale)
+	r := int(radius * scale)
+
+	// 建立一個新的圖片
+	img := ebiten.NewImage(w, h)
+	img.Fill(col)
+
+	for x := 0; x < w; x++ {
+		for y := 0; y < h; y++ {
+			if (x >= r && x <= w-r) || (y >= r && y <= h-r) {
+				continue
+			}
+
+			// 左上角
+			if x < r && y < r && (x-r)*(x-r)+(y-r)*(y-r) > r*r {
+				img.Set(x, y, color.Transparent)
+			}
+
+			// 右上角
+			if x >= w-r && y < r && (x-(w-r))*(x-(w-r))+(y-r)*(y-r) > r*r {
+				img.Set(x, y, color.Transparent)
+			}
+
+			// 左下角
+			if x < r && y >= h-r && (x-r)*(x-r)+(y-(h-r))*(y-(h-r)) > r*r {
+				img.Set(x, y, color.Transparent)
+			}
+
+			// 右下角
+			if x >= w-r && y >= h-r && (x-(w-r))*(x-(w-r))+(y-(h-r))*(y-(h-r)) > r*r {
+				img.Set(x, y, color.Transparent)
+			}
 		}
 	}
 
-	// 繪製四個角
-	drawCorner(0, 0, math.Pi)            // 左上
-	drawCorner(w-radius, 0, math.Pi*1.5) // 右上
-	drawCorner(0, h-radius, math.Pi*0.5) // 左下
-	drawCorner(w-radius, h-radius, 0)    // 右下
-
-	// 填充中間部分
-	tmp.SubImage(bounds.Rect()).(*ebiten.Image).Fill(col)
-
-	screen.DrawImage(tmp, op)
+	opt := &ebiten.DrawImageOptions{}
+	opt.GeoM.Scale(1/scale, 1/scale)
+	opt.Filter = ebiten.FilterLinear
+	opt.GeoM.Concat(op.GeoM)
+	opt.ColorScale.ScaleWithColorScale(op.ColorScale)
+	// 繪製到螢幕上
+	screen.DrawImage(img, opt)
 }
 
 // 數值限制函數

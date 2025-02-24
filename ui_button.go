@@ -7,69 +7,62 @@ import (
 type buttonImpl struct {
 	*ctx
 
-	action    func()
-	label     func() SomeView
-	frame     CGRect
-	isPressed bool
-	cache     *ViewCache
+	action      func()
+	label       func() SomeView
+	labelLoaded SomeView
+	isPressed   bool
 }
 
 func Button(action func(), label func() SomeView) SomeView {
 	btn := &buttonImpl{
 		action: action,
 		label:  label,
-		cache:  NewViewCache(),
 	}
-	btn.ctx = newViewContext(tagButton, btn)
+	btn.ctx = newViewContext(btn)
 	RegisterEventHandler(btn)
 	return btn
 }
 
-func (b *buttonImpl) preload() (CGSize, Inset, func(CGPoint, CGSize) CGRect) {
-	btnFrameSize, btnInset, btnLayoutFn := b.ctx.preload()
-	labelFrameSize, labelInset, labelLayoutFn := b.label().preload()
-
-	frameSize := btnFrameSize.MaxWH(labelFrameSize)
-	frameInset := btnInset.MaxBounds(labelInset)
-	frameSize = frameSize.Expand(frameInset)
-
-	return frameSize, frameInset, func(start CGPoint, flexibleSize CGSize) CGRect {
-		btnResult := btnLayoutFn(start, flexibleSize)
-		labelResult := labelLayoutFn(btnResult.Start, btnResult.Size())
-		return btnResult.MaxStartEnd(labelResult)
+func (b *buttonImpl) preload() (flexibleCGSize, Inset, layoutFunc) {
+	b.labelLoaded = b.label()
+	formulaStack := &formulaStack{
+		types:    formulaZStack,
+		stackCtx: b.ctx,
+		children: []SomeView{b.labelLoaded},
 	}
+
+	return formulaStack.preload()
 }
 
-func (b *buttonImpl) HandleInput(x, y float64, pressed bool) bool {
-	if pressed && pt(x, y).In(b.frame) {
-		b.action()
-		return true
-	}
-	return false
-}
+func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+	hook = append(hook, func(opt *ebiten.DrawImageOptions) {
+		if b.isPressed {
+			opt.ColorScale.ScaleAlpha(0.5)
+		}
+	})
 
-func (b *buttonImpl) draw(screen *ebiten.Image, bounds ...CGRect) {
-	b.ctx.draw(screen, bounds...)
-	b.label().draw(screen, bounds...)
+	op := b.ctx.draw(screen, hook...)
+	_ = b.labelLoaded.draw(screen, hook...)
+
+	return op
 }
 
 // Button 的事件處理
 func (b *buttonImpl) HandleTouchEvent(event TouchEvent) bool {
 	switch event.Phase {
 	case TouchPhaseBegan:
-		if event.Position.In(b.frame) {
+		if event.Position.In(b.labelLoaded.systemSetFrame()) {
 			b.isPressed = true
 			return true
 		}
 	case TouchPhaseMoved:
 		if b.isPressed {
-			b.isPressed = event.Position.In(b.frame)
 			return true
 		}
 	case TouchPhaseEnded, TouchPhaseCancelled:
 		if b.isPressed {
 			b.isPressed = false
-			if event.Position.In(b.frame) {
+			if event.Position.In(b.labelLoaded.systemSetFrame()) {
 				b.action()
 			}
 			return true

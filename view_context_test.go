@@ -8,7 +8,7 @@ import (
 )
 
 func newTestViewContextForTest() *ctx {
-	return newViewContext(tagNone, newViewContext(tagNone, nil))
+	return newRectangleForTest().ctx
 }
 
 func TestViewContext(t *testing.T) {
@@ -27,11 +27,11 @@ func (su *ViewContextSuite) Inf(f float64) {
 func (su *ViewContextSuite) TestSetFrame() {
 	{
 		ctx := newTestViewContextForTest()
-		r := ctx.userSetFrame()
-		su.Inf(r.End.X)
-		su.Inf(r.End.Y)
+		s := ctx.userSetFrameSize()
+		su.True(s.IsInfX)
+		su.True(s.IsInfY)
 
-		r = ctx.systemSetFrame()
+		r := ctx.systemSetFrame()
 		su.Equal(ptZero, r.Start)
 		su.Equal(ptZero, r.End)
 	}
@@ -39,11 +39,11 @@ func (su *ViewContextSuite) TestSetFrame() {
 		ctx := newTestViewContextForTest()
 		ctx.Frame(nil, Bind(100.0))
 
-		r := ctx.userSetFrame()
-		su.Inf(r.End.X)
-		su.Equal(100.0, r.End.Y)
+		s := ctx.userSetFrameSize()
+		su.True(s.IsInfX)
+		su.Equal(100.0, s.Frame.Height)
 
-		r = ctx.systemSetFrame()
+		r := ctx.systemSetFrame()
 		su.Equal(ptZero, r.Start)
 		su.Equal(ptZero, r.End)
 	}
@@ -52,11 +52,11 @@ func (su *ViewContextSuite) TestSetFrame() {
 		ctx := newTestViewContextForTest()
 		ctx.Frame(Bind(100.0), Bind(100.0))
 
-		r := ctx.userSetFrame()
-		su.Equal(ptZero, r.Start)
-		su.Equal(pt(100, 100), r.End)
+		s := ctx.userSetFrameSize()
+		su.Equal(100.0, s.Frame.Width)
+		su.Equal(100.0, s.Frame.Height)
 
-		r = ctx.systemSetFrame()
+		r := ctx.systemSetFrame()
 		su.Equal(ptZero, r.Start)
 		su.Equal(ptZero, r.End)
 	}
@@ -67,8 +67,8 @@ func (su *ViewContextSuite) TestPreload() {
 		ctx := newTestViewContextForTest()
 
 		s, inset, layoutFn := ctx.preload()
-		su.Inf(s.Width)
-		su.Inf(s.Height)
+		su.True(s.IsInfX)
+		su.True(s.IsInfY)
 		su.Equal(ins(0, 0, 0, 0), inset)
 		su.NotNil(layoutFn)
 
@@ -84,16 +84,17 @@ func (su *ViewContextSuite) TestPreload() {
 		ctx.Padding(Bind(10.0))
 
 		s, inset, layoutFn := ctx.preload()
-		su.Inf(s.Width)
-		su.Inf(s.Height)
+		su.Equal(sz(0, 0), s.Frame)
+		su.True(s.IsInfX)
+		su.True(s.IsInfY)
 		su.Equal(ins(10, 10, 10, 10), inset)
 		su.NotNil(layoutFn)
 
 		res := layoutFn(ptZero, sz(500, 500))
-		su.Equal(ptZero, res.Start)
-		su.Equal(pt(500, 500), res.End)
+		su.Equal(pt(0, 0), res.Start)
+		su.Equal(pt(520, 520), res.End)
 
-		su.Equal(rect(10, 10, 490, 490), ctx.systemSetFrame())
+		su.Equal(rect(10, 10, 510, 510), ctx.systemSetFrame())
 	}
 
 	{ // 設定大小
@@ -101,8 +102,8 @@ func (su *ViewContextSuite) TestPreload() {
 		ctx.Frame(Bind(100.0), Bind(100.0))
 
 		s, inset, layoutFn := ctx.preload()
-		su.Equal(100.0, s.Width)
-		su.Equal(100.0, s.Height)
+		su.Equal(100.0, s.Frame.Width)
+		su.Equal(100.0, s.Frame.Height)
 		su.Equal(ins(0, 0, 0, 0), inset)
 		su.NotNil(layoutFn)
 
@@ -119,15 +120,15 @@ func (su *ViewContextSuite) TestPreload() {
 		ctx.Padding(Bind(10.0))
 
 		s, inset, layoutFn := ctx.preload()
-		su.Equal(100.0, s.Width)
-		su.Equal(100.0, s.Height)
+		su.Equal(100.0, s.Frame.Width)
+		su.Equal(100.0, s.Frame.Height)
 		su.Equal(ins(10, 10, 10, 10), inset)
 		su.NotNil(layoutFn)
 
 		res := layoutFn(ptZero, sz(500, 500))
 		su.Equal(ptZero, res.Start)
-		su.Equal(pt(100, 100), res.End)
+		su.Equal(pt(120, 120), res.End)
 
-		su.Equal(rect(10, 10, 90, 90), ctx.systemSetFrame())
+		su.Equal(rect(10, 10, 110, 110), ctx.systemSetFrame())
 	}
 }
