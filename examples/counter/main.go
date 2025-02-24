@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"log"
 
-	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/yanun0323/ebui"
 	. "github.com/yanun0323/ebui"
 	"github.com/yanun0323/ebui/font"
 )
@@ -57,7 +57,7 @@ func (v *ContentView) Body() SomeView {
 				),
 				Spacer(),
 			).
-				Padding(Bind(20.0)).
+				Padding(Bind(Inset{20, 20, 20, 20})).
 				BackgroundColor(Bind[color.Color](color.Gray{200})),
 		).
 			BackgroundColor(Bind[color.Color](color.Gray{100})),
@@ -68,9 +68,9 @@ func (v *ContentView) Body() SomeView {
 				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
 			}, func() SomeView {
 				return Text("Increase").
-					Padding(Bind(5.0))
+					Padding(Bind(Inset{5, 5, 5, 5}))
 			}).
-				Padding(Bind(15.0)).
+				Padding(Bind(Inset{15, 15, 15, 15})).
 				RoundCorner(Bind(10.0)).
 				BackgroundColor(Bind[color.Color](color.Gray{100})),
 			Spacer(),
@@ -84,20 +84,20 @@ func (v *ContentView) Body() SomeView {
 			}),
 		),
 	).
-		Padding(Bind(15.0)).
+		Padding(Bind(Inset{15, 15, 15, 15})).
 		BackgroundColor(Bind[color.Color](color.RGBA{255, 0, 0, 0}))
 }
 
 func main() {
-	ebiten.SetWindowSize(600, 500)
-	ebiten.SetWindowTitle("EBUI Demo")
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-
 	app := NewApplication(NewContentView())
-	app.SetBackgroundColor(color.RGBA{100, 0, 0, 0})
+	app.SetWindowBackgroundColor(color.RGBA{100, 0, 0, 0})
+	app.SetWindowTitle("EBUI Demo")
+	app.SetWindowSize(600, 500)
+	app.SetWindowResizingMode(ebui.WindowResizingModeEnabled)
 	app.SetResourceFolder("resource")
 
-	if err := ebiten.RunGame(app); err != nil {
+	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}
+
 }

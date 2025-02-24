@@ -18,12 +18,17 @@ It also works within a [Ebitengine](https://github.com/hajimehoshi/ebiten) appli
 ### Define a Content View
 
 ```go
+
+import (
+	. "github.com/yanun0323/ebui"
+)
+
 type contentView struct {
-	title   string
-	content string
+	title   *Binding[string]
+	content *Binding[string]
 }
 
-func ContentView(title, content string) View {
+func ContentView(title, content *Binding[string]) View {
 	return &contentView{
 		title:   title,
 		content: content,
@@ -36,17 +41,17 @@ func (view *contentView) Body() SomeView {
 		VStack(
 			Spacer(),
 			Text(view.title).
-				Padding(0, 15, 0, 15).
-				ForegroundColor(color.White).
-				BackgroundColor(color.Gray{128}),
+				Padding(Bind(Inset{0, 15, 0, 15})).
+				ForegroundColor(Bind[color.Color](color.White)).
+				BackgroundColor(Bind[color.Color](color.Gray{128})),
 			Text(view.content),
 			Spacer(),
-		).Frame(200, -1),
+		).Frame(Bind(200.0), nil),
 		Spacer(),
 	).
-		ForegroundColor(color.RGBA{200, 200, 200, 255}).
-		BackgroundColor(color.RGBA{255, 0, 0, 255}).
-		Padding(5, 5, 5, 5)
+		ForegroundColor(Bind[color.Color](color.RGBA{200, 200, 200, 255})).
+		BackgroundColor(Bind[color.Color](color.RGBA{255, 0, 0, 255})).
+		Padding(Bind(Inset{5, 5, 5, 5}))
 }
 ```
 
@@ -54,8 +59,20 @@ func (view *contentView) Body() SomeView {
 
 ```go
 func main() {
-	contentView := ContentView("title", "content")
-	Run("Windows Title", contentView)
+	title := Bind("title")
+	content := Bind("content")
+	contentView := ContentView(title, content)
+
+	app := NewApplication(contentView)
+	app.SetWindowBackgroundColor(color.RGBA{100, 0, 0, 0})
+	app.SetWindowTitle("EBUI Demo")
+	app.SetWindowSize(600, 500)
+	app.SetWindowResizingMode(ebui.WindowResizingModeEnabled)
+	app.SetResourceFolder("resource")
+
+	if err := app.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
 ```
 
@@ -102,13 +119,13 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 - [x] VStack
 - [x] HStack
 - [x] ZStack
-- [x] EmptyView
 - [x] Text
 - [x] Image
 - [x] Button
 - [x] Spacer
+- [] EmptyView
 - [ ] Circle
-- [ ] Rectangle
+- [x] Rectangle
 - [ ] Divider
 - [ ] Indicator
 - [ ] Menu
@@ -131,6 +148,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 ### Feature
 
+- [x] CornerRadius
 - [ ] Animation
 - [ ] Gesture
 - [ ] Overlay

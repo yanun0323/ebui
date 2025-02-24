@@ -1,27 +1,27 @@
 package ebui
 
-type StateManager struct {
+type stateManager struct {
 	dirty  bool
 	bounds CGRect
 }
 
-var globalStateManager = &StateManager{
+var globalStateManager = &stateManager{
 	bounds: rect(0, 0, 0, 0),
 }
 
-func (sm *StateManager) markDirty() {
+func (sm *stateManager) markDirty() {
 	sm.dirty = true
 }
 
-func (sm *StateManager) clearDirty() {
+func (sm *stateManager) clearDirty() {
 	sm.dirty = false
 }
 
-func (sm *StateManager) isDirty() bool {
+func (sm *stateManager) isDirty() bool {
 	return sm.dirty
 }
 
-func (sm *StateManager) SetBounds(bounds CGRect) {
+func (sm *stateManager) SetBounds(bounds CGRect) {
 	if sm.bounds != bounds {
 		sm.bounds = bounds
 		sm.markDirty()

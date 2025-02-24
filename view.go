@@ -39,9 +39,9 @@ type SomeView interface {
 
 	Debug(tag string) SomeView
 	Frame(width *Binding[float64], height *Binding[float64]) SomeView
-	Padding(padding *Binding[float64]) SomeView
-	BackgroundColor(color *Binding[color.Color]) SomeView
+	Padding(padding *Binding[Inset]) SomeView
 	ForegroundColor(color *Binding[color.Color]) SomeView
+	BackgroundColor(color *Binding[color.Color]) SomeView
 	FontSize(size *Binding[font.Size]) SomeView
 	FontWeight(weight *Binding[font.Weight]) SomeView
 	FontLineHeight(height *Binding[float64]) SomeView

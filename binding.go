@@ -6,13 +6,13 @@ func Bind[T comparable](initialValue ...T) *Binding[T] {
 		value = initialValue[0]
 	}
 
-	return NewBind(
+	return BindFunc(
 		func() T { return value },
 		func(v T) { value = v },
 	)
 }
 
-func NewBind[T comparable](get func() T, set func(T)) *Binding[T] {
+func BindFunc[T comparable](get func() T, set func(T)) *Binding[T] {
 	return &Binding[T]{
 		getter:    get,
 		setter:    set,

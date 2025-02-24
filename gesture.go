@@ -5,28 +5,28 @@ import (
 	"time"
 )
 
-type GestureType int
+type gestureType int
 
 const (
-	GestureTap GestureType = iota
-	GestureDoubleTap
-	GestureSwipe
-	GesturePinch
-	GestureRotation
+	gestureTap gestureType = iota
+	gestureDoubleTap
+	gestureSwipe
+	gesturePinch
+	gestureRotation
 )
 
-type GestureState int
+type gestureState int
 
 const (
-	GestureStateBegan GestureState = iota
-	GestureStateChanged
-	GestureStateEnded
-	GestureStateCancelled
+	gestureStateBegan gestureState = iota
+	gestureStateChanged
+	gestureStateEnded
+	gestureStateCancelled
 )
 
-type GestureEvent struct {
-	Type      GestureType
-	State     GestureState
+type gestureEvent struct {
+	Type      gestureType
+	State     gestureState
 	Location  CGPoint
 	Delta     CGPoint
 	Scale     float64 // 用於捏合手勢
@@ -35,8 +35,8 @@ type GestureEvent struct {
 	Timestamp time.Time
 }
 
-type GestureRecognizer struct {
-	onGesture func(GestureEvent)
+type gestureRecognizer struct {
+	onGesture func(gestureEvent)
 
 	// 內部狀態
 	startTime   time.Time
@@ -47,35 +47,35 @@ type GestureRecognizer struct {
 	isTracking  bool
 }
 
-func NewGestureRecognizer(handler func(GestureEvent)) *GestureRecognizer {
-	return &GestureRecognizer{
+func newGestureRecognizer(handler func(gestureEvent)) *gestureRecognizer {
+	return &gestureRecognizer{
 		onGesture: handler,
 	}
 }
 
-func (gr *GestureRecognizer) HandleTouchEvent(event TouchEvent) bool {
+func (gr *gestureRecognizer) HandleTouchEvent(event touchEvent) bool {
 	switch event.Phase {
-	case TouchPhaseBegan:
+	case touchPhaseBegan:
 		gr.startTracking(event)
 
-	case TouchPhaseMoved:
+	case touchPhaseMoved:
 		if gr.isTracking {
 			gr.updateTracking(event)
 		}
 
-	case TouchPhaseEnded:
+	case touchPhaseEnded:
 		if gr.isTracking {
 			gr.endTracking(event)
 		}
 
-	case TouchPhaseCancelled:
+	case touchPhaseCancelled:
 		gr.cancelTracking()
 	}
 
 	return gr.isTracking
 }
 
-func (gr *GestureRecognizer) startTracking(event TouchEvent) {
+func (gr *gestureRecognizer) startTracking(event touchEvent) {
 	gr.isTracking = true
 	gr.startTime = time.Now()
 	gr.startPos = event.Position
@@ -84,7 +84,7 @@ func (gr *GestureRecognizer) startTracking(event TouchEvent) {
 	gr.touchPoints = []CGPoint{event.Position}
 }
 
-func (gr *GestureRecognizer) updateTracking(event TouchEvent) {
+func (gr *gestureRecognizer) updateTracking(event touchEvent) {
 	now := time.Now()
 	delta := event.Position.Sub(gr.lastPos)
 
@@ -95,9 +95,9 @@ func (gr *GestureRecognizer) updateTracking(event TouchEvent) {
 		Y: delta.Y / duration,
 	}
 
-	gr.onGesture(GestureEvent{
-		Type:      GestureSwipe,
-		State:     GestureStateChanged,
+	gr.onGesture(gestureEvent{
+		Type:      gestureSwipe,
+		State:     gestureStateChanged,
 		Location:  event.Position,
 		Delta:     delta,
 		Velocity:  velocity,
@@ -109,16 +109,16 @@ func (gr *GestureRecognizer) updateTracking(event TouchEvent) {
 	gr.touchPoints = append(gr.touchPoints, event.Position)
 }
 
-func (gr *GestureRecognizer) endTracking(event TouchEvent) {
+func (gr *gestureRecognizer) endTracking(event touchEvent) {
 	duration := time.Since(gr.startTime)
 
 	// 檢測點擊
 	if duration < 300*time.Millisecond &&
 		math.Abs(float64(event.Position.X-gr.startPos.X)) < 10 &&
 		math.Abs(float64(event.Position.Y-gr.startPos.Y)) < 10 {
-		gr.onGesture(GestureEvent{
-			Type:      GestureTap,
-			State:     GestureStateEnded,
+		gr.onGesture(gestureEvent{
+			Type:      gestureTap,
+			State:     gestureStateEnded,
 			Location:  event.Position,
 			Timestamp: time.Now(),
 		})
@@ -127,7 +127,7 @@ func (gr *GestureRecognizer) endTracking(event TouchEvent) {
 	gr.isTracking = false
 }
 
-func (gr *GestureRecognizer) cancelTracking() {
+func (gr *gestureRecognizer) cancelTracking() {
 	gr.isTracking = false
 	gr.touchPoints = nil
 }

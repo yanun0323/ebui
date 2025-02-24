@@ -27,7 +27,7 @@ func Image[T string | *ebiten.Image](img *Binding[T]) SomeView {
 		content.addListener(func() {
 			img = getImage(content.Get())
 		})
-		constraint := NewBind(func() *ebiten.Image {
+		constraint := BindFunc(func() *ebiten.Image {
 			if img == nil {
 				img = getImage(content.Get())
 				if img == nil {

@@ -19,7 +19,7 @@ func Button(action func(), label func() SomeView) SomeView {
 		label:  label,
 	}
 	btn.ctx = newViewContext(btn)
-	RegisterEventHandler(btn)
+	globalEventManager.RegisterHandler(btn)
 	return btn
 }
 
@@ -48,18 +48,18 @@ func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 }
 
 // Button 的事件處理
-func (b *buttonImpl) HandleTouchEvent(event TouchEvent) bool {
+func (b *buttonImpl) HandleTouchEvent(event touchEvent) bool {
 	switch event.Phase {
-	case TouchPhaseBegan:
+	case touchPhaseBegan:
 		if event.Position.In(b.labelLoaded.systemSetFrame()) {
 			b.isPressed = true
 			return true
 		}
-	case TouchPhaseMoved:
+	case touchPhaseMoved:
 		if b.isPressed {
 			return true
 		}
-	case TouchPhaseEnded, TouchPhaseCancelled:
+	case touchPhaseEnded, touchPhaseCancelled:
 		if b.isPressed {
 			b.isPressed = false
 			if event.Position.In(b.labelLoaded.systemSetFrame()) {
@@ -71,6 +71,6 @@ func (b *buttonImpl) HandleTouchEvent(event TouchEvent) bool {
 	return false
 }
 
-func (b *buttonImpl) HandleKeyEvent(event KeyEvent) bool {
+func (b *buttonImpl) HandleKeyEvent(event keyEvent) bool {
 	return false
 }

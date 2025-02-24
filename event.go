@@ -4,46 +4,46 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type EventHandler interface {
-	HandleTouchEvent(event TouchEvent) bool
-	HandleKeyEvent(event KeyEvent) bool
+type eventHandler interface {
+	HandleTouchEvent(event touchEvent) bool
+	HandleKeyEvent(event keyEvent) bool
 }
 
-type TouchPhase int
+type touchPhase int
 
 const (
-	TouchPhaseNone TouchPhase = iota
-	TouchPhaseBegan
-	TouchPhaseMoved
-	TouchPhaseEnded
-	TouchPhaseCancelled
+	touchPhaseNone touchPhase = iota
+	touchPhaseBegan
+	touchPhaseMoved
+	touchPhaseEnded
+	touchPhaseCancelled
 )
 
-type TouchEvent struct {
-	Phase    TouchPhase
+type touchEvent struct {
+	Phase    touchPhase
 	Position CGPoint
 }
 
-type KeyEvent struct {
+type keyEvent struct {
 	Key     ebiten.Key
 	Pressed bool
 }
 
-var globalEventManager = &EventManager{
-	handlers:   make([]EventHandler, 0),
+var globalEventManager = &eventManager{
+	handlers:   make([]eventHandler, 0),
 	isTracking: false,
 }
 
 // 事件管理器
-type EventManager struct {
-	handlers   []EventHandler
+type eventManager struct {
+	handlers   []eventHandler
 	isTracking bool
 }
 
-func (em *EventManager) DispatchTouchEvent(event TouchEvent) bool {
-	if event.Phase == TouchPhaseBegan {
+func (em *eventManager) DispatchTouchEvent(event touchEvent) bool {
+	if event.Phase == touchPhaseBegan {
 		em.isTracking = true
-	} else if event.Phase == TouchPhaseEnded || event.Phase == TouchPhaseCancelled {
+	} else if event.Phase == touchPhaseEnded || event.Phase == touchPhaseCancelled {
 		em.isTracking = false
 	}
 
@@ -55,10 +55,6 @@ func (em *EventManager) DispatchTouchEvent(event TouchEvent) bool {
 	return false
 }
 
-func (em *EventManager) RegisterHandler(handler EventHandler) {
+func (em *eventManager) RegisterHandler(handler eventHandler) {
 	em.handlers = append(em.handlers, handler)
-}
-
-func RegisterEventHandler(handler EventHandler) {
-	globalEventManager.RegisterHandler(handler)
 }
