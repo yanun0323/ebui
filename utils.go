@@ -11,34 +11,12 @@ func logf(format string, args ...any) {
 	fmt.Printf(format+"\n", args...)
 }
 
-func ifs[T any](condition bool, trueReturn, falseReturn T) T {
-	if condition {
-		return trueReturn
-	}
-	return falseReturn
-}
-
 func someViews(views ...View) []SomeView {
 	someViews := make([]SomeView, 0, len(views))
 	for _, view := range views {
 		someViews = append(someViews, view.Body())
 	}
 	return someViews
-}
-
-// getFitSize 計算大小，如果父視圖大小無限，則使用子視圖大小
-func getFitSize(parent, child flexibleCGSize) flexibleCGSize {
-	if parent.IsInfX {
-		parent.Frame.Width = child.Frame.Width
-		parent.IsInfX = false
-	}
-
-	if parent.IsInfY {
-		parent.Frame.Height = child.Frame.Height
-		parent.IsInfY = false
-	}
-
-	return parent
 }
 
 // 繪製圓角矩形色塊
