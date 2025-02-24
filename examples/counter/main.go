@@ -5,7 +5,6 @@ import (
 	"image/color"
 	"log"
 
-	"github.com/yanun0323/ebui"
 	. "github.com/yanun0323/ebui"
 	"github.com/yanun0323/ebui/font"
 )
@@ -93,7 +92,7 @@ func main() {
 	app.SetWindowBackgroundColor(color.RGBA{100, 0, 0, 0})
 	app.SetWindowTitle("EBUI Demo")
 	app.SetWindowSize(600, 500)
-	app.SetWindowResizingMode(ebui.WindowResizingModeEnabled)
+	app.SetWindowResizingMode(WindowResizingModeEnabled)
 	app.SetResourceFolder("resource")
 
 	if err := app.Run(); err != nil {
