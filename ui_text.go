@@ -56,7 +56,7 @@ func (t *textImpl) userSetFrameSize() flexibleCGSize {
 	return ctxUserSetFrameSize
 }
 
-func (t *textImpl) preload() (flexibleCGSize, Inset, layoutFunc) {
+func (t *textImpl) preload() (flexibleCGSize, CGInset, layoutFunc) {
 	frameSize, padding, layoutFn := t.ctx.preload()
 	w, h := text.Measure(t.content.Get(), t.face, t.ctx.fontLineHeight.Get())
 	return frameSize, padding, func(start CGPoint, flexFrameSize CGSize) CGRect {

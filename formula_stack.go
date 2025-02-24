@@ -14,10 +14,10 @@ type formulaStack struct {
 	children []SomeView
 }
 
-func (v *formulaStack) preload() (flexibleCGSize, Inset, layoutFunc) {
-	childrenSummedBounds := sz(0, 0)
+func (v *formulaStack) preload() (flexibleCGSize, CGInset, layoutFunc) {
+	childrenSummedBounds := Size(0, 0)
 	childrenLayoutFns := make([]layoutFunc, 0, len(v.children))
-	flexCount := pt(0, 0)
+	flexCount := Point(0, 0)
 	for _, child := range v.children {
 		childFrame, childInset, layoutFn := child.preload()
 		childFrameSize := childFrame.Frame
@@ -27,12 +27,12 @@ func (v *formulaStack) preload() (flexibleCGSize, Inset, layoutFunc) {
 			case formulaVStack:
 				flexCount.Y++
 				childrenLayoutFns = append(childrenLayoutFns, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect) {
-					return CGRect{start, pt(start.X, start.Y+flexFrameSize.Height)}
+					return CGRect{start, Point(start.X, start.Y+flexFrameSize.Height)}
 				})
 			case formulaHStack:
 				flexCount.X++
 				childrenLayoutFns = append(childrenLayoutFns, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect) {
-					return CGRect{start, pt(start.X+flexFrameSize.Width, start.Y)}
+					return CGRect{start, Point(start.X+flexFrameSize.Width, start.Y)}
 				})
 			}
 		} else {
@@ -51,11 +51,11 @@ func (v *formulaStack) preload() (flexibleCGSize, Inset, layoutFunc) {
 		{ // 計算子視圖大小總和
 			switch v.types {
 			case formulaVStack:
-				childrenSummedBounds = sz(max(childrenSummedBounds.Width, childBoundsSize.Width), childrenSummedBounds.Height+childBoundsSize.Height)
+				childrenSummedBounds = Size(max(childrenSummedBounds.Width, childBoundsSize.Width), childrenSummedBounds.Height+childBoundsSize.Height)
 			case formulaHStack:
-				childrenSummedBounds = sz(childrenSummedBounds.Width+childBoundsSize.Width, max(childrenSummedBounds.Height, childBoundsSize.Height))
+				childrenSummedBounds = Size(childrenSummedBounds.Width+childBoundsSize.Width, max(childrenSummedBounds.Height, childBoundsSize.Height))
 			case formulaZStack:
-				childrenSummedBounds = sz(max(childrenSummedBounds.Width, childBoundsSize.Width), max(childrenSummedBounds.Height, childBoundsSize.Height))
+				childrenSummedBounds = Size(max(childrenSummedBounds.Width, childBoundsSize.Width), max(childrenSummedBounds.Height, childBoundsSize.Height))
 			}
 		}
 
@@ -87,15 +87,15 @@ func (v *formulaStack) preload() (flexibleCGSize, Inset, layoutFunc) {
 			switch v.types {
 			case formulaVStack:
 				hFlexSize := max(perFlexFrameSize.Height-childrenSummedBounds.Height, 0)
-				perFlexFrameSize = sz(perFlexFrameSize.Width, hFlexSize/max(flexCount.Y, 1))
+				perFlexFrameSize = Size(perFlexFrameSize.Width, hFlexSize/max(flexCount.Y, 1))
 			case formulaHStack:
 				wFlexSize := max(perFlexFrameSize.Width-childrenSummedBounds.Width, 0)
-				perFlexFrameSize = sz(wFlexSize/max(flexCount.X, 1), perFlexFrameSize.Height)
+				perFlexFrameSize = Size(wFlexSize/max(flexCount.X, 1), perFlexFrameSize.Height)
 			}
 		}
 
-		anchor := start.Add(pt(sInset.Left, sInset.Top))
-		summedSize := sz(0, 0)
+		anchor := start.Add(Point(sInset.Left, sInset.Top))
+		summedSize := Size(0, 0)
 
 		for _, childLayoutFn := range childrenLayoutFns {
 			childFrame := childLayoutFn(anchor, perFlexFrameSize)
@@ -103,14 +103,14 @@ func (v *formulaStack) preload() (flexibleCGSize, Inset, layoutFunc) {
 			{ // 計算子視圖的 layout 最後位置
 				switch v.types {
 				case formulaVStack:
-					anchor = pt(anchor.X, childFrame.End.Y)
-					summedSize = sz(
+					anchor = Point(anchor.X, childFrame.End.Y)
+					summedSize = Size(
 						max(summedSize.Width, childSize.Width),
 						summedSize.Height+childSize.Height,
 					)
 				case formulaHStack:
-					anchor = pt(childFrame.End.X, anchor.Y)
-					summedSize = sz(
+					anchor = Point(childFrame.End.X, anchor.Y)
+					summedSize = Size(
 						summedSize.Width+childSize.Width,
 						max(summedSize.Height, childSize.Height),
 					)

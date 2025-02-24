@@ -41,12 +41,12 @@ func (su *SpacerSuite) Test() {
 			),
 		)
 		_, _, layoutFn := view.preload()
-		bound := layoutFn(pt(0, 0), sz(500, 500))
-		su.Equal(pt(0, 0), bound.Start)
-		su.Equal(pt(500, 500), bound.End)
+		bound := layoutFn(Point(0, 0), Size(500, 500))
+		su.Equal(Point(0, 0), bound.Start)
+		su.Equal(Point(500, 500), bound.End)
 
 		rectFrame1 := rect1.systemSetFrame()
-		su.Equal(pt(200, 200), rectFrame1.Start)
-		su.Equal(pt(300, 300), rectFrame1.End)
+		su.Equal(Point(200, 200), rectFrame1.Start)
+		su.Equal(Point(300, 300), rectFrame1.End)
 	}
 }

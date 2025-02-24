@@ -27,7 +27,7 @@ type ctx struct {
 
 	frameWidth      *Binding[float64]
 	frameHeight     *Binding[float64]
-	padding         *Binding[Inset]
+	padding         *Binding[CGInset]
 	backgroundColor *Binding[color.Color]
 	foregroundColor *Binding[color.Color]
 
@@ -51,7 +51,7 @@ func newViewContext(owner SomeView) *ctx {
 		frameWidth:      Bind(Inf),
 		frameHeight:     Bind(Inf),
 		_systemSetFrame: CGRect{},
-		padding:         Bind(Inset{}),
+		padding:         Bind(CGInset{}),
 		backgroundColor: Bind[color.Color](nil),
 		foregroundColor: Bind[color.Color](color.White),
 
@@ -87,7 +87,7 @@ func (ctx *ctx) debugPrint(frame CGRect) {
 	}
 }
 
-func (ctx *ctx) preload() (flexibleCGSize, Inset, layoutFunc) {
+func (ctx *ctx) preload() (flexibleCGSize, CGInset, layoutFunc) {
 	padding := ctx.padding.Get()
 	userSetFrameSize := ctx._owner.userSetFrameSize()
 	return userSetFrameSize, padding, func(start CGPoint, flexFrameSize CGSize) CGRect {
@@ -101,7 +101,7 @@ func (ctx *ctx) preload() (flexibleCGSize, Inset, layoutFunc) {
 			finalFrame.End.Y = start.Y + finalFrameSize.Frame.Height
 		}
 
-		ctx._systemSetFrame = rect(
+		ctx._systemSetFrame = Rect(
 			finalFrame.Start.X+padding.Left,
 			finalFrame.Start.Y+padding.Top,
 			finalFrame.End.X+padding.Left,
@@ -160,7 +160,7 @@ func (ctx *ctx) Frame(width *Binding[float64], height *Binding[float64]) SomeVie
 }
 
 // Padding 修飾器
-func (ctx *ctx) Padding(padding *Binding[Inset]) SomeView {
+func (ctx *ctx) Padding(padding *Binding[CGInset]) SomeView {
 	ctx.padding = padding
 	return ctx._owner
 }

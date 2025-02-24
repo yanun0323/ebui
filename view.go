@@ -28,7 +28,7 @@ type SomeView interface {
 	// 		start: 給這個 View 的起始座標
 	// 		flexFrameSize: 給這個 View 的內部邊界彈性大小
 	// 		bounds: 回傳實際佔用的空間(包含 padding 的最外圍邊界)
-	preload() (frameSize flexibleCGSize, padding Inset, layoutFn layoutFunc)
+	preload() (frameSize flexibleCGSize, padding CGInset, layoutFn layoutFunc)
 
 	// draw 繪製 View
 	draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions
@@ -39,7 +39,7 @@ type SomeView interface {
 
 	Debug(tag string) SomeView
 	Frame(width *Binding[float64], height *Binding[float64]) SomeView
-	Padding(padding *Binding[Inset]) SomeView
+	Padding(padding *Binding[CGInset]) SomeView
 	ForegroundColor(color *Binding[color.Color]) SomeView
 	BackgroundColor(color *Binding[color.Color]) SomeView
 	FontSize(size *Binding[font.Size]) SomeView

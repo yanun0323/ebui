@@ -23,7 +23,7 @@ func Button(action func(), label func() SomeView) SomeView {
 	return btn
 }
 
-func (b *buttonImpl) preload() (flexibleCGSize, Inset, layoutFunc) {
+func (b *buttonImpl) preload() (flexibleCGSize, CGInset, layoutFunc) {
 	b.labelLoaded = b.label()
 	formulaStack := &formulaStack{
 		types:    formulaZStack,

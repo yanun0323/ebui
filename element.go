@@ -6,8 +6,14 @@ import (
 	"github.com/yanun0323/ebui/direction"
 )
 
+type numberable interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
+		~float32 | ~float64
+}
+
 var (
-	ptZero = pt(0, 0)
+	ptZero = Point(0, 0)
 )
 
 // CGPoint 是 Core Graphics 的 Point
@@ -16,8 +22,8 @@ type CGPoint struct {
 	Y float64
 }
 
-func pt(x, y float64) CGPoint {
-	return CGPoint{X: x, Y: y}
+func Point[Number numberable](x, y Number) CGPoint {
+	return CGPoint{X: float64(x), Y: float64(y)}
 }
 
 func (p CGPoint) Add(other CGPoint) CGPoint {
@@ -70,8 +76,8 @@ type CGSize struct {
 	Height float64
 }
 
-func sz(width, height float64) CGSize {
-	return CGSize{Width: max(width, 0), Height: max(height, 0)}
+func Size[Number numberable](width, height Number) CGSize {
+	return CGSize{Width: max(float64(width), 0), Height: max(float64(height), 0)}
 }
 
 func (s CGSize) Empty() bool {
@@ -122,11 +128,11 @@ func (s CGSize) ToCGPoint() CGPoint {
 	return CGPoint{X: s.Width, Y: s.Height}
 }
 
-func (s CGSize) Expand(inset Inset) CGSize {
+func (s CGSize) Expand(inset CGInset) CGSize {
 	return CGSize{Width: s.Width + inset.Left + inset.Right, Height: s.Height + inset.Top + inset.Bottom}
 }
 
-func (s CGSize) Shrink(inset Inset) CGSize {
+func (s CGSize) Shrink(inset CGInset) CGSize {
 	return CGSize{Width: s.Width - inset.Left - inset.Right, Height: s.Height - inset.Top - inset.Bottom}
 }
 
@@ -136,15 +142,15 @@ type CGRect struct {
 	End   CGPoint
 }
 
-func rect(minX, minY, maxX, maxY float64) CGRect {
+func Rect[Number numberable](minX, minY, maxX, maxY Number) CGRect {
 	return CGRect{
-		Start: CGPoint{X: minX, Y: minY},
-		End:   CGPoint{X: max(maxX, minX), Y: max(maxY, minY)},
+		Start: CGPoint{X: float64(minX), Y: float64(minY)},
+		End:   CGPoint{X: float64(max(maxX, minX)), Y: float64(max(maxY, minY))},
 	}
 }
 
 func (r CGRect) Move(offset CGPoint) CGRect {
-	return rect(r.Start.X+offset.X, r.Start.Y+offset.Y, r.End.X+offset.X, r.End.Y+offset.Y)
+	return Rect(r.Start.X+offset.X, r.Start.Y+offset.Y, r.End.X+offset.X, r.End.Y+offset.Y)
 }
 
 func (r CGRect) Empty() bool {
@@ -189,23 +195,24 @@ func (r CGRect) Rect() image.Rectangle {
 	return image.Rect(int(r.Start.X), int(r.Start.Y), int(r.End.X), int(r.End.Y))
 }
 
-func (r CGRect) Expand(inset Inset) CGRect {
-	return rect(r.Start.X, r.Start.Y, r.End.X+inset.Left+inset.Right, r.End.Y+inset.Top+inset.Bottom)
+func (r CGRect) Expand(inset CGInset) CGRect {
+	return Rect(r.Start.X, r.Start.Y, r.End.X+inset.Left+inset.Right, r.End.Y+inset.Top+inset.Bottom)
 }
 
-type Inset struct {
+// CGInset 是 Core Graphics 的 Inset
+type CGInset struct {
 	Top    float64
 	Right  float64
 	Bottom float64
 	Left   float64
 }
 
-func ins(top, right, bottom, left float64) Inset {
-	return Inset{Top: top, Right: right, Bottom: bottom, Left: left}
+func Inset[Number numberable](top, right, bottom, left Number) CGInset {
+	return CGInset{Top: float64(top), Right: float64(right), Bottom: float64(bottom), Left: float64(left)}
 }
 
-func (i Inset) MaxBounds(other Inset) Inset {
-	return Inset{
+func (i CGInset) MaxBounds(other CGInset) CGInset {
+	return CGInset{
 		Top:    max(i.Top, other.Top),
 		Right:  max(i.Right, other.Right),
 		Bottom: max(i.Bottom, other.Bottom),
@@ -234,7 +241,7 @@ func newFlexibleCGSize(width, height float64, isSpacer ...bool) flexibleCGSize {
 	}
 
 	return flexibleCGSize{
-		Frame:    sz(width, height),
+		Frame:    Size(width, height),
 		IsInfX:   isInfX,
 		IsInfY:   isInfY,
 		IsSpacer: len(isSpacer) != 0 && isSpacer[0],

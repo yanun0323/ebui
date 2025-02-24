@@ -28,15 +28,15 @@ func (su *ButtonSuite) TestButton() {
 	{ // 按鈕無大小，按鈕標籤有大小
 		rect := newRectangleForTest().
 			Frame(Bind(200.0), Bind(100.0)).
-			Padding(Bind(10.0))
+			Padding(Bind(Inset(10, 10, 10, 10)))
 		btn := newButtonForTest(func() {}, func() SomeView {
 			return rect
 		})
-		btn.Padding(Bind(20.0))
+		btn.Padding(Bind(Inset(20, 20, 20, 20)))
 
 		btnFrameSize, btnInset, btnLayoutFn := btn.preload()
-		su.Equal(sz(220, 120), btnFrameSize.Frame)
-		su.Equal(ins(20, 20, 20, 20), btnInset)
+		su.Equal(Size(220, 120), btnFrameSize.Frame)
+		su.Equal(Inset(20, 20, 20, 20), btnInset)
 		su.NotNil(btnLayoutFn)
 	}
 }

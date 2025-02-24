@@ -69,14 +69,14 @@ func (su *ViewContextSuite) TestPreload() {
 		s, inset, layoutFn := ctx.preload()
 		su.True(s.IsInfX)
 		su.True(s.IsInfY)
-		su.Equal(ins(0, 0, 0, 0), inset)
+		su.Equal(Inset(0, 0, 0, 0), inset)
 		su.NotNil(layoutFn)
 
-		res := layoutFn(ptZero, sz(500, 500))
+		res := layoutFn(ptZero, Size(500, 500))
 		su.Equal(ptZero, res.Start)
-		su.Equal(pt(500, 500), res.End)
+		su.Equal(Point(500, 500), res.End)
 
-		su.Equal(rect(0, 0, 500, 500), ctx.systemSetFrame())
+		su.Equal(Rect(0, 0, 500, 500), ctx.systemSetFrame())
 	}
 
 	{ // 沒有設定大小，有設定 padding
@@ -84,17 +84,17 @@ func (su *ViewContextSuite) TestPreload() {
 		ctx.Padding(Bind(10.0))
 
 		s, inset, layoutFn := ctx.preload()
-		su.Equal(sz(0, 0), s.Frame)
+		su.Equal(Size(0, 0), s.Frame)
 		su.True(s.IsInfX)
 		su.True(s.IsInfY)
-		su.Equal(ins(10, 10, 10, 10), inset)
+		su.Equal(Inset(10, 10, 10, 10), inset)
 		su.NotNil(layoutFn)
 
-		res := layoutFn(ptZero, sz(500, 500))
-		su.Equal(pt(0, 0), res.Start)
-		su.Equal(pt(520, 520), res.End)
+		res := layoutFn(ptZero, Size(500, 500))
+		su.Equal(Point(0, 0), res.Start)
+		su.Equal(Point(520, 520), res.End)
 
-		su.Equal(rect(10, 10, 510, 510), ctx.systemSetFrame())
+		su.Equal(Rect(10, 10, 510, 510), ctx.systemSetFrame())
 	}
 
 	{ // 設定大小
@@ -104,14 +104,14 @@ func (su *ViewContextSuite) TestPreload() {
 		s, inset, layoutFn := ctx.preload()
 		su.Equal(100.0, s.Frame.Width)
 		su.Equal(100.0, s.Frame.Height)
-		su.Equal(ins(0, 0, 0, 0), inset)
+		su.Equal(Inset(0, 0, 0, 0), inset)
 		su.NotNil(layoutFn)
 
-		res := layoutFn(ptZero, sz(500, 500))
+		res := layoutFn(ptZero, Size(500, 500))
 		su.Equal(ptZero, res.Start)
-		su.Equal(pt(100, 100), res.End)
+		su.Equal(Point(100, 100), res.End)
 
-		su.Equal(rect(0, 0, 100, 100), ctx.systemSetFrame())
+		su.Equal(Rect(0, 0, 100, 100), ctx.systemSetFrame())
 	}
 
 	{ // 設定大小，有設定 padding
@@ -122,13 +122,13 @@ func (su *ViewContextSuite) TestPreload() {
 		s, inset, layoutFn := ctx.preload()
 		su.Equal(100.0, s.Frame.Width)
 		su.Equal(100.0, s.Frame.Height)
-		su.Equal(ins(10, 10, 10, 10), inset)
+		su.Equal(Inset(10, 10, 10, 10), inset)
 		su.NotNil(layoutFn)
 
-		res := layoutFn(ptZero, sz(500, 500))
+		res := layoutFn(ptZero, Size(500, 500))
 		su.Equal(ptZero, res.Start)
-		su.Equal(pt(120, 120), res.End)
+		su.Equal(Point(120, 120), res.End)
 
-		su.Equal(rect(10, 10, 110, 110), ctx.systemSetFrame())
+		su.Equal(Rect(10, 10, 110, 110), ctx.systemSetFrame())
 	}
 }

@@ -56,7 +56,7 @@ func (v *ContentView) Body() SomeView {
 				),
 				Spacer(),
 			).
-				Padding(Bind(Inset{20, 20, 20, 20})).
+				Padding(Bind(CGInset{20, 20, 20, 20})).
 				BackgroundColor(Bind[color.Color](color.Gray{200})),
 		).
 			BackgroundColor(Bind[color.Color](color.Gray{100})),
@@ -67,9 +67,9 @@ func (v *ContentView) Body() SomeView {
 				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
 			}, func() SomeView {
 				return Text("Increase").
-					Padding(Bind(Inset{5, 5, 5, 5}))
+					Padding(Bind(CGInset{5, 5, 5, 5}))
 			}).
-				Padding(Bind(Inset{15, 15, 15, 15})).
+				Padding(Bind(CGInset{15, 15, 15, 15})).
 				RoundCorner(Bind(10.0)).
 				BackgroundColor(Bind[color.Color](color.Gray{100})),
 			Spacer(),
@@ -83,19 +83,18 @@ func (v *ContentView) Body() SomeView {
 			}),
 		),
 	).
-		Padding(Bind(Inset{15, 15, 15, 15})).
+		Padding(Bind(CGInset{15, 15, 15, 15})).
 		BackgroundColor(Bind[color.Color](color.RGBA{255, 0, 0, 0}))
 }
 
 func main() {
 	app := NewApplication(NewContentView())
 	app.SetWindowBackgroundColor(color.RGBA{100, 0, 0, 0})
-	app.SetWindowTitle("EBUI Demo")
 	app.SetWindowSize(600, 500)
 	app.SetWindowResizingMode(WindowResizingModeEnabled)
 	app.SetResourceFolder("resource")
 
-	if err := app.Run(); err != nil {
+	if err := app.Run("EBUI Demo"); err != nil {
 		log.Fatal(err)
 	}
 

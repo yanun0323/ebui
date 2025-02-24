@@ -6,7 +6,7 @@ type stateManager struct {
 }
 
 var globalStateManager = &stateManager{
-	bounds: rect(0, 0, 0, 0),
+	bounds: Rect(0, 0, 0, 0),
 }
 
 func (sm *stateManager) markDirty() {
