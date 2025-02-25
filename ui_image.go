@@ -1,172 +1,119 @@
 package ebui
 
 import (
-	"embed"
 	"image"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
-	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/yanun0323/pkg/logs"
-	"github.com/yanun0323/pkg/sys"
 )
 
-var (
-	supportedImageFormat = []string{".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp", ".avif", ".heic", ".heif"}
-)
+type imageImpl struct {
+	*viewCtx
 
-type uiImage struct {
-	*uiView
-
-	img         *ebiten.Image
-	resizable   bool
-	aspectRatio float64
+	image *Binding[*ebiten.Image]
 }
 
-func Image(path string, embedFile ...embed.FS) SomeView {
-	ui := &uiImage{}
-
-	ui.uiView = newView(typesImage, ui)
-	ui.tryLoadingImage(path, embedFile...)
-	return ui
-}
-
-func (ui *uiImage) tryLoadingImage(path string, embedFile ...embed.FS) {
-	filenames := make([]string, 0, len(supportedImageFormat))
-	hasExtension := false
-	lowercasePath := strings.ToLower(path)
-	for _, format := range supportedImageFormat {
-		hasExtension = hasExtension || strings.HasSuffix(lowercasePath, format)
-		filenames = append(filenames, path+format)
-	}
-
-	if hasExtension {
-		filenames = []string{path}
-	}
-
-	paths := make([]string, 0, len(filenames)*2)
-	if len(embedFile) == 0 {
-		wd, err := os.Getwd()
-		if err != nil {
-			logs.Errorf("get working directory, err: %v", err)
-			return
+func Image[T string | *ebiten.Image](img *Binding[T]) SomeView {
+	switch content := any(img).(type) {
+	case *Binding[*ebiten.Image]:
+		v := &imageImpl{
+			image: content,
 		}
-
-		exeDir, err := os.Executable()
-		if err != nil {
-			logs.Errorf("get executable directory, err: %v", err)
-			return
-		}
-
-		for _, filename := range filenames {
-			paths = append(paths, filepath.Join(wd, filename), filepath.Join(exeDir, filename))
-		}
-	} else {
-		paths = append(paths, filenames...)
-	}
-
-	var (
-		r   io.ReadCloser
-		err error
-	)
-
-	for _, p := range paths {
-		if len(embedFile) != 0 {
-			if dir, err := embedFile[0].ReadDir("."); err == nil {
-				for _, f := range dir {
-					i, _ := f.Info()
-					logs.Debugf("name: %s, size: %d", f.Name(), i.Size())
+		v.viewCtx = newViewContext(v)
+		return v
+	case *Binding[string]:
+		var img *ebiten.Image
+		content.AddListener(func() {
+			img = getImage(content.Get())
+		})
+		constraint := BindFunc(func() *ebiten.Image {
+			if img == nil {
+				img = getImage(content.Get())
+				if img == nil {
+					img = ebiten.NewImage(1, 1)
 				}
 			}
 
-			r, err = embedFile[0].Open(p)
-			if err != nil {
-				logs.Warnf("open image with embed file (%s), err: %v", p, err)
-				continue
-			}
-			defer r.Close()
-		} else {
-			r, err = os.Open(p)
-			if err != nil {
-				logs.Warnf("open image (%s), err: %v", p, err)
-				continue
-			}
-			defer r.Close()
-		}
+			return img
+		}, func(i *ebiten.Image) {})
 
-		img, _, err := image.Decode(r)
-		if err != nil {
-			logs.Errorf("decode image (%s), err: %v", p, err)
-			continue
-		}
-
-		ui.img = ebiten.NewImageFromImage(img)
-		break
+		return Image(constraint)
 	}
+
+	return nil
 }
 
-func (p *uiImage) Resizable() SomeView {
-	p.resizable = true
-	return p.owner
-}
-
-func (p *uiImage) AspectRatio(ratio ...float64) SomeView {
-	if len(ratio) != 0 {
-		p.aspectRatio = ratio[0]
-	} else {
-		p.aspectRatio = 1
+func (v *imageImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+	op := v.viewCtx.draw(screen, hook...)
+	img := v.image.Get()
+	if img == nil {
+		return op
 	}
 
-	return p.owner
-}
-
-func (v *uiImage) getSize() size {
-	if v.isCached {
-		return v.cachedSize
+	frame := v.viewCtx.systemSetFrame()
+	if !frame.drawable() {
+		return op
 	}
 
-	s := v.uiView.getSize()
-	if s.IsZero() && !v.resizable {
-		r := v.img.Bounds()
-		s = size{r.Dx(), r.Dy()}
-	}
-
-	v.isCached = true
-	v.cachedSize = s
-	return v.cachedSize
-}
-
-func (ui *uiImage) draw(screen *ebiten.Image) {
-	if ui.img == nil {
-		return
-	}
-
-	drawSize := ui.getDrawSize(ui.cachedSize)
-	wRatio := float64(drawSize.w) / float64(ui.img.Bounds().Dx())
-	hRatio := float64(drawSize.h) / float64(ui.img.Bounds().Dy())
-	dx := sys.If(wRatio <= 0, 0.0, float64(ui.start.x))
-	dy := sys.If(hRatio <= 0, 0.0, float64(ui.start.y))
-	wRatio = sys.If(wRatio < _minimumFloat64, _minimumFloat64, wRatio)
-	hRatio = sys.If(hRatio < _minimumFloat64, _minimumFloat64, hRatio)
+	frameSize := frame.Size()
+	imgSize := NewSize(float64(img.Bounds().Dx()), float64(img.Bounds().Dy()))
+	scale := v.getScale(frameSize, imgSize)
 
 	opt := &ebiten.DrawImageOptions{}
-	if ui.aspectRatio != 0 {
-		if wRatio <= hRatio {
-			hRatio = wRatio * ui.aspectRatio
-			dy += (float64(drawSize.h) - float64(ui.img.Bounds().Dy())*hRatio) / 2
-		} else {
-			wRatio = hRatio / ui.aspectRatio
-			dx += (float64(drawSize.w) - float64(ui.img.Bounds().Dx())*wRatio) / 2
-		}
+	opt.ColorScale.ScaleWithColorScale(op.ColorScale)
+	opt.GeoM.Scale(scale.X, scale.Y)
+	opt.GeoM.Concat(op.GeoM)
+
+	screen.DrawImage(img, opt)
+
+	return opt
+}
+
+func (v *imageImpl) getScale(frameSize, imgSize CGSize) CGPoint {
+	scale := NewPoint(1, 1)
+	if !v.viewCtx.scaleToFit.Get() {
+		return scale
 	}
 
-	opt.GeoM.Scale(wRatio, hRatio)
-	opt.GeoM.Translate(dx, dy)
-	ui.handlePreference(opt)
-	screen.DrawImage(ui.img, opt)
+	keepAspectRatio := v.viewCtx.keepAspectRatio.Get()
+	if !keepAspectRatio {
+		return NewPoint(frameSize.Width/imgSize.Width, frameSize.Height/imgSize.Height)
+	}
+
+	scaleX := frameSize.Width / imgSize.Width
+	scaleY := frameSize.Height / imgSize.Height
+	s := scaleX
+	if scaleY < scaleX {
+		s = scaleY
+	}
+
+	return NewPoint(s, s)
+}
+
+func getImage(filename string) *ebiten.Image {
+	path := filename
+	if dir, ok := resourceDir.Load().(string); ok && len(dir) != 0 {
+		println("resourceDir:", dir)
+		if !filepath.IsAbs(dir) {
+			println("not abs:", dir)
+			dir, _ = filepath.Abs(dir)
+		}
+		path = filepath.Join(dir, filename)
+	}
+
+	println("image:", path)
+
+	f, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+
+	img, _, err := image.Decode(f)
+	if err != nil {
+		return nil
+	}
+
+	return ebiten.NewImageFromImage(img)
 }

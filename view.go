@@ -1,450 +1,61 @@
 package ebui
 
 import (
-	"image/color"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/font"
-	"github.com/yanun0323/pkg/sys"
 )
 
 type View interface {
 	Body() SomeView
 }
 
+// layoutFunc: 用於設置 View 的位置及大小，並回傳實際佔用的空間
+//
+//	start: 給這個 View 的起始座標
+//	flexFrameSize: 給這個 View 的內部邊界彈性大小
+//	bounds: 回傳實際佔用的空間(包含 padding 的最外圍邊界)
+type layoutFunc func(start CGPoint, flexFrameSize CGSize) (bounds CGRect)
+
+// SomeView 是所有 View 的基礎介面
 type SomeView interface {
 	View
 
-	Frame(w, h int) SomeView
-	ForegroundColor(clr color.Color) SomeView
-	BackgroundColor(clr color.Color) SomeView
+	// preload 設置環境變量，並回傳 View 的佈局資訊
+	// preload 回傳的 frameSize 是 View 用 Frame 設置的大小
+	// preload 回傳的 padding 是 View 用 Padding 設置的 padding
+	// layoutFn: 用於設置 View 的位置及大小，並回傳實際佔用的空間
+	// 		start: 給這個 View 的起始座標
+	// 		flexFrameSize: 給這個 View 的內部邊界彈性大小
+	// 		bounds: 回傳實際佔用的空間(包含 padding 的最外圍邊界)
+	preload(parent *viewCtxEnv) (frameSize flexibleSize, padding CGInset, layoutFn layoutFunc)
 
-	// Padding makes view have padding.
-	//
-	// # parameter count:
-	// 	 - [1] all
-	// 	 - [2] vertical, horizontal
-	// 	 - [4] top, right, bottom, left
-	Padding(padding ...int) SomeView
+	// draw 繪製 View
+	draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions
+	debugPrint(frame CGRect)
 
-	Offset(x, y int) SomeView
+	setEnv(env *viewCtxEnv)
 
-	FontSize(size font.Size) SomeView
-	FontWeight(weight font.Weight) SomeView
+	count() int
 
-	CornerRadius(radius ...int) SomeView
-	LineSpacing(spacing float64) SomeView
-	Kerning(kerning int) SomeView
-	Italic() SomeView
+	userSetFrameSize() flexibleSize
+	systemSetFrame() CGRect
+	systemSetBounds() CGRect
 
-	Resizable() SomeView
-	AspectRatio(ratio ...float64) SomeView
-
-	Border(clr color.Color, width ...int) SomeView
-
-	// PRIVATE
-	draw(screen *ebiten.Image)
-	getTypes() types
-	// reset 清除 getSize 的 cache
-	//
-	// 在每次 ebiten update 的時候調用
-	// getSize 取得這個視圖的大小並快取，（如果沒設定大小，就會計算子視圖的總大小）
-	getSize() size
-	setSize(size)
-	getPosition() point
-	setPosition(point)
-	// stepSubView 設定 Stack 子視圖的位置，與子視圖大小的移動關係
-	//
-	// e.g. VStack：x 不會被子視圖大小影響；y 會加上「子視圖的高度」單位
-	stepSubView(pos point, childSize size) point
-
-	// getStackSubViewStart 取得 Stack 視圖，子視圖的起始位置
-	getStackSubViewStart(offset point) point
-	// setStackSubViewCenterOffset 設定子視圖的中心偏移
-	getStackSubViewOffsetToCenter(offset point) point
-	subView() []SomeView
-	isPress(x, y int) bool
-	deepReset()
-	deepUpdateAction()
-	deepUpdateEnvironment(...uiViewEnvironment)
-	handlePreference(*ebiten.DrawImageOptions)
+	Debug(tag string) SomeView
+	Frame(*Binding[CGSize]) SomeView
+	Padding(padding *Binding[CGInset]) SomeView
+	ForegroundColor(color *Binding[AnyColor]) SomeView
+	BackgroundColor(color *Binding[AnyColor]) SomeView
+	FontSize(size *Binding[font.Size]) SomeView
+	FontWeight(weight *Binding[font.Weight]) SomeView
+	FontLineHeight(height *Binding[float64]) SomeView
+	FontLetterSpacing(spacing *Binding[float64]) SomeView
+	FontAlignment(alignment *Binding[font.Alignment]) SomeView
+	FontItalic(italic ...*Binding[bool]) SomeView
+	RoundCorner(radius ...*Binding[float64]) SomeView
+	ScaleToFit(enable ...*Binding[bool]) SomeView
+	KeepAspectRatio(enable ...*Binding[bool]) SomeView
 }
 
-type uiView struct {
-	uiViewLayout
-	uiViewParameter
-	uiViewAction
-	uiViewEnvironment
-
-	owner SomeView
-	types types
-
-	isCached   bool
-	cachedSize size
-	modifiers  []uiViewModifier
-	contents   []SomeView
-}
-
-func newView(types types, owner SomeView, contents ...View) *uiView {
-	cts := make([]SomeView, 0, len(contents))
-	for _, v := range contents {
-		cts = append(cts, v.Body())
-	}
-
-	return &uiView{
-		uiViewLayout: _zeroUIViewLayout,
-		types:        types,
-		owner:        owner,
-		contents:     cts,
-	}
-}
-
-/*
-	########  ########  #### ##     ##    ###    ######## ########
-	##     ## ##     ##  ##  ##     ##   ## ##      ##    ##
-	##     ## ##     ##  ##  ##     ##  ##   ##     ##    ##
-	########  ########   ##  ##     ## ##     ##    ##    ######
-	##        ##   ##    ##   ##   ##  #########    ##    ##
-	##        ##    ##   ##    ## ##   ##     ##    ##    ##
-	##        ##     ## ####    ###    ##     ##    ##    ########
-*/
-
-func (p *uiView) getFrame() size {
-	frame := _zeroSize
-	for i := len(p.modifiers) - 1; i >= 0 && frame.IsZero(); i-- {
-		frame = p.modifiers[i].frame
-	}
-
-	return frame
-}
-
-func (p *uiView) last() *uiViewModifier {
-	if len(p.modifiers) == 0 {
-		p.pushLast()
-	}
-	return &p.modifiers[len(p.modifiers)-1]
-}
-
-func (p *uiView) pushLast(v ...uiViewModifier) {
-	vv := uiViewModifier{uiViewLayout: _zeroUIViewLayout}
-	if len(v) != 0 {
-		vv = v[0]
-	}
-
-	if len(p.modifiers) != 0 {
-		anchor := p.modifiers[len(p.modifiers)-1]
-		vv.frame = anchor.frame
-		vv.margin = anchor.padding
-
-	}
-
-	p.modifiers = append(p.modifiers, vv)
-}
-
-func (p *uiView) actionUpdate() {
-	// TODO: Update for actions
-}
-
-/*
-	########  ########     ###    ##      ##
-	##     ## ##     ##   ## ##   ##  ##  ##
-	##     ## ##     ##  ##   ##  ##  ##  ##
-	##     ## ########  ##     ## ##  ##  ##
-	##     ## ##   ##   ######### ##  ##  ##
-	##     ## ##    ##  ##     ## ##  ##  ##
-	########  ##     ## ##     ##  ###  ###
-*/
-
-func (p *uiView) draw(screen *ebiten.Image) {
-	p.drawModifiers(screen)
-	p.drawContent(screen)
-}
-
-func (p *uiView) drawModifiers(screen *ebiten.Image) {
-	for _, vm := range p.modifiers {
-		vm.drawModifiers(screen, p)
-	}
-}
-
-func (p *uiView) drawContent(screen *ebiten.Image) {
-	for _, p := range p.contents {
-		p.draw(screen)
-	}
-}
-
-/*
-	#### ##     ## ########  ##       ######## ##     ## ######## ##    ## ########
-	 ##  ###   ### ##     ## ##       ##       ###   ### ##       ###   ##    ##
-	 ##  #### #### ##     ## ##       ##       #### #### ##       ####  ##    ##
-	 ##  ## ### ## ########  ##       ######   ## ### ## ######   ## ## ##    ##
-	 ##  ##     ## ##        ##       ##       ##     ## ##       ##  ####    ##
-	 ##  ##     ## ##        ##       ##       ##     ## ##       ##   ###    ##
-	#### ##     ## ##        ######## ######## ##     ## ######## ##    ##    ##
-*/
-
-var _ SomeView = (*uiView)(nil)
-
-func (p *uiView) Body() SomeView {
-	return p.owner
-}
-
-func (p *uiView) Frame(w, h int) SomeView {
-	if w < 0 {
-		w = -1
-	}
-
-	if h < 0 {
-		h = -1
-	}
-
-	last := p.last()
-	last.frame = size{w, h}
-	last.padding = bounds{}
-	return p.owner
-}
-
-func (p *uiView) ForegroundColor(clr color.Color) SomeView {
-	p.fColor = clr
-	p.deepUpdateEnvironment()
-	return p.owner
-}
-
-func (p *uiView) BackgroundColor(clr color.Color) SomeView {
-	last := p.last()
-	last.background = sys.If(last.background == nil, clr, last.background)
-
-	// add frame to front views
-	w := last.frame.w
-	if w != -1 {
-		for i := len(p.modifiers) - 2; i >= 0; i-- {
-			if p.modifiers[i].frame.w != -1 {
-				break
-			}
-
-			p.modifiers[i].frame.w = w
-		}
-	}
-
-	h := last.frame.h
-	if h != -1 {
-		for i := len(p.modifiers) - 2; i >= 0; i-- {
-			if p.modifiers[i].frame.h != -1 {
-				break
-			}
-
-			p.modifiers[i].frame.h = h
-		}
-	}
-
-	p.pushLast()
-
-	return p.owner
-}
-
-func (p *uiView) Padding(paddings ...int) SomeView {
-	top, right, bottom, left := 0, 0, 0, 0
-
-	switch len(paddings) {
-	case 1: /* all */
-		top = paddings[0]
-		right = paddings[0]
-		bottom = paddings[0]
-		left = paddings[0]
-	case 2: /* vertical, horizontal */
-		top = paddings[0]
-		right = paddings[1]
-		bottom = paddings[0]
-		left = paddings[1]
-	case 4: /* top, right, bottom, left */
-		top = paddings[0]
-		right = paddings[1]
-		bottom = paddings[2]
-		left = paddings[3]
-	}
-
-	if top < 0 {
-		top = 0
-	}
-
-	if right < 0 {
-		right = 0
-	}
-
-	if bottom < 0 {
-		bottom = 0
-	}
-
-	if left < 0 {
-		left = 0
-	}
-
-	last := p.last()
-	if last.frame.w != -1 || last.frame.h != -1 {
-		last.margin = last.margin.Add(top, right, bottom, left)
-	} else {
-		last.padding = last.padding.Add(top, right, bottom, left)
-	}
-
-	return p.owner
-}
-
-func (p *uiView) Offset(x, y int) SomeView {
-	p.offset.x += x
-	p.offset.y += y
-	return p.owner
-}
-
-func (p *uiView) FontSize(size font.Size) SomeView {
-	p.fontSize = size
-	p.deepUpdateEnvironment()
-	return p.owner
-}
-
-func (p *uiView) FontWeight(weight font.Weight) SomeView {
-	p.fontWeight = weight
-	p.deepUpdateEnvironment()
-	return p.owner
-}
-
-func (p *uiView) CornerRadius(radius ...int) SomeView {
-	p.cornerRadius = first(radius, 7)
-	return p.owner
-}
-
-func (p *uiView) LineSpacing(spacing float64) SomeView {
-	p.lineSpacing = spacing
-	return p.owner
-}
-
-func (p *uiView) Kerning(kerning int) SomeView {
-	p.kerning = kerning
-	return p.owner
-}
-
-func (p *uiView) Italic() SomeView {
-	p.italic = true
-	return p.owner
-}
-
-func (p *uiView) Resizable() SomeView {
-	return p.owner
-}
-
-func (p *uiView) AspectRatio(ratio ...float64) SomeView {
-	return p.owner
-}
-
-func (p *uiView) Border(clr color.Color, width ...int) SomeView {
-	last := p.last()
-
-	last.borderWidth = first(width, 1)
-	last.borderColor = clr
-
-	return p.owner
-}
-
-func (p *uiView) getTypes() types {
-	return p.types
-}
-
-func (p *uiView) getSize() size {
-	if p.isCached {
-		return p.cachedSize
-	}
-
-	size := p.getFrame()
-	if size.w != -1 && size.h != -1 {
-		p.isCached = true
-		p.cachedSize = size
-		return size
-	}
-
-	result := _zeroSize
-	childNoWidthCount := 0
-	childNoHeightCount := 0
-	for _, child := range p.contents {
-		childSize := child.getSize()
-		result.w = max(result.w, childSize.w)
-		result.h = max(result.h, childSize.h)
-		childNoWidthCount += sys.If(childSize.w >= 0, 0, 1)
-		childNoHeightCount += sys.If(childSize.h >= 0, 0, 1)
-	}
-
-	result.w = sys.If(size.w == -1, result.w, size.w)
-	result.h = sys.If(size.h == -1, result.h, size.h)
-	result.w = sys.If(childNoWidthCount != 0, -1, result.w)
-	result.h = sys.If(childNoHeightCount != 0, -1, result.h)
-
-	p.isCached = true
-	p.cachedSize = result
-	return result
-}
-
-func (p *uiView) setSize(size size) {
-	p.isCached = true
-	p.cachedSize = size
-}
-
-func (p *uiView) getPosition() point {
-	return p.start
-}
-
-func (p *uiView) setPosition(pos point) {
-	p.start = pos
-}
-
-func (p *uiView) getStackSubViewStart(offset point) point {
-	return point{}
-}
-
-func (p *uiView) getStackSubViewOffsetToCenter(offset point) point {
-	return offset
-}
-
-func (p *uiView) stepSubView(pos point, childSize size) point {
-	return pos
-}
-
-func (p *uiView) subView() []SomeView {
-	return p.contents
-}
-
-func (p *uiView) isPress(x, y int) bool {
-	drawSize := p.getDrawSize(p.cachedSize)
-	start := p.start
-
-	return p.isPressing && x >= start.x && x <= start.x+drawSize.w && y >= start.y && y <= start.y+drawSize.h
-}
-
-func (p *uiView) deepReset() {
-	p.isCached = false
-	p.isPressing = false
-	for _, v := range p.subView() {
-		v.deepReset()
-	}
-}
-
-func (p *uiView) deepUpdateAction() {
-	p.actionUpdate()
-	for _, v := range p.contents {
-		v.deepUpdateAction()
-	}
-}
-
-func (p *uiView) deepUpdateEnvironment(env ...uiViewEnvironment) {
-	e := p.uiViewEnvironment
-	if len(env) != 0 {
-		e = env[0]
-		p.uiViewEnvironment.set(e)
-	}
-
-	for _, v := range p.contents {
-		v.deepUpdateEnvironment(e)
-	}
-}
-
-func (p *uiView) handlePreference(opt *ebiten.DrawImageOptions) {
-	if p.isPressing {
-		opt.ColorScale.ScaleAlpha(0.3)
-	}
-}
+// Frame: 不包含 Padding 的內部邊界
+// Bounds: 包含 Padding 的外部邊界

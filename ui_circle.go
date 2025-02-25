@@ -6,48 +6,66 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-/* Check Interface Implement */
-var _ SomeView = (*circle)(nil)
+type circleImpl struct {
+	*viewCtx
+}
 
 func Circle() SomeView {
-	v := &circle{}
-	v.uiView = newView(typesCircle, v)
-
-	return v
+	circle := &circleImpl{}
+	circle.viewCtx = newViewContext(circle)
+	return circle
 }
 
-type circle struct {
-	*uiView
+func (c *circleImpl) userSetFrameSize() flexibleSize {
+	frameSize := c.viewCtx.userSetFrameSize()
+	frameSize.Frame = NewSize(
+		min(frameSize.Frame.Width, frameSize.Frame.Height),
+		min(frameSize.Frame.Width, frameSize.Frame.Height),
+	)
+
+	return frameSize
 }
 
-func (v *circle) draw(screen *ebiten.Image) {
-	drawSize := v.getDrawSize(v.cachedSize)
-	diameter := min(drawSize.w, drawSize.h)
+func (c *circleImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+	drawFrame := c._owner.systemSetBounds()
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(drawFrame.Start.X, drawFrame.Start.Y)
+	for _, h := range hook {
+		h(op)
+	}
+
+	bgColor := c.backgroundColor.Get()
+	if bgColor == nil {
+		return op
+	}
+
+	if !drawFrame.drawable() {
+		return op
+	}
+
+	w := int(drawFrame.Dx() * _roundedScale)
+	h := int(drawFrame.Dy() * _roundedScale)
+	diameter := min(w, h)
 	radius := diameter / 2
 
 	img := ebiten.NewImage(diameter, diameter)
-	clr := defaultForegroundColor
-	if v.fColor != nil {
-		clr = v.fColor
-	}
+	img.Fill(bgColor)
 
-	cR, cG, cB, cA := clr.RGBA()
-	clr2 := color.Color(color.RGBA64{uint16(cR), uint16(cG), uint16(cB), uint16(cA / 2)})
-
-	for x := 0; x < drawSize.w; x++ {
-		for y := 0; y < drawSize.h; y++ {
-			a := (x-radius)*(x-radius) + (y-radius)*(y-radius)
-			b := radius * radius
-			if a < b {
-				img.Set(x, y, clr)
-			} else if a == b {
-				img.Set(x, y, clr2)
+	for x := 0; x < diameter; x++ {
+		for y := 0; y < diameter; y++ {
+			if (x-radius)*(x-radius)+(y-radius)*(y-radius) > radius*radius {
+				img.Set(x, y, color.Transparent)
 			}
 		}
 	}
 
 	opt := &ebiten.DrawImageOptions{}
-	opt.GeoM.Translate(float64(v.start.x), float64(v.start.y))
+	opt.GeoM.Scale(_roundedScaleInverse, _roundedScaleInverse)
+	opt.Filter = ebiten.FilterLinear
+	opt.GeoM.Concat(op.GeoM)
+	opt.ColorScale.ScaleWithColorScale(op.ColorScale)
 	screen.DrawImage(img, opt)
-	v.drawModifiers(screen)
+
+	return op
 }

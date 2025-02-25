@@ -1,51 +1,76 @@
 package ebui
 
 import (
-	"sync/atomic"
-
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
-/* Check Interface Implementation */
-var _ SomeView = (*buttonView)(nil)
+type buttonImpl struct {
+	*viewCtx
 
-func Button(action func(), label View) SomeView {
-	v := &buttonView{
+	action      func()
+	label       func() SomeView
+	labelLoaded SomeView
+	isPressed   bool
+}
+
+func Button(action func(), label func() SomeView) SomeView {
+	btn := &buttonImpl{
 		action: action,
-		label:  label.Body(),
+		label:  label,
+	}
+	btn.viewCtx = newViewContext(btn)
+	globalEventManager.RegisterHandler(btn)
+	return btn
+}
+
+func (b *buttonImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
+	b.labelLoaded = b.label()
+	formulaStack := &formulaStack{
+		types:    formulaZStack,
+		stackCtx: b.viewCtx,
+		children: []SomeView{b.labelLoaded},
 	}
 
-	v.uiView = newView(typesButton, v, label)
-	return v
+	return formulaStack.preload(parent)
 }
 
-type buttonView struct {
-	*uiView
-	label SomeView
+func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+	hook = append(hook, func(opt *ebiten.DrawImageOptions) {
+		if b.isPressed {
+			opt.ColorScale.ScaleAlpha(0.5)
+		}
+	})
 
-	action     func()
-	invokeTick atomic.Int64
+	op := b.viewCtx.draw(screen, hook...)
+	_ = b.labelLoaded.draw(screen, hook...)
+
+	return op
 }
 
-func (v *buttonView) Body() SomeView {
-	return v
-}
-
-func (v *buttonView) deepUpdateAction() {
-	cX, cY := ebiten.CursorPosition()
-	isPressing := v.label.isPress(cX, cY)
-	v.isPressing = isPressing && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
-	if isPressing {
-		if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-			currentTick := currentTicker()
-			if v.invokeTick.Load() != currentTicker() {
-				v.action()
-				v.invokeTick.Store(currentTick)
+// Button 的事件處理
+func (b *buttonImpl) HandleTouchEvent(event touchEvent) bool {
+	switch event.Phase {
+	case touchPhaseBegan:
+		if event.Position.In(b.labelLoaded.systemSetBounds()) {
+			b.isPressed = true
+			return true
+		}
+	case touchPhaseMoved:
+		if b.isPressed {
+			return true
+		}
+	case touchPhaseEnded, touchPhaseCancelled:
+		if b.isPressed {
+			b.isPressed = false
+			if event.Position.In(b.labelLoaded.systemSetBounds()) {
+				b.action()
 			}
+			return true
 		}
 	}
+	return false
+}
 
-	v.uiView.deepUpdateAction()
-	v.uiView.deepUpdateEnvironment()
+func (b *buttonImpl) HandleKeyEvent(event keyEvent) bool {
+	return false
 }

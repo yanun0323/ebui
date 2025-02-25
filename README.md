@@ -18,52 +18,80 @@ It also works within a [Ebitengine](https://github.com/hajimehoshi/ebiten) appli
 ### Define a Content View
 
 ```go
+
+import (
+	ui "github.com/yanun0323/ebui"
+	"image/color"
+)
+
 type contentView struct {
-	title   string
-	content string
+	title   *ui.Binding[string]
+	content *ui.Binding[string]
 }
 
-func ContentView(title, content string) ebui.View {
+func ContentView(title, content *ui.Binding[string]) ui.View {
 	return &contentView{
 		title:   title,
 		content: content,
 	}
 }
 
-func (view *contentView) Body() ebui.SomeView {
-	return ebui.HStack(
-		ebui.Spacer(),
-		ebui.VStack(
-			ebui.Spacer(),
-			ebui.Text(view.title).
-				Padding(0, 15, 0, 15).
-				ForegroundColor(color.White).
-				BackgroundColor(color.Gray{128}),
-			ebui.Text(view.content),
-			ebui.Spacer(),
-		).Frame(200, -1),
-		ebui.Spacer(),
+func (view *contentView) Body() ui.SomeView {
+	return ui.HStack(
+		ui.Spacer(),
+		ui.VStack(
+			ui.Spacer(),
+			ui.Text(view.title).
+				Padding(ui.Bind(ui.Inset{0, 15, 0, 15})).
+				ForegroundColor(ui.Bind[color.Color](color.White)).
+				BackgroundColor(ui.Bind[color.Color](color.Gray{128})),
+			ui.Text(view.content),
+			ui.Spacer(),
+		).Frame(ui.Bind(200.0), nil),
+		ui.Spacer(),
 	).
-		ForegroundColor(color.RGBA{200, 200, 200, 255}).
-		BackgroundColor(color.RGBA{255, 0, 0, 255}).
-		Padding(5, 5, 5, 5)
+		ForegroundColor(ui.Bind[color.Color](color.RGBA{200, 200, 200, 255})).
+		BackgroundColor(ui.Bind[color.Color](color.RGBA{255, 0, 0, 255})).
+		Padding(ui.Bind(ui.Inset{5, 5, 5, 5}))
 }
 ```
 
 ### Run an App
 
 ```go
+import (
+	ui "github.com/yanun0323/ebui"
+	"image/color"
+)
+
 func main() {
-	contentView := ContentView("title", "content")
-	ebui.Run("Windows Title", contentView)
+	title := ui.Bind("title")
+	content := ui.Bind("content")
+	contentView := ContentView(title, content)
+
+	app := ui.NewApplication(contentView)
+	app.SetWindowBackgroundColor(color.RGBA{100, 0, 0, 0})
+	app.SetWindowTitle("EBUI Demo")
+	app.SetWindowSize(600, 500)
+	app.SetWindowResizingMode(ui.WindowResizingModeEnabled)
+	app.SetResourceFolder("resource")
+
+	if err := app.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
 ```
 
 ### Run in a Ebitengine Application
 
 ```go
+import (
+	ui "github.com/yanun0323/ebui"
+	"image/color"
+)
+
 func main() {
-	contentView := component.ContentView("title", "content")
+	contentView := ui.ContentView("title", "content")
 	g := NewGame(contentView)
 
 	if err := ebiten.RunGame(g); err != nil {
@@ -71,26 +99,27 @@ func main() {
 	}
 }
 
-func NewGame(contentView ebui.View) *Game {
+func NewGame(contentView View) *Game {
 	return &Game{
 		contentView: contentView.Body(),
 	}
 }
 
 type Game struct {
-	contentView ebui.SomeView
+	contentView SomeView
 }
 
 func (g *Game) Update() error {
-	ebui.EbitenUpdate(g.contentView)
+	ui.EbitenUpdate(g.contentView)
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	ebui.EbitenDraw(screen, g.contentView)
+	ui.EbitenDraw(screen, g.contentView)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	ui.EbitenLayout(outsideWidth, outsideHeight)
 	return outsideWidth, outsideHeight
 }
 ```
@@ -102,13 +131,13 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 - [x] VStack
 - [x] HStack
 - [x] ZStack
-- [x] EmptyView
 - [x] Text
 - [x] Image
 - [x] Button
 - [x] Spacer
-- [ ] Circle
-- [ ] Rectangle
+- [x] EmptyView
+- [x] Circle
+- [x] Rectangle
 - [ ] Divider
 - [ ] Indicator
 - [ ] Menu
@@ -131,6 +160,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 ### Feature
 
+- [x] CornerRadius
 - [ ] Animation
 - [ ] Gesture
 - [ ] Overlay

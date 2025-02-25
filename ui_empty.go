@@ -2,27 +2,20 @@ package ebui
 
 import "github.com/hajimehoshi/ebiten/v2"
 
-/* Check Interface Implementation */
-var _ SomeView = (*emptyView)(nil)
-
-func EmptyView() *emptyView {
-	v := &emptyView{}
-	v.uiView = newView(typesEmpty, v)
-	return v
+type emptyImpl struct {
+	*viewCtx
 }
 
-type emptyView struct {
-	*uiView
+func EmptyView() SomeView {
+	empty := &emptyImpl{}
+	empty.viewCtx = newViewContext(empty)
+	return empty
 }
 
-func (p *emptyView) getSize() size {
-	return size{}
+func (e *emptyImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
+	return flexibleSize{}, CGInset{}, nil
 }
 
-func (p *emptyView) Frame(w, h int) SomeView {
-	return p
-}
-
-func (v *emptyView) draw(screen *ebiten.Image) {
-	v.drawModifiers(screen)
+func (e *emptyImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+	return &ebiten.DrawImageOptions{}
 }

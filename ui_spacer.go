@@ -1,28 +1,25 @@
 package ebui
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
-/* Check Interface Implementation */
-var _ SomeView = (*spacerView)(nil)
-
-func Spacer() *spacerView {
-	v := &spacerView{}
-	v.uiView = newView(typesSpacer, v)
-	return v
+// Spacer 元件
+type spacerImpl struct {
+	*viewCtx
 }
 
-type spacerView struct {
-	*uiView
+func Spacer() SomeView {
+	sp := &spacerImpl{}
+	sp.viewCtx = newViewContext(sp)
+	return sp
 }
 
-func (p *spacerView) getSize() size {
-	return _zeroSize
+func (*spacerImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
+	return newFlexibleSize(Inf, Inf, true), NewInset(0, 0, 0, 0), nil
 }
 
-func (p *spacerView) Frame(w, h int) SomeView {
-	return p
-}
-
-func (v *spacerView) draw(screen *ebiten.Image) {
-	v.drawModifiers(screen)
+func (*spacerImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+	// Spacer 是空白元件，不需要繪製任何內容
+	return &ebiten.DrawImageOptions{}
 }

@@ -3,46 +3,15 @@ package ebui
 import (
 	"embed"
 	"fmt"
-	"image/color"
 	"log"
-	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 const (
-	_minimumFloat64 float64 = 0.001
+	_roundedScale        = 3.0
+	_roundedScaleInverse = 1.0 / _roundedScale
 )
-
-var (
-	defaultForegroundColor color.Color = color.White
-	defaultBackgroundColor color.Color = color.Black
-	globalTicker                       = atomic.Int64{}
-)
-
-func currentTicker() int64 {
-	return globalTicker.Load()
-}
-
-func tickTock() {
-	_ = globalTicker.Add(1)
-}
-
-/*
-	ROOT START
-*/
-
-var (
-	_rootStart = atomic.Value{}
-)
-
-func loadRootStart() point {
-	if p, ok := _rootStart.Load().(point); ok {
-		return p
-	}
-
-	return point{}
-}
 
 /*
 	FONT
