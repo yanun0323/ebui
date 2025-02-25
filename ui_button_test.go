@@ -11,7 +11,7 @@ func newButtonForTest(action func(), label func() SomeView) *buttonImpl {
 		action: action,
 		label:  label,
 	}
-	btn.ctx = newViewContext(btn)
+	btn.viewCtx = newViewContext(btn)
 	return btn
 }
 
@@ -27,16 +27,16 @@ func (su *ButtonSuite) TestButton() {
 
 	{ // 按鈕無大小，按鈕標籤有大小
 		rect := newRectangleForTest().
-			Frame(Bind(200.0), Bind(100.0)).
-			Padding(Bind(NewInset(10, 10, 10, 10)))
+			Padding(Bind(NewInset(10, 10, 10, 10))).
+			Frame(Bind(NewSize(200, 100)))
 		btn := newButtonForTest(func() {}, func() SomeView {
 			return rect
 		})
 		btn.Padding(Bind(NewInset(20, 20, 20, 20)))
 
-		btnFrameSize, btnInset, btnLayoutFn := btn.preload()
+		btnFrameSize, btnInset, btnLayoutFn := btn.preload(nil)
 		su.Equal(NewSize(220, 120), btnFrameSize.Frame)
-		su.Equal(NewInset(20, 20, 20, 20), btnInset)
+		su.Equal(NewInset(0, 0, 0, 0), btnInset)
 		su.NotNil(btnLayoutFn)
 	}
 }

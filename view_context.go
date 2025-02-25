@@ -1,14 +1,13 @@
 package ebui
 
 import (
-	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/font"
 )
 
-var _ SomeView = &ctx{}
+var _ SomeView = &viewCtx{}
 
 var Inf = math.Inf(1)
 var isInf = func(f float64) bool {
@@ -19,77 +18,51 @@ const (
 	_defaultRoundCorner float64 = 8.0
 )
 
-// ctx 提供所有 View 共用的修飾器方法和狀態
-type ctx struct {
-	_owner          SomeView
-	_debug          string
-	_systemSetFrame CGRect // 不包含 Padding 的內部邊界
+// viewCtx 提供所有 View 共用的修飾器方法和狀態
+type viewCtx struct {
+	*viewCtxEnv
+	*viewCtxParam
 
-	frameWidth      *Binding[float64]
-	frameHeight     *Binding[float64]
-	padding         *Binding[CGInset]
-	backgroundColor *Binding[AnyColor]
-	foregroundColor *Binding[AnyColor]
-
-	fontSize          *Binding[font.Size]
-	fontWeight        *Binding[font.Weight]
-	fontLineHeight    *Binding[float64]
-	fontLetterSpacing *Binding[float64]
-	fontAlignment     *Binding[font.Alignment]
-	fontItalic        *Binding[bool]
-	roundCorner       *Binding[float64]
-
-	scaleToFit      *Binding[bool]
-	keepAspectRatio *Binding[bool]
+	_owner SomeView
 }
 
 // 初始化 ViewContext
-func newViewContext(owner SomeView) *ctx {
-	return &ctx{
-		_owner: owner,
-
-		frameWidth:      Bind(Inf),
-		frameHeight:     Bind(Inf),
-		_systemSetFrame: CGRect{},
-		padding:         Bind(CGInset{}),
-		backgroundColor: Bind[AnyColor](nil),
-		foregroundColor: Bind[AnyColor](color.White),
-
-		fontSize:          Bind(font.Body),
-		fontWeight:        Bind(font.Normal),
-		fontLineHeight:    Bind(0.0),
-		fontLetterSpacing: Bind(0.0),
-		fontAlignment:     Bind(font.AlignLeft),
+func newViewContext(owner SomeView) *viewCtx {
+	return &viewCtx{
+		viewCtxEnv:   newEnv(),
+		viewCtxParam: newParam(),
+		_owner:       owner,
 	}
 }
 
-func (ctx *ctx) Body() SomeView {
-	return ctx._owner
-}
-
-func (ctx *ctx) userSetFrameSize() flexibleSize {
-	return newFlexibleSize(ctx.frameWidth.Get(), ctx.frameHeight.Get())
-}
-
-// systemSetFrame 回傳的是內部邊界
-func (ctx *ctx) systemSetFrame() CGRect {
-	return ctx._systemSetFrame
-}
-
-func (ctx *ctx) debugPrint(frame CGRect) {
-	if len(ctx._debug) != 0 {
-		logf("\x1b[35m[%s]\x1b[0m\tStart(%4.f, %4.f)\tEnd(%4.f, %4.f)\tSize(%4.f, %4.f)",
-			ctx._debug,
-			frame.Start.X, frame.Start.Y,
-			frame.End.X, frame.End.Y,
-			frame.Dx(), frame.Dy(),
-		)
+func (c *viewCtx) wrap(modify func(*viewCtx)) SomeView {
+	// 創建一個新的 zstackImpl 實例
+	zs := &zstackImpl{
+		children: []SomeView{c._owner},
 	}
+
+	zs.viewCtx = newViewContext(zs)
+	zs.viewCtx.viewCtxEnv = c.viewCtxEnv
+	zs.viewCtx.viewCtxParam.frameSize = c.frameSize
+
+	// 應用修改
+	modify(zs.viewCtx)
+
+	return zs
 }
 
-func (ctx *ctx) preload() (flexibleSize, CGInset, layoutFunc) {
-	padding := ctx.padding.Get()
-	userSetFrameSize := ctx._owner.userSetFrameSize()
+func (c *viewCtx) setEnv(env *viewCtxEnv) {
+	c.viewCtxEnv = env
+}
+
+func (c *viewCtx) count() int {
+	return 1
+}
+
+func (c *viewCtx) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
+	c.viewCtxEnv.inheritFrom(parent)
+	padding := c.inset.Get()
+	userSetFrameSize := c._owner.userSetFrameSize()
 	return userSetFrameSize, padding, func(start CGPoint, flexFrameSize CGSize) CGRect {
 		finalFrame := CGRect{start, start.Add(flexFrameSize.ToCGPoint())}
 		finalFrameSize := userSetFrameSize
@@ -101,7 +74,7 @@ func (ctx *ctx) preload() (flexibleSize, CGInset, layoutFunc) {
 			finalFrame.End.Y = start.Y + finalFrameSize.Frame.Height
 		}
 
-		ctx._systemSetFrame = NewRect(
+		c._systemSetFrame = NewRect(
 			finalFrame.Start.X+padding.Left,
 			finalFrame.Start.Y+padding.Top,
 			finalFrame.End.X+padding.Left,
@@ -109,21 +82,20 @@ func (ctx *ctx) preload() (flexibleSize, CGInset, layoutFunc) {
 		)
 
 		result := finalFrame.Expand(padding)
-		ctx.debugPrint(result)
+		c.debugPrint(result)
 		return result
 	}
 }
 
-func (ctx *ctx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-
-	drawFrame := ctx._owner.systemSetFrame()
+func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+	drawFrame := c._owner.systemSetBounds()
 	opt := &ebiten.DrawImageOptions{}
 	opt.GeoM.Translate(drawFrame.Start.X, drawFrame.Start.Y)
 	for _, h := range hook {
 		h(opt)
 	}
 
-	bgColor := ctx.backgroundColor.Get()
+	bgColor := c.backgroundColor.Get()
 	if bgColor == nil {
 		return opt
 	}
@@ -132,7 +104,7 @@ func (ctx *ctx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions
 		return opt
 	}
 
-	if radius := ctx.roundCorner.Get(); radius > 0 {
+	if radius := c.roundCorner.Get(); radius > 0 {
 		drawRoundedRect(screen, drawFrame, radius, bgColor, opt)
 	} else {
 		img := ebiten.NewImage(int(drawFrame.Dx()), int(drawFrame.Dy()))
@@ -143,105 +115,105 @@ func (ctx *ctx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions
 	return opt
 }
 
+func (c *viewCtx) Body() SomeView {
+	return c._owner
+}
+
 // Frame 修飾器
-func (ctx *ctx) Frame(width *Binding[float64], height *Binding[float64]) SomeView {
-	if width == nil {
-		width = Bind(Inf)
+func (c *viewCtx) Frame(size *Binding[CGSize]) SomeView {
+	if size == nil {
+		size = Bind(NewSize(Inf, Inf))
 	}
 
-	if height == nil {
-		height = Bind(Inf)
-	}
+	c.frameSize = size
 
-	ctx.frameWidth = width
-	ctx.frameHeight = height
-
-	return ctx._owner
+	return c._owner
 }
 
 // Padding 修飾器
-func (ctx *ctx) Padding(padding *Binding[CGInset]) SomeView {
-	ctx.padding = padding
-	return ctx._owner
+func (c *viewCtx) Padding(padding *Binding[CGInset]) SomeView {
+	return c.wrap(func(c *viewCtx) {
+		c.inset = padding
+	})
 }
 
 // ForegroundColor 修飾器
-func (ctx *ctx) ForegroundColor(color *Binding[AnyColor]) SomeView {
-	ctx.foregroundColor = color
-	return ctx._owner
+func (c *viewCtx) ForegroundColor(color *Binding[AnyColor]) SomeView {
+	c.foregroundColor = color
+	return c._owner
 }
 
 // BackgroundColor 修飾器
-func (ctx *ctx) BackgroundColor(color *Binding[AnyColor]) SomeView {
-	ctx.backgroundColor = color
-	return ctx._owner
+func (c *viewCtx) BackgroundColor(color *Binding[AnyColor]) SomeView {
+	c.backgroundColor = color
+	return c._owner
 }
 
-func (ctx *ctx) FontSize(size *Binding[font.Size]) SomeView {
-	ctx.fontSize = size
-	return ctx._owner
+func (c *viewCtx) FontSize(size *Binding[font.Size]) SomeView {
+	c.fontSize = size
+	return c._owner
 }
 
-func (ctx *ctx) FontWeight(weight *Binding[font.Weight]) SomeView {
-	ctx.fontWeight = weight
-	return ctx._owner
+func (c *viewCtx) FontWeight(weight *Binding[font.Weight]) SomeView {
+	c.fontWeight = weight
+	return c._owner
 }
 
-func (ctx *ctx) FontLineHeight(height *Binding[float64]) SomeView {
-	ctx.fontLineHeight = height
-	return ctx._owner
+func (c *viewCtx) FontLineHeight(height *Binding[float64]) SomeView {
+	c.fontLineHeight = height
+	return c._owner
 }
 
-func (ctx *ctx) FontLetterSpacing(spacing *Binding[float64]) SomeView {
-	ctx.fontLetterSpacing = spacing
-	return ctx._owner
+func (c *viewCtx) FontLetterSpacing(spacing *Binding[float64]) SomeView {
+	c.fontLetterSpacing = spacing
+	return c._owner
 }
 
-func (ctx *ctx) FontAlignment(alignment *Binding[font.Alignment]) SomeView {
-	ctx.fontAlignment = alignment
-	return ctx._owner
+func (c *viewCtx) FontAlignment(alignment *Binding[font.Alignment]) SomeView {
+	c.fontAlignment = alignment
+	return c._owner
 }
 
-func (ctx *ctx) FontItalic(italic ...*Binding[bool]) SomeView {
+func (c *viewCtx) FontItalic(italic ...*Binding[bool]) SomeView {
 	if len(italic) != 0 {
-		ctx.fontItalic = italic[0]
+		c.fontItalic = italic[0]
 	} else {
-		ctx.fontItalic.Set(true)
+		c.fontItalic.Set(true)
 	}
 
-	return ctx._owner
+	return c._owner
 }
 
-func (ctx *ctx) RoundCorner(radius ...*Binding[float64]) SomeView {
+func (c *viewCtx) RoundCorner(radius ...*Binding[float64]) SomeView {
 	if len(radius) != 0 {
-		ctx.roundCorner = radius[0]
+		c.roundCorner = radius[0]
 	} else {
-		ctx.roundCorner = Bind(_defaultRoundCorner)
+		c.roundCorner = Bind(_defaultRoundCorner)
 	}
-	return ctx._owner
+	return c._owner
 }
 
-func (ctx *ctx) Debug(tag string) SomeView {
-	ctx._debug = tag
-	return ctx._owner
+func (c *viewCtx) Debug(tag string) SomeView {
+	c._debug = tag
+	return c._owner
 }
 
-func (ctx *ctx) ScaleToFit(enable ...*Binding[bool]) SomeView {
+func (c *viewCtx) ScaleToFit(enable ...*Binding[bool]) SomeView {
 	if len(enable) != 0 {
-		ctx.scaleToFit = enable[0]
+		c.scaleToFit = enable[0]
 	} else {
-		ctx.scaleToFit = Bind(true)
+		c.scaleToFit = Bind(true)
 	}
 
-	return ctx._owner
+	return c._owner
 }
 
-func (ctx *ctx) KeepAspectRatio(enable ...*Binding[bool]) SomeView {
+func (c *viewCtx) KeepAspectRatio(enable ...*Binding[bool]) SomeView {
 	if len(enable) != 0 {
-		ctx.keepAspectRatio = enable[0]
+		c.keepAspectRatio = enable[0]
 	} else {
-		ctx.keepAspectRatio = Bind(true)
+		c.keepAspectRatio = Bind(true)
 	}
 
-	return ctx._owner
+	return c._owner
 }

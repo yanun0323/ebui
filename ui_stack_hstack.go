@@ -9,29 +9,37 @@ func HStack(views ...View) SomeView {
 	hs := &hstackImpl{
 		children: someViews(views...),
 	}
-	hs.ctx = newViewContext(hs)
+	hs.viewCtx = newViewContext(hs)
 	return hs
 }
 
 type hstackImpl struct {
-	*ctx
+	*viewCtx
 
 	children []SomeView
 }
 
-func (h *hstackImpl) preload() (flexibleSize, CGInset, layoutFunc) {
+func (h *hstackImpl) count() int {
+	count := 1
+	for _, child := range h.children {
+		count += child.count()
+	}
+	return count
+}
+
+func (h *hstackImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
 	StackFormula := &formulaStack{
 		types:    formulaHStack,
-		stackCtx: h.ctx,
+		stackCtx: h.viewCtx,
 		children: h.children,
 	}
 
-	return StackFormula.preload()
+	return StackFormula.preload(parent)
 }
 func (h *hstackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-	op := h.ctx.draw(screen, hook...)
+	op := h.viewCtx.draw(screen, hook...)
 	for _, child := range h.children {
-		child.draw(screen)
+		child.draw(screen, hook...)
 	}
 
 	return op

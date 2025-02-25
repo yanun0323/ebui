@@ -8,6 +8,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
+const (
+	_roundedScale        = 3.0
+	_roundedScaleInverse = 1.0 / _roundedScale
+)
+
 /*
 	FONT
 */

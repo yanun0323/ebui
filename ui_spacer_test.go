@@ -8,7 +8,7 @@ import (
 
 func newSpacerForTest() *spacerImpl {
 	sp := &spacerImpl{}
-	sp.ctx = newViewContext(sp)
+	sp.viewCtx = newViewContext(sp)
 	return sp
 }
 
@@ -27,7 +27,7 @@ func (su *SpacerSuite) Test() {
 		sp3 := newSpacerForTest()
 		sp4 := newSpacerForTest()
 		rect1 := newRectangleForTest()
-		rect1.Frame(Bind(100.0), Bind(100.0))
+		rect1.Frame(Bind(NewSize(100, 100)))
 
 		view := ZStack(
 			VStack(
@@ -40,7 +40,7 @@ func (su *SpacerSuite) Test() {
 				sp4,
 			),
 		)
-		_, _, layoutFn := view.preload()
+		_, _, layoutFn := view.preload(nil)
 		bound := layoutFn(NewPoint(0, 0), NewSize(500, 500))
 		su.Equal(NewPoint(0, 0), bound.Start)
 		su.Equal(NewPoint(500, 500), bound.End)

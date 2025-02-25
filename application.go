@@ -2,10 +2,12 @@ package ebui
 
 import (
 	"errors"
+	"fmt"
 	"image/color"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 type windowResizingMode int
@@ -20,6 +22,8 @@ var (
 )
 
 type application struct {
+	isDebug         bool
+	debugInfo       string
 	rootView        SomeView
 	backgroundColor color.Color
 }
@@ -49,10 +53,18 @@ func (app *application) SetResourceFolder(folder string) {
 	resourceDir.Store(folder)
 }
 
+func (app *application) Debug() {
+	app.isDebug = true
+}
+
+func (app *application) VSyncEnabled(enabled bool) {
+	ebiten.SetVsyncEnabled(enabled)
+}
+
 func (app *application) Run(title string) error {
 	ebiten.SetWindowTitle(title)
 
-	if err := ebiten.RunGame(&game{rootView: app.rootView}); err != nil {
+	if err := ebiten.RunGame(&game{application: app}); err != nil {
 		if errors.Is(err, ebiten.Termination) {
 			return Terminate
 		}
@@ -64,16 +76,29 @@ func (app *application) Run(title string) error {
 }
 
 type game struct {
-	rootView SomeView
+	*application
 }
 
 func (app *game) Update() error {
 	EbitenUpdate(app.rootView)
+	if app.isDebug {
+		count := app.rootView.count()
+		app.debugInfo = fmt.Sprintf("TPS: %.2f, FPS: %.2f, ViewCount: %d", ebiten.ActualTPS(), ebiten.ActualFPS(), count)
+	}
+
 	return nil
 }
 
 func (app *game) Draw(screen *ebiten.Image) {
+	if app.backgroundColor != nil {
+		screen.Fill(app.backgroundColor)
+	}
+
 	EbitenDraw(screen, app.rootView)
+
+	if app.isDebug {
+		ebitenutil.DebugPrint(screen, app.debugInfo)
+	}
 }
 
 func (app *game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {

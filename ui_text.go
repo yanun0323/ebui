@@ -1,16 +1,20 @@
 package ebui
 
 import (
+	"fmt"
+	"sync"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/yanun0323/ebui/font"
 )
 
+var faceTable = sync.Map{}
+
 type textImpl struct {
-	*ctx
+	*viewCtx
 
 	content *Binding[string]
-	face    text.Face
 }
 
 func Text[T string | *Binding[string]](content T) SomeView {
@@ -20,9 +24,8 @@ func Text[T string | *Binding[string]](content T) SomeView {
 	case *Binding[string]:
 		v := &textImpl{
 			content: content,
-			face:    createDefaultFace(),
 		}
-		v.ctx = newViewContext(v)
+		v.viewCtx = newViewContext(v)
 		return v
 	}
 
@@ -39,9 +42,50 @@ func createDefaultFace() text.Face {
 	return face
 }
 
+func (textImpl) faceKey(size font.Size, weight font.Weight, italic bool) string {
+	return fmt.Sprintf("%d-%d-%t", size, weight, italic)
+}
+
+func (t *textImpl) face() text.Face {
+	size := font.Body
+	if t.fontSize != nil {
+		size = t.fontSize.Get()
+	}
+
+	weight := font.Normal
+	if t.fontWeight != nil {
+		weight = t.fontWeight.Get()
+	}
+
+	italic := false
+	if t.fontItalic != nil {
+		italic = t.fontItalic.Get()
+	}
+
+	key := t.faceKey(size, weight, italic)
+	{
+		face, ok := faceTable.Load(key)
+		if ok {
+			return face.(*text.GoTextFace)
+		}
+	}
+
+	face := &text.GoTextFace{
+		Source: _defaultFontResource,
+		Size:   size.F64(),
+	}
+	face.SetVariation(_fontTagWeight, weight.F32())
+	if italic {
+		face.SetVariation(_fontTagItalic, 1)
+	}
+
+	faceTable.Store(key, face)
+	return face
+}
+
 func (t *textImpl) userSetFrameSize() flexibleSize {
-	ctxUserSetFrameSize := t.ctx.userSetFrameSize()
-	w, h := text.Measure(t.content.Get(), t.face, t.ctx.fontLineHeight.Get())
+	ctxUserSetFrameSize := t.viewCtx.userSetFrameSize()
+	w, h := text.Measure(t.content.Get(), t.face(), t.fontLineHeight.Get())
 
 	if ctxUserSetFrameSize.IsInfX {
 		ctxUserSetFrameSize.Frame.Width = w
@@ -56,9 +100,9 @@ func (t *textImpl) userSetFrameSize() flexibleSize {
 	return ctxUserSetFrameSize
 }
 
-func (t *textImpl) preload() (flexibleSize, CGInset, layoutFunc) {
-	frameSize, padding, layoutFn := t.ctx.preload()
-	w, h := text.Measure(t.content.Get(), t.face, t.ctx.fontLineHeight.Get())
+func (t *textImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
+	frameSize, padding, layoutFn := t.viewCtx.preload(parent)
+	w, h := text.Measure(t.content.Get(), t.face(), t.fontLineHeight.Get())
 	return frameSize, padding, func(start CGPoint, flexFrameSize CGSize) CGRect {
 		if isInf(flexFrameSize.Width) {
 			flexFrameSize.Width = w
@@ -69,13 +113,13 @@ func (t *textImpl) preload() (flexibleSize, CGInset, layoutFunc) {
 		}
 
 		result := layoutFn(start, flexFrameSize)
-		t.ctx.debugPrint(result)
+		t.viewCtx.debugPrint(result)
 		return result
 	}
 }
 
 func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-	op := t.ctx.draw(screen, hook...)
+	op := t.viewCtx.draw(screen, hook...)
 
 	content := t.content.Get()
 	if content == "" {
@@ -97,17 +141,18 @@ func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpti
 	// }
 
 	// 繪製文字
-	for i, gl := range text.AppendGlyphs(nil, content, t.face, &text.LayoutOptions{
-		LineSpacing: t.ctx.fontLineHeight.Get(),
+	face := t.face()
+	for i, gl := range text.AppendGlyphs(nil, content, face, &text.LayoutOptions{
+		LineSpacing: t.fontLineHeight.Get(),
 	}) {
 		if gl.Image == nil {
 			continue
 		}
 
 		opt := &ebiten.DrawImageOptions{}
-		opt.ColorScale.ScaleWithColor(t.ctx.foregroundColor.Get())
+		opt.ColorScale.ScaleWithColor(t.foregroundColor.Get())
 
-		opt.GeoM.Translate(float64(i)*t.ctx.fontLetterSpacing.Get(), 0)
+		opt.GeoM.Translate(float64(i)*t.fontLetterSpacing.Get(), 0)
 		opt.GeoM.Translate(gl.X, gl.Y)
 		opt.GeoM.Concat(op.GeoM)
 		opt.ColorScale.ScaleWithColorScale(op.ColorScale)

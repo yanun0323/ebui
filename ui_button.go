@@ -5,7 +5,7 @@ import (
 )
 
 type buttonImpl struct {
-	*ctx
+	*viewCtx
 
 	action      func()
 	label       func() SomeView
@@ -18,20 +18,20 @@ func Button(action func(), label func() SomeView) SomeView {
 		action: action,
 		label:  label,
 	}
-	btn.ctx = newViewContext(btn)
+	btn.viewCtx = newViewContext(btn)
 	globalEventManager.RegisterHandler(btn)
 	return btn
 }
 
-func (b *buttonImpl) preload() (flexibleSize, CGInset, layoutFunc) {
+func (b *buttonImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
 	b.labelLoaded = b.label()
 	formulaStack := &formulaStack{
 		types:    formulaZStack,
-		stackCtx: b.ctx,
+		stackCtx: b.viewCtx,
 		children: []SomeView{b.labelLoaded},
 	}
 
-	return formulaStack.preload()
+	return formulaStack.preload(parent)
 }
 
 func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
@@ -41,7 +41,7 @@ func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 		}
 	})
 
-	op := b.ctx.draw(screen, hook...)
+	op := b.viewCtx.draw(screen, hook...)
 	_ = b.labelLoaded.draw(screen, hook...)
 
 	return op
@@ -51,7 +51,7 @@ func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 func (b *buttonImpl) HandleTouchEvent(event touchEvent) bool {
 	switch event.Phase {
 	case touchPhaseBegan:
-		if event.Position.In(b.labelLoaded.systemSetFrame()) {
+		if event.Position.In(b.labelLoaded.systemSetBounds()) {
 			b.isPressed = true
 			return true
 		}
@@ -62,7 +62,7 @@ func (b *buttonImpl) HandleTouchEvent(event touchEvent) bool {
 	case touchPhaseEnded, touchPhaseCancelled:
 		if b.isPressed {
 			b.isPressed = false
-			if event.Position.In(b.labelLoaded.systemSetFrame()) {
+			if event.Position.In(b.labelLoaded.systemSetBounds()) {
 				b.action()
 			}
 			return true

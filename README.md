@@ -135,8 +135,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 - [x] Image
 - [x] Button
 - [x] Spacer
-- [] EmptyView
-- [ ] Circle
+- [x] EmptyView
+- [x] Circle
 - [x] Rectangle
 - [ ] Divider
 - [ ] Indicator

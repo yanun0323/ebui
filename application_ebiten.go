@@ -1,18 +1,16 @@
 package ebui
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 func EbitenUpdate(contentView SomeView) {
-	w, h := ebiten.WindowSize()
-	size := CGSize{float64(w), float64(h)}
-
 	// 1. 更新動畫
 	globalAnimationManager.Update()
 
 	// 2. 處理狀態更新
 	if globalStateManager.isDirty() {
-		resetLayout(contentView, size)
-		globalStateManager.clearDirty()
+		resetLayout(contentView)
 	}
 
 	// 3. 處理輸入事件
@@ -40,9 +38,11 @@ func EbitenUpdate(contentView SomeView) {
 	}
 }
 
-func resetLayout(contentView SomeView, size CGSize) {
-	_, _, layoutFn := contentView.preload()
-	_ = layoutFn(CGPoint{}, size)
+func resetLayout(contentView SomeView) {
+	bounds := globalStateManager.GetBounds()
+	_, _, layoutFn := contentView.preload(nil)
+	_ = layoutFn(bounds.Start, bounds.Size())
+	globalStateManager.clearDirty()
 }
 
 func EbitenDraw(screen *ebiten.Image, contentView SomeView) {

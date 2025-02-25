@@ -10,16 +10,17 @@ const (
 
 type formulaStack struct {
 	types    formulaType
-	stackCtx *ctx
+	stackCtx *viewCtx
 	children []SomeView
 }
 
-func (v *formulaStack) preload() (flexibleSize, CGInset, layoutFunc) {
+func (v *formulaStack) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
+	stackEnv := v.stackCtx.inheritFrom(parent)
 	childrenSummedBounds := NewSize(0, 0)
 	childrenLayoutFns := make([]layoutFunc, 0, len(v.children))
 	flexCount := NewPoint(0, 0)
 	for _, child := range v.children {
-		childFrame, childInset, layoutFn := child.preload()
+		childFrame, childInset, layoutFn := child.preload(stackEnv)
 		childFrameSize := childFrame.Frame
 
 		if childFrame.IsSpacer {
@@ -64,7 +65,7 @@ func (v *formulaStack) preload() (flexibleSize, CGInset, layoutFunc) {
 		}
 	}
 
-	sSize, sInset, sLayoutFn := v.stackCtx.preload()
+	sSize, sInset, sLayoutFn := v.stackCtx.preload(stackEnv)
 	{
 		// 如果 Stack 本身沒有設定大小
 		// 		-> 有彈性子視圖：使用無限大小

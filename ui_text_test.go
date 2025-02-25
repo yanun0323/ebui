@@ -9,10 +9,9 @@ import (
 
 func newTextForTest(content string) *textImpl {
 	v := &textImpl{
-		content: Bind(content),
-		face:    createDefaultFace(),
+		content: Const(content),
 	}
-	v.ctx = newViewContext(v)
+	v.viewCtx = newViewContext(v)
 	return v
 }
 
@@ -29,9 +28,9 @@ func (su *TextSuite) Test() {
 	t := newTextForTest(content)
 
 	height := t.fontLineHeight.Get()
-	w, h := text.Measure(content, t.face, height)
+	w, h := text.Measure(content, t.face(), height)
 
-	frameSize, padding, layoutFn := t.preload()
+	frameSize, padding, layoutFn := t.preload(nil)
 	su.Equal(NewSize(w, h), frameSize.Frame)
 	su.Equal(NewInset(0, 0, 0, 0), padding)
 

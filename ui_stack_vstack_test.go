@@ -18,7 +18,7 @@ func newVStackForTest(children ...SomeView) *vstackImpl {
 	vstack := &vstackImpl{
 		children: children,
 	}
-	vstack.ctx = newViewContext(vstack)
+	vstack.viewCtx = newViewContext(vstack)
 	return vstack
 }
 
@@ -27,11 +27,11 @@ func (su *TestVStackSuite) TestVStack() {
 		rect1 := newRectangleForTest()
 		rect2 := newRectangleForTest()
 		vstack := newVStackForTest(
-			rect1.Frame(Bind(100.0), Bind(100.0)),
-			rect2.Frame(Bind(200.0), Bind(200.0)),
+			rect1.Frame(Bind(NewSize(100, 100))),
+			rect2.Frame(Bind(NewSize(200, 200))),
 		)
 
-		size, inset, layoutFn := vstack.preload()
+		size, inset, layoutFn := vstack.preload(nil)
 		su.Equal(NewSize(200, 300), size.Frame)
 		su.Equal(false, size.IsInfX)
 		su.Equal(false, size.IsInfY)
@@ -59,11 +59,11 @@ func (su *TestVStackSuite) TestVStack() {
 		rect1 := newRectangleForTest()
 		rect2 := newRectangleForTest()
 		vstack := newVStackForTest(
-			rect1.Frame(Bind(100.0), Bind(100.0)),
-			rect2.Frame(Bind(200.0), Bind(200.0)),
+			rect1.Frame(Bind(NewSize(100, 100))),
+			rect2.Frame(Bind(NewSize(200, 200))),
 		).Padding(Bind(CGInset{15, 15, 15, 15}))
 
-		size, inset, layoutFn := vstack.preload()
+		size, inset, layoutFn := vstack.preload(nil)
 		su.Equal(NewSize(200, 300), size.Frame)
 		su.Equal(false, size.IsInfX)
 		su.Equal(false, size.IsInfY)
@@ -91,11 +91,11 @@ func (su *TestVStackSuite) TestVStack() {
 		rect1 := newRectangleForTest()
 		rect2 := newRectangleForTest()
 		vstack := newVStackForTest(
-			rect1.Frame(Bind(100.0), Bind(100.0)),
-			rect2.Frame(nil, Bind(200.0)),
+			rect1.Frame(Bind(NewSize(100, 100))),
+			rect2.Frame(Bind(NewSize(Inf, 200))),
 		)
 
-		size, inset, layoutFn := vstack.preload()
+		size, inset, layoutFn := vstack.preload(nil)
 		su.Equal(NewSize(100, 300), size.Frame)
 		su.Equal(true, size.IsInfX)
 		su.Equal(false, size.IsInfY)
@@ -123,11 +123,11 @@ func (su *TestVStackSuite) TestVStack() {
 		rect1 := newRectangleForTest()
 		rect2 := newRectangleForTest()
 		vstack := newVStackForTest(
-			rect1.Frame(Bind(100.0), Bind(100.0)),
-			rect2.Frame(Bind(200.0), nil),
+			rect1.Frame(Bind(NewSize(100, 100))),
+			rect2.Frame(Bind(NewSize(200.0, Inf))),
 		)
 
-		size, inset, layoutFn := vstack.preload()
+		size, inset, layoutFn := vstack.preload(nil)
 		su.Equal(NewSize(200, 100), size.Frame)
 		su.Equal(false, size.IsInfX)
 		su.Equal(true, size.IsInfY)
@@ -156,16 +156,16 @@ func (su *TestVStackSuite) TestVStack() {
 		rect2 := newRectangleForTest()
 		rect3 := newRectangleForTest()
 		vstack := newVStackForTest(
-			rect1.Frame(Bind(300.0), Bind(100.0)),
-			rect2.Frame(Bind(100.0), nil),
-			rect3.Frame(Bind(100.0), nil).Padding(Bind(CGInset{15, 15, 15, 15})),
+			rect1.Frame(Bind(NewSize(300, 100))),
+			rect2.Frame(Bind(NewSize(100, Inf))),
+			rect3.Frame(Bind(NewSize(100, Inf))).Padding(Bind(CGInset{15, 15, 15, 15})),
 		).Padding(Bind(CGInset{10, 10, 10, 10}))
 
 		// Y: (500-(10*2)-(100)-(15*2))/2 = (500-20-100-30)/2 = 350/2 = 175
 		// FlexY: 175
 
-		size, inset, layoutFn := vstack.preload()
-		su.Equal(NewSize(300, 130), size.Frame)
+		size, inset, layoutFn := vstack.preload(nil)
+		su.Equal(NewSize(300, 0), size.Frame)
 		su.Equal(false, size.IsInfX)
 		su.Equal(true, size.IsInfY)
 		su.Equal(NewInset(10, 10, 10, 10), inset)
@@ -189,7 +189,7 @@ func (su *TestVStackSuite) TestVStack() {
 
 		frame3 := rect3.systemSetFrame()
 		su.Equal(NewPoint(25, 300.0), frame3.Start)
-		su.Equal(NewPoint(125.0, 475.0), frame3.End)
+		su.Equal(NewPoint(125.0, 445.0), frame3.End)
 	}
 
 	{
@@ -198,11 +198,11 @@ func (su *TestVStackSuite) TestVStack() {
 		rect3 := newRectangleForTest()
 		vstack := newVStackForTest(
 			rect1,
-			rect2.Frame(Bind(100.0), Bind(100.0)),
+			rect2.Frame(Bind(NewSize(100, 100))),
 			rect3,
 		)
 
-		_, _, layoutFn := vstack.preload()
+		_, _, layoutFn := vstack.preload(nil)
 		layoutFn(NewPoint(0, 0), NewSize(500, 500))
 
 		frameVstack := vstack.systemSetFrame()

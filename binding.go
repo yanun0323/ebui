@@ -13,6 +13,19 @@ type noCopy struct{}
 func (*noCopy) Lock()   {}
 func (*noCopy) Unlock() {}
 
+func Const[T comparable](value T) *Binding[T] {
+	return &Binding[T]{
+		getter: func() T { return value },
+		setter: func(T) {},
+	}
+}
+
+type constant[T comparable] struct{ value T }
+
+func (c constant[T]) Get() T           { return c.value }
+func (constant[T]) Set(T)              {}
+func (constant[T]) AddListener(func()) {}
+
 func Bind[T comparable](initialValue ...T) *Binding[T] {
 	var value T
 	if len(initialValue) != 0 {
@@ -60,7 +73,7 @@ func (b *Binding[T]) Set(v T) {
 	}
 }
 
-func (b *Binding[T]) addListener(listener func()) {
+func (b *Binding[T]) AddListener(listener func()) {
 	if b == nil {
 		return
 	}
@@ -76,4 +89,20 @@ func (b *Binding[T]) notifyListeners() {
 	for _, listener := range b.listeners {
 		listener()
 	}
+}
+
+func (b *Binding[T]) Combine(other *Binding[T], combine func(T, T) T) *Binding[T] {
+	if b == nil {
+		return other
+	}
+
+	if other == nil {
+		return b
+	}
+
+	return BindFunc(func() T {
+		return combine(b.Get(), other.Get())
+	}, func(v T) {
+		// do nothing
+	})
 }

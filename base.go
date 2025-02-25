@@ -19,8 +19,8 @@ type AnyColor color.Color
 // NewColor uses a traditional 32-bit alpha-premultiplied color, having 8 bits for each of red, green, blue and alpha.
 //
 // An alpha-premultiplied color component C has been scaled by alpha (A), so has valid values 0 <= C <= A.
-func NewColor(r, g, b, a uint8) AnyColor {
-	return AnyColor(color.RGBA{r, g, b, a})
+func NewColor[Number numberable](r, g, b, a Number) AnyColor {
+	return AnyColor(color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)})
 }
 
 // CGPoint represents a coordinate in 2D space.
@@ -222,6 +222,14 @@ func NewInset[Number numberable](top, right, bottom, left Number) CGInset {
 	return CGInset{Top: float64(top), Right: float64(right), Bottom: float64(bottom), Left: float64(left)}
 }
 
+func (i CGInset) Add(other CGInset) CGInset {
+	return CGInset{
+		Top:    i.Top + other.Top,
+		Right:  i.Right + other.Right,
+		Bottom: i.Bottom + other.Bottom,
+		Left:   i.Left + other.Left,
+	}
+}
 func (i CGInset) MaxBounds(other CGInset) CGInset {
 	return CGInset{
 		Top:    max(i.Top, other.Top),

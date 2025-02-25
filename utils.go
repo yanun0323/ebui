@@ -21,10 +21,9 @@ func someViews(views ...View) []SomeView {
 
 // 繪製圓角矩形色塊
 func drawRoundedRect(screen *ebiten.Image, bounds CGRect, radius float64, col color.Color, op *ebiten.DrawImageOptions) {
-	scale := 3.0
-	w := int(bounds.Dx() * scale)
-	h := int(bounds.Dy() * scale)
-	r := int(radius * scale)
+	w := int(bounds.Dx() * _roundedScale)
+	h := int(bounds.Dy() * _roundedScale)
+	r := int(radius * _roundedScale)
 
 	img := ebiten.NewImage(w, h)
 	img.Fill(col)
@@ -58,7 +57,7 @@ func drawRoundedRect(screen *ebiten.Image, bounds CGRect, radius float64, col co
 	}
 
 	opt := &ebiten.DrawImageOptions{}
-	opt.GeoM.Scale(1/scale, 1/scale)
+	opt.GeoM.Scale(_roundedScaleInverse, _roundedScaleInverse)
 	opt.Filter = ebiten.FilterLinear
 	opt.GeoM.Concat(op.GeoM)
 	opt.ColorScale.ScaleWithColorScale(op.ColorScale)

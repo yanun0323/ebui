@@ -1,11 +1,11 @@
 package ebui
 
 type rectangleImpl struct {
-	*ctx
+	*viewCtx
 }
 
 func Rectangle() SomeView {
 	rect := &rectangleImpl{}
-	rect.ctx = newViewContext(rect)
+	rect.viewCtx = newViewContext(rect)
 	return rect
 }

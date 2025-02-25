@@ -21,6 +21,10 @@ func (sm *stateManager) isDirty() bool {
 	return sm.dirty
 }
 
+func (sm *stateManager) GetBounds() CGRect {
+	return sm.bounds
+}
+
 func (sm *stateManager) SetBounds(bounds CGRect) {
 	if sm.bounds != bounds {
 		sm.bounds = bounds

@@ -6,16 +6,16 @@ import (
 
 // Spacer 元件
 type spacerImpl struct {
-	*ctx
+	*viewCtx
 }
 
 func Spacer() SomeView {
 	sp := &spacerImpl{}
-	sp.ctx = newViewContext(sp)
+	sp.viewCtx = newViewContext(sp)
 	return sp
 }
 
-func (*spacerImpl) preload() (flexibleSize, CGInset, layoutFunc) {
+func (*spacerImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
 	return newFlexibleSize(Inf, Inf, true), NewInset(0, 0, 0, 0), nil
 }
 

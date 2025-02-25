@@ -9,7 +9,7 @@ import (
 )
 
 type imageImpl struct {
-	*ctx
+	*viewCtx
 
 	image *Binding[*ebiten.Image]
 }
@@ -20,11 +20,11 @@ func Image[T string | *ebiten.Image](img *Binding[T]) SomeView {
 		v := &imageImpl{
 			image: content,
 		}
-		v.ctx = newViewContext(v)
+		v.viewCtx = newViewContext(v)
 		return v
 	case *Binding[string]:
 		var img *ebiten.Image
-		content.addListener(func() {
+		content.AddListener(func() {
 			img = getImage(content.Get())
 		})
 		constraint := BindFunc(func() *ebiten.Image {
@@ -45,13 +45,13 @@ func Image[T string | *ebiten.Image](img *Binding[T]) SomeView {
 }
 
 func (v *imageImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-	op := v.ctx.draw(screen, hook...)
+	op := v.viewCtx.draw(screen, hook...)
 	img := v.image.Get()
 	if img == nil {
 		return op
 	}
 
-	frame := v.ctx.systemSetFrame()
+	frame := v.viewCtx.systemSetFrame()
 	if !frame.drawable() {
 		return op
 	}
@@ -72,11 +72,11 @@ func (v *imageImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpt
 
 func (v *imageImpl) getScale(frameSize, imgSize CGSize) CGPoint {
 	scale := NewPoint(1, 1)
-	if !v.ctx.scaleToFit.Get() {
+	if !v.viewCtx.scaleToFit.Get() {
 		return scale
 	}
 
-	keepAspectRatio := v.ctx.keepAspectRatio.Get()
+	keepAspectRatio := v.viewCtx.keepAspectRatio.Get()
 	if !keepAspectRatio {
 		return NewPoint(frameSize.Width/imgSize.Width, frameSize.Height/imgSize.Height)
 	}
