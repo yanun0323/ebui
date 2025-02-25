@@ -29,6 +29,7 @@ type Point struct {
 	Y float64
 }
 
+// CGPoint creates a Point from any numberable type.
 func CGPoint[Number numberable](x, y Number) Point {
 	return Point{X: float64(x), Y: float64(y)}
 }
@@ -83,6 +84,7 @@ type Size struct {
 	Height float64
 }
 
+// CGSize creates a Size from any numberable type.
 func CGSize[Number numberable](width, height Number) Size {
 	return Size{Width: max(float64(width), 0), Height: max(float64(height), 0)}
 }
@@ -149,6 +151,7 @@ type Rect struct {
 	End   Point
 }
 
+// CGRect creates a Rect from any numberable type.
 func CGRect[Number numberable](minX, minY, maxX, maxY Number) Rect {
 	return Rect{
 		Start: Point{X: float64(minX), Y: float64(minY)},
@@ -214,6 +217,7 @@ type Inset struct {
 	Left   float64
 }
 
+// CGInset creates an Inset from any numberable type.
 func CGInset[Number numberable](top, right, bottom, left Number) Inset {
 	return Inset{Top: float64(top), Right: float64(right), Bottom: float64(bottom), Left: float64(left)}
 }
