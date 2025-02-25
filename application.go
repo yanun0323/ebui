@@ -8,11 +8,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-const (
-	_defaultWidth  = 500
-	_defaultHeight = 500
-)
-
 type windowResizingMode int
 
 var (

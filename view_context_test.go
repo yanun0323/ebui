@@ -81,7 +81,7 @@ func (su *ViewContextSuite) TestPreload() {
 
 	{ // 沒有設定大小，有設定 padding
 		ctx := newTestViewContextForTest()
-		ctx.Padding(Bind(10.0))
+		ctx.Padding(Bind(CGInset{10, 10, 10, 10}))
 
 		s, inset, layoutFn := ctx.preload()
 		su.Equal(Size(0, 0), s.Frame)
@@ -117,7 +117,7 @@ func (su *ViewContextSuite) TestPreload() {
 	{ // 設定大小，有設定 padding
 		ctx := newTestViewContextForTest()
 		ctx.Frame(Bind(100.0), Bind(100.0))
-		ctx.Padding(Bind(10.0))
+		ctx.Padding(Bind(CGInset{10, 10, 10, 10}))
 
 		s, inset, layoutFn := ctx.preload()
 		su.Equal(100.0, s.Frame.Width)

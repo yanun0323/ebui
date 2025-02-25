@@ -67,29 +67,29 @@ func drawRoundedRect(screen *ebiten.Image, bounds CGRect, radius float64, col co
 	screen.DrawImage(img, opt)
 }
 
-// 數值限制函數
-func clamp(v, min, max int) int {
-	if v < min {
-		return min
-	}
-	if v > max {
-		return max
-	}
-	return v
-}
+// // 數值限制函數
+// func clamp(v, min, max int) int {
+// 	if v < min {
+// 		return min
+// 	}
+// 	if v > max {
+// 		return max
+// 	}
+// 	return v
+// }
 
-// 浮點數值限制函數
-func clampF(v, min, max float64) float64 {
-	if v < min {
-		return min
-	}
-	if v > max {
-		return max
-	}
-	return v
-}
+// // 浮點數值限制函數
+// func clampF(v, min, max float64) float64 {
+// 	if v < min {
+// 		return min
+// 	}
+// 	if v > max {
+// 		return max
+// 	}
+// 	return v
+// }
 
-func dp(value float64) float64 {
-	// 這裡可以根據螢幕 DPI 進行調整
-	return value
-}
+// func dp(value float64) float64 {
+// 	// 這裡可以根據螢幕 DPI 進行調整
+// 	return value
+// }

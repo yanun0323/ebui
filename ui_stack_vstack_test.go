@@ -61,7 +61,7 @@ func (su *TestVStackSuite) TestVStack() {
 		vstack := newVStackForTest(
 			rect1.Frame(Bind(100.0), Bind(100.0)),
 			rect2.Frame(Bind(200.0), Bind(200.0)),
-		).Padding(Bind(15.0))
+		).Padding(Bind(CGInset{15, 15, 15, 15}))
 
 		size, inset, layoutFn := vstack.preload()
 		su.Equal(Size(200, 300), size.Frame)
@@ -158,8 +158,8 @@ func (su *TestVStackSuite) TestVStack() {
 		vstack := newVStackForTest(
 			rect1.Frame(Bind(300.0), Bind(100.0)),
 			rect2.Frame(Bind(100.0), nil),
-			rect3.Frame(Bind(100.0), nil).Padding(Bind(15.0)),
-		).Padding(Bind(10.0))
+			rect3.Frame(Bind(100.0), nil).Padding(Bind(CGInset{15, 15, 15, 15})),
+		).Padding(Bind(CGInset{10, 10, 10, 10}))
 
 		// Y: (500-(10*2)-(100)-(15*2))/2 = (500-20-100-30)/2 = 350/2 = 175
 		// FlexY: 175
