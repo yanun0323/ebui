@@ -39,7 +39,7 @@ func createDefaultFace() text.Face {
 	return face
 }
 
-func (t *textImpl) userSetFrameSize() flexibleCGSize {
+func (t *textImpl) userSetFrameSize() flexibleSize {
 	ctxUserSetFrameSize := t.ctx.userSetFrameSize()
 	w, h := text.Measure(t.content.Get(), t.face, t.ctx.fontLineHeight.Get())
 
@@ -56,10 +56,10 @@ func (t *textImpl) userSetFrameSize() flexibleCGSize {
 	return ctxUserSetFrameSize
 }
 
-func (t *textImpl) preload() (flexibleCGSize, CGInset, layoutFunc) {
+func (t *textImpl) preload() (flexibleSize, Inset, layoutFunc) {
 	frameSize, padding, layoutFn := t.ctx.preload()
 	w, h := text.Measure(t.content.Get(), t.face, t.ctx.fontLineHeight.Get())
-	return frameSize, padding, func(start CGPoint, flexFrameSize CGSize) CGRect {
+	return frameSize, padding, func(start Point, flexFrameSize Size) Rect {
 		if isInf(flexFrameSize.Width) {
 			flexFrameSize.Width = w
 		}

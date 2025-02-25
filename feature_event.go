@@ -21,7 +21,7 @@ const (
 
 type touchEvent struct {
 	Phase    touchPhase
-	Position CGPoint
+	Position Point
 }
 
 type keyEvent struct {

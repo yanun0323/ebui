@@ -23,13 +23,13 @@ const (
 type ctx struct {
 	_owner          SomeView
 	_tag            string
-	_systemSetFrame CGRect // 不包含 Padding 的內部邊界
+	_systemSetFrame Rect // 不包含 Padding 的內部邊界
 
 	frameWidth      *Binding[float64]
 	frameHeight     *Binding[float64]
-	padding         *Binding[CGInset]
-	backgroundColor *Binding[color.Color]
-	foregroundColor *Binding[color.Color]
+	padding         *Binding[Inset]
+	backgroundColor *Binding[Color]
+	foregroundColor *Binding[Color]
 
 	fontSize          *Binding[font.Size]
 	fontWeight        *Binding[font.Weight]
@@ -50,10 +50,10 @@ func newViewContext(owner SomeView) *ctx {
 
 		frameWidth:      Bind(Inf),
 		frameHeight:     Bind(Inf),
-		_systemSetFrame: CGRect{},
-		padding:         Bind(CGInset{}),
-		backgroundColor: Bind[color.Color](nil),
-		foregroundColor: Bind[color.Color](color.White),
+		_systemSetFrame: Rect{},
+		padding:         Bind(Inset{}),
+		backgroundColor: Bind[Color](nil),
+		foregroundColor: Bind[Color](color.White),
 
 		fontSize:          Bind(font.Body),
 		fontWeight:        Bind(font.Normal),
@@ -67,16 +67,16 @@ func (ctx *ctx) Body() SomeView {
 	return ctx._owner
 }
 
-func (ctx *ctx) userSetFrameSize() flexibleCGSize {
-	return newFlexibleCGSize(ctx.frameWidth.Get(), ctx.frameHeight.Get())
+func (ctx *ctx) userSetFrameSize() flexibleSize {
+	return newFlexibleSize(ctx.frameWidth.Get(), ctx.frameHeight.Get())
 }
 
 // systemSetFrame 回傳的是內部邊界
-func (ctx *ctx) systemSetFrame() CGRect {
+func (ctx *ctx) systemSetFrame() Rect {
 	return ctx._systemSetFrame
 }
 
-func (ctx *ctx) debugPrint(frame CGRect) {
+func (ctx *ctx) debugPrint(frame Rect) {
 	if len(ctx._tag) != 0 {
 		logf("\x1b[35m[%s]\x1b[0m\tStart(%4.f, %4.f)\tEnd(%4.f, %4.f)\tSize(%4.f, %4.f)",
 			ctx._tag,
@@ -87,11 +87,11 @@ func (ctx *ctx) debugPrint(frame CGRect) {
 	}
 }
 
-func (ctx *ctx) preload() (flexibleCGSize, CGInset, layoutFunc) {
+func (ctx *ctx) preload() (flexibleSize, Inset, layoutFunc) {
 	padding := ctx.padding.Get()
 	userSetFrameSize := ctx._owner.userSetFrameSize()
-	return userSetFrameSize, padding, func(start CGPoint, flexFrameSize CGSize) CGRect {
-		finalFrame := CGRect{start, start.Add(flexFrameSize.ToCGPoint())}
+	return userSetFrameSize, padding, func(start Point, flexFrameSize Size) Rect {
+		finalFrame := Rect{start, start.Add(flexFrameSize.ToCGPoint())}
 		finalFrameSize := userSetFrameSize
 		if !finalFrameSize.IsInfX {
 			finalFrame.End.X = start.X + finalFrameSize.Frame.Width
@@ -101,7 +101,7 @@ func (ctx *ctx) preload() (flexibleCGSize, CGInset, layoutFunc) {
 			finalFrame.End.Y = start.Y + finalFrameSize.Frame.Height
 		}
 
-		ctx._systemSetFrame = Rect(
+		ctx._systemSetFrame = CGRect(
 			finalFrame.Start.X+padding.Left,
 			finalFrame.Start.Y+padding.Top,
 			finalFrame.End.X+padding.Left,
@@ -160,20 +160,20 @@ func (ctx *ctx) Frame(width *Binding[float64], height *Binding[float64]) SomeVie
 }
 
 // Padding 修飾器
-func (ctx *ctx) Padding(padding *Binding[CGInset]) SomeView {
+func (ctx *ctx) Padding(padding *Binding[Inset]) SomeView {
 	ctx.padding = padding
 	return ctx._owner
 }
 
-// BackgroundColor 修飾器
-func (ctx *ctx) BackgroundColor(color *Binding[color.Color]) SomeView {
-	ctx.backgroundColor = color
+// ForegroundColor 修飾器
+func (ctx *ctx) ForegroundColor(color *Binding[Color]) SomeView {
+	ctx.foregroundColor = color
 	return ctx._owner
 }
 
-// ForegroundColor 修飾器
-func (ctx *ctx) ForegroundColor(color *Binding[color.Color]) SomeView {
-	ctx.foregroundColor = color
+// BackgroundColor 修飾器
+func (ctx *ctx) BackgroundColor(color *Binding[Color]) SomeView {
+	ctx.backgroundColor = color
 	return ctx._owner
 }
 

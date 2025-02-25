@@ -27,11 +27,11 @@ const (
 type gestureEvent struct {
 	Type      gestureType
 	State     gestureState
-	Location  CGPoint
-	Delta     CGPoint
+	Location  Point
+	Delta     Point
 	Scale     float64 // 用於捏合手勢
 	Rotation  float64 // 用於旋轉手勢
-	Velocity  CGPoint
+	Velocity  Point
 	Timestamp time.Time
 }
 
@@ -40,10 +40,10 @@ type gestureRecognizer struct {
 
 	// 內部狀態
 	startTime   time.Time
-	startPos    CGPoint
-	lastPos     CGPoint
+	startPos    Point
+	lastPos     Point
 	lastTime    time.Time
-	touchPoints []CGPoint
+	touchPoints []Point
 	isTracking  bool
 }
 
@@ -81,7 +81,7 @@ func (gr *gestureRecognizer) startTracking(event touchEvent) {
 	gr.startPos = event.Position
 	gr.lastPos = event.Position
 	gr.lastTime = gr.startTime
-	gr.touchPoints = []CGPoint{event.Position}
+	gr.touchPoints = []Point{event.Position}
 }
 
 func (gr *gestureRecognizer) updateTracking(event touchEvent) {
@@ -90,7 +90,7 @@ func (gr *gestureRecognizer) updateTracking(event touchEvent) {
 
 	// 計算速度
 	duration := now.Sub(gr.lastTime).Seconds()
-	velocity := CGPoint{
+	velocity := Point{
 		X: delta.X / duration,
 		Y: delta.Y / duration,
 	}

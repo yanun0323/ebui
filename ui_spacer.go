@@ -15,8 +15,8 @@ func Spacer() SomeView {
 	return sp
 }
 
-func (*spacerImpl) preload() (flexibleCGSize, CGInset, layoutFunc) {
-	return newFlexibleCGSize(Inf, Inf, true), Inset(0, 0, 0, 0), nil
+func (*spacerImpl) preload() (flexibleSize, Inset, layoutFunc) {
+	return newFlexibleSize(Inf, Inf, true), CGInset(0, 0, 0, 0), nil
 }
 
 func (*spacerImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {

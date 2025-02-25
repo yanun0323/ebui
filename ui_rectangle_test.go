@@ -29,6 +29,6 @@ func (su *RectangleSuite) Test() {
 	su.Equal(100.0, s.Frame.Height)
 
 	r := rect.ctx.systemSetFrame()
-	su.Equal(ptZero, r.Start)
-	su.Equal(ptZero, r.End)
+	su.Equal(Point{}, r.Start)
+	su.Equal(Point{}, r.End)
 }

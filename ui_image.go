@@ -57,7 +57,7 @@ func (v *imageImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpt
 	}
 
 	frameSize := frame.Size()
-	imgSize := Size(float64(img.Bounds().Dx()), float64(img.Bounds().Dy()))
+	imgSize := CGSize(float64(img.Bounds().Dx()), float64(img.Bounds().Dy()))
 	scale := v.getScale(frameSize, imgSize)
 
 	opt := &ebiten.DrawImageOptions{}
@@ -70,15 +70,15 @@ func (v *imageImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpt
 	return opt
 }
 
-func (v *imageImpl) getScale(frameSize, imgSize CGSize) CGPoint {
-	scale := Point(1, 1)
+func (v *imageImpl) getScale(frameSize, imgSize Size) Point {
+	scale := CGPoint(1, 1)
 	if !v.ctx.scaleToFit.Get() {
 		return scale
 	}
 
 	keepAspectRatio := v.ctx.keepAspectRatio.Get()
 	if !keepAspectRatio {
-		return Point(frameSize.Width/imgSize.Width, frameSize.Height/imgSize.Height)
+		return CGPoint(frameSize.Width/imgSize.Width, frameSize.Height/imgSize.Height)
 	}
 
 	scaleX := frameSize.Width / imgSize.Width
@@ -88,7 +88,7 @@ func (v *imageImpl) getScale(frameSize, imgSize CGSize) CGPoint {
 		s = scaleY
 	}
 
-	return Point(s, s)
+	return CGPoint(s, s)
 }
 
 func getImage(filename string) *ebiten.Image {

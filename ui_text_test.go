@@ -32,12 +32,12 @@ func (su *TextSuite) Test() {
 	w, h := text.Measure(content, t.face, height)
 
 	frameSize, padding, layoutFn := t.preload()
-	su.Equal(Size(w, h), frameSize.Frame)
-	su.Equal(Inset(0, 0, 0, 0), padding)
+	su.Equal(CGSize(w, h), frameSize.Frame)
+	su.Equal(CGInset(0, 0, 0, 0), padding)
 
-	bound := layoutFn(Point(0, 0), Size(500.0, 500.0))
-	su.Equal(Point(0, 0), bound.Start)
-	su.Equal(Point(w, h), bound.End)
+	bound := layoutFn(CGPoint(0, 0), CGSize(500.0, 500.0))
+	su.Equal(CGPoint(0, 0), bound.Start)
+	su.Equal(CGPoint(w, h), bound.End)
 
-	su.Equal(Size(w, h), t.systemSetFrame().Size())
+	su.Equal(CGSize(w, h), t.systemSetFrame().Size())
 }

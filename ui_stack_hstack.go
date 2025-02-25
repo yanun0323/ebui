@@ -19,7 +19,7 @@ type hstackImpl struct {
 	children []SomeView
 }
 
-func (h *hstackImpl) preload() (flexibleCGSize, CGInset, layoutFunc) {
+func (h *hstackImpl) preload() (flexibleSize, Inset, layoutFunc) {
 	StackFormula := &formulaStack{
 		types:    formulaHStack,
 		stackCtx: h.ctx,
