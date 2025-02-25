@@ -18,7 +18,7 @@ type vstackImpl struct {
 	children []SomeView
 }
 
-func (v *vstackImpl) preload() (flexibleSize, Inset, layoutFunc) {
+func (v *vstackImpl) preload() (flexibleSize, CGInset, layoutFunc) {
 	StackFormula := &formulaStack{
 		types:    formulaVStack,
 		stackCtx: v.ctx,

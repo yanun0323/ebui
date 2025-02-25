@@ -32,8 +32,8 @@ func (su *ViewContextSuite) TestSetFrame() {
 		su.True(s.IsInfY)
 
 		r := ctx.systemSetFrame()
-		su.Equal(Point{}, r.Start)
-		su.Equal(Point{}, r.End)
+		su.Equal(CGPoint{}, r.Start)
+		su.Equal(CGPoint{}, r.End)
 	}
 	{
 		ctx := newTestViewContextForTest()
@@ -44,8 +44,8 @@ func (su *ViewContextSuite) TestSetFrame() {
 		su.Equal(100.0, s.Frame.Height)
 
 		r := ctx.systemSetFrame()
-		su.Equal(Point{}, r.Start)
-		su.Equal(Point{}, r.End)
+		su.Equal(CGPoint{}, r.Start)
+		su.Equal(CGPoint{}, r.End)
 	}
 
 	{
@@ -57,8 +57,8 @@ func (su *ViewContextSuite) TestSetFrame() {
 		su.Equal(100.0, s.Frame.Height)
 
 		r := ctx.systemSetFrame()
-		su.Equal(Point{}, r.Start)
-		su.Equal(Point{}, r.End)
+		su.Equal(CGPoint{}, r.Start)
+		su.Equal(CGPoint{}, r.End)
 	}
 }
 
@@ -69,32 +69,32 @@ func (su *ViewContextSuite) TestPreload() {
 		s, inset, layoutFn := ctx.preload()
 		su.True(s.IsInfX)
 		su.True(s.IsInfY)
-		su.Equal(CGInset(0, 0, 0, 0), inset)
+		su.Equal(NewInset(0, 0, 0, 0), inset)
 		su.NotNil(layoutFn)
 
-		res := layoutFn(Point{}, CGSize(500, 500))
-		su.Equal(Point{}, res.Start)
-		su.Equal(CGPoint(500, 500), res.End)
+		res := layoutFn(CGPoint{}, NewSize(500, 500))
+		su.Equal(CGPoint{}, res.Start)
+		su.Equal(NewPoint(500, 500), res.End)
 
-		su.Equal(CGRect(0, 0, 500, 500), ctx.systemSetFrame())
+		su.Equal(NewRect(0, 0, 500, 500), ctx.systemSetFrame())
 	}
 
 	{ // 沒有設定大小，有設定 padding
 		ctx := newTestViewContextForTest()
-		ctx.Padding(Bind(Inset{10, 10, 10, 10}))
+		ctx.Padding(Bind(CGInset{10, 10, 10, 10}))
 
 		s, inset, layoutFn := ctx.preload()
-		su.Equal(CGSize(0, 0), s.Frame)
+		su.Equal(NewSize(0, 0), s.Frame)
 		su.True(s.IsInfX)
 		su.True(s.IsInfY)
-		su.Equal(CGInset(10, 10, 10, 10), inset)
+		su.Equal(NewInset(10, 10, 10, 10), inset)
 		su.NotNil(layoutFn)
 
-		res := layoutFn(Point{}, CGSize(500, 500))
-		su.Equal(CGPoint(0, 0), res.Start)
-		su.Equal(CGPoint(520, 520), res.End)
+		res := layoutFn(CGPoint{}, NewSize(500, 500))
+		su.Equal(NewPoint(0, 0), res.Start)
+		su.Equal(NewPoint(520, 520), res.End)
 
-		su.Equal(CGRect(10, 10, 510, 510), ctx.systemSetFrame())
+		su.Equal(NewRect(10, 10, 510, 510), ctx.systemSetFrame())
 	}
 
 	{ // 設定大小
@@ -104,31 +104,31 @@ func (su *ViewContextSuite) TestPreload() {
 		s, inset, layoutFn := ctx.preload()
 		su.Equal(100.0, s.Frame.Width)
 		su.Equal(100.0, s.Frame.Height)
-		su.Equal(CGInset(0, 0, 0, 0), inset)
+		su.Equal(NewInset(0, 0, 0, 0), inset)
 		su.NotNil(layoutFn)
 
-		res := layoutFn(Point{}, CGSize(500, 500))
-		su.Equal(Point{}, res.Start)
-		su.Equal(CGPoint(100, 100), res.End)
+		res := layoutFn(CGPoint{}, NewSize(500, 500))
+		su.Equal(CGPoint{}, res.Start)
+		su.Equal(NewPoint(100, 100), res.End)
 
-		su.Equal(CGRect(0, 0, 100, 100), ctx.systemSetFrame())
+		su.Equal(NewRect(0, 0, 100, 100), ctx.systemSetFrame())
 	}
 
 	{ // 設定大小，有設定 padding
 		ctx := newTestViewContextForTest()
 		ctx.Frame(Bind(100.0), Bind(100.0))
-		ctx.Padding(Bind(Inset{10, 10, 10, 10}))
+		ctx.Padding(Bind(CGInset{10, 10, 10, 10}))
 
 		s, inset, layoutFn := ctx.preload()
 		su.Equal(100.0, s.Frame.Width)
 		su.Equal(100.0, s.Frame.Height)
-		su.Equal(CGInset(10, 10, 10, 10), inset)
+		su.Equal(NewInset(10, 10, 10, 10), inset)
 		su.NotNil(layoutFn)
 
-		res := layoutFn(Point{}, CGSize(500, 500))
-		su.Equal(Point{}, res.Start)
-		su.Equal(CGPoint(120, 120), res.End)
+		res := layoutFn(CGPoint{}, NewSize(500, 500))
+		su.Equal(CGPoint{}, res.Start)
+		su.Equal(NewPoint(120, 120), res.End)
 
-		su.Equal(CGRect(10, 10, 110, 110), ctx.systemSetFrame())
+		su.Equal(NewRect(10, 10, 110, 110), ctx.systemSetFrame())
 	}
 }

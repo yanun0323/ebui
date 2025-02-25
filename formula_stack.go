@@ -14,10 +14,10 @@ type formulaStack struct {
 	children []SomeView
 }
 
-func (v *formulaStack) preload() (flexibleSize, Inset, layoutFunc) {
-	childrenSummedBounds := CGSize(0, 0)
+func (v *formulaStack) preload() (flexibleSize, CGInset, layoutFunc) {
+	childrenSummedBounds := NewSize(0, 0)
 	childrenLayoutFns := make([]layoutFunc, 0, len(v.children))
-	flexCount := CGPoint(0, 0)
+	flexCount := NewPoint(0, 0)
 	for _, child := range v.children {
 		childFrame, childInset, layoutFn := child.preload()
 		childFrameSize := childFrame.Frame
@@ -26,13 +26,13 @@ func (v *formulaStack) preload() (flexibleSize, Inset, layoutFunc) {
 			switch v.types {
 			case formulaVStack:
 				flexCount.Y++
-				childrenLayoutFns = append(childrenLayoutFns, func(start Point, flexFrameSize Size) (bounds Rect) {
-					return Rect{start, CGPoint(start.X, start.Y+flexFrameSize.Height)}
+				childrenLayoutFns = append(childrenLayoutFns, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect) {
+					return CGRect{start, NewPoint(start.X, start.Y+flexFrameSize.Height)}
 				})
 			case formulaHStack:
 				flexCount.X++
-				childrenLayoutFns = append(childrenLayoutFns, func(start Point, flexFrameSize Size) (bounds Rect) {
-					return Rect{start, CGPoint(start.X+flexFrameSize.Width, start.Y)}
+				childrenLayoutFns = append(childrenLayoutFns, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect) {
+					return CGRect{start, NewPoint(start.X+flexFrameSize.Width, start.Y)}
 				})
 			}
 		} else {
@@ -51,11 +51,11 @@ func (v *formulaStack) preload() (flexibleSize, Inset, layoutFunc) {
 		{ // 計算子視圖大小總和
 			switch v.types {
 			case formulaVStack:
-				childrenSummedBounds = CGSize(max(childrenSummedBounds.Width, childBoundsSize.Width), childrenSummedBounds.Height+childBoundsSize.Height)
+				childrenSummedBounds = NewSize(max(childrenSummedBounds.Width, childBoundsSize.Width), childrenSummedBounds.Height+childBoundsSize.Height)
 			case formulaHStack:
-				childrenSummedBounds = CGSize(childrenSummedBounds.Width+childBoundsSize.Width, max(childrenSummedBounds.Height, childBoundsSize.Height))
+				childrenSummedBounds = NewSize(childrenSummedBounds.Width+childBoundsSize.Width, max(childrenSummedBounds.Height, childBoundsSize.Height))
 			case formulaZStack:
-				childrenSummedBounds = CGSize(max(childrenSummedBounds.Width, childBoundsSize.Width), max(childrenSummedBounds.Height, childBoundsSize.Height))
+				childrenSummedBounds = NewSize(max(childrenSummedBounds.Width, childBoundsSize.Width), max(childrenSummedBounds.Height, childBoundsSize.Height))
 			}
 		}
 
@@ -81,21 +81,21 @@ func (v *formulaStack) preload() (flexibleSize, Inset, layoutFunc) {
 		}
 	}
 
-	return sSize, sInset, func(start Point, flexFrameSize Size) (bounds Rect) {
+	return sSize, sInset, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect) {
 		perFlexFrameSize := flexFrameSize.Shrink(sInset)
 		{ // 計算彈性大小公式
 			switch v.types {
 			case formulaVStack:
 				hFlexSize := max(perFlexFrameSize.Height-childrenSummedBounds.Height, 0)
-				perFlexFrameSize = CGSize(perFlexFrameSize.Width, hFlexSize/max(flexCount.Y, 1))
+				perFlexFrameSize = NewSize(perFlexFrameSize.Width, hFlexSize/max(flexCount.Y, 1))
 			case formulaHStack:
 				wFlexSize := max(perFlexFrameSize.Width-childrenSummedBounds.Width, 0)
-				perFlexFrameSize = CGSize(wFlexSize/max(flexCount.X, 1), perFlexFrameSize.Height)
+				perFlexFrameSize = NewSize(wFlexSize/max(flexCount.X, 1), perFlexFrameSize.Height)
 			}
 		}
 
-		anchor := start.Add(CGPoint(sInset.Left, sInset.Top))
-		summedSize := CGSize(0, 0)
+		anchor := start.Add(NewPoint(sInset.Left, sInset.Top))
+		summedSize := NewSize(0, 0)
 
 		for _, childLayoutFn := range childrenLayoutFns {
 			childFrame := childLayoutFn(anchor, perFlexFrameSize)
@@ -103,14 +103,14 @@ func (v *formulaStack) preload() (flexibleSize, Inset, layoutFunc) {
 			{ // 計算子視圖的 layout 最後位置
 				switch v.types {
 				case formulaVStack:
-					anchor = CGPoint(anchor.X, childFrame.End.Y)
-					summedSize = CGSize(
+					anchor = NewPoint(anchor.X, childFrame.End.Y)
+					summedSize = NewSize(
 						max(summedSize.Width, childSize.Width),
 						summedSize.Height+childSize.Height,
 					)
 				case formulaHStack:
-					anchor = CGPoint(childFrame.End.X, anchor.Y)
-					summedSize = CGSize(
+					anchor = NewPoint(childFrame.End.X, anchor.Y)
+					summedSize = NewSize(
 						summedSize.Width+childSize.Width,
 						max(summedSize.Height, childSize.Height),
 					)

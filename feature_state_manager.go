@@ -2,11 +2,11 @@ package ebui
 
 type stateManager struct {
 	dirty  bool
-	bounds Rect
+	bounds CGRect
 }
 
 var globalStateManager = &stateManager{
-	bounds: CGRect(0, 0, 0, 0),
+	bounds: NewRect(0, 0, 0, 0),
 }
 
 func (sm *stateManager) markDirty() {
@@ -21,7 +21,7 @@ func (sm *stateManager) isDirty() bool {
 	return sm.dirty
 }
 
-func (sm *stateManager) SetBounds(bounds Rect) {
+func (sm *stateManager) SetBounds(bounds CGRect) {
 	if sm.bounds != bounds {
 		sm.bounds = bounds
 		sm.markDirty()

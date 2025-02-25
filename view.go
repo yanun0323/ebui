@@ -14,7 +14,7 @@ type View interface {
 //	start: 給這個 View 的起始座標
 //	flexFrameSize: 給這個 View 的內部邊界彈性大小
 //	bounds: 回傳實際佔用的空間(包含 padding 的最外圍邊界)
-type layoutFunc func(start Point, flexFrameSize Size) (bounds Rect)
+type layoutFunc func(start CGPoint, flexFrameSize CGSize) (bounds CGRect)
 
 // SomeView 是所有 View 的基礎介面
 type SomeView interface {
@@ -26,20 +26,20 @@ type SomeView interface {
 	// 		start: 給這個 View 的起始座標
 	// 		flexFrameSize: 給這個 View 的內部邊界彈性大小
 	// 		bounds: 回傳實際佔用的空間(包含 padding 的最外圍邊界)
-	preload() (frameSize flexibleSize, padding Inset, layoutFn layoutFunc)
+	preload() (frameSize flexibleSize, padding CGInset, layoutFn layoutFunc)
 
 	// draw 繪製 View
 	draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions
-	debugPrint(frame Rect)
+	debugPrint(frame CGRect)
 
 	userSetFrameSize() flexibleSize
-	systemSetFrame() Rect
+	systemSetFrame() CGRect
 
 	Debug(tag string) SomeView
 	Frame(width *Binding[float64], height *Binding[float64]) SomeView
-	Padding(padding *Binding[Inset]) SomeView
-	ForegroundColor(color *Binding[Color]) SomeView
-	BackgroundColor(color *Binding[Color]) SomeView
+	Padding(padding *Binding[CGInset]) SomeView
+	ForegroundColor(color *Binding[AnyColor]) SomeView
+	BackgroundColor(color *Binding[AnyColor]) SomeView
 	FontSize(size *Binding[font.Size]) SomeView
 	FontWeight(weight *Binding[font.Weight]) SomeView
 	FontLineHeight(height *Binding[float64]) SomeView

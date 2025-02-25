@@ -18,7 +18,7 @@ type zstackImpl struct {
 	children []SomeView
 }
 
-func (z *zstackImpl) preload() (flexibleSize, Inset, layoutFunc) {
+func (z *zstackImpl) preload() (flexibleSize, CGInset, layoutFunc) {
 	StackFormula := &formulaStack{
 		types:    formulaZStack,
 		stackCtx: z.ctx,

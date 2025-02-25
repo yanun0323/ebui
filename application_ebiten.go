@@ -4,7 +4,7 @@ import "github.com/hajimehoshi/ebiten/v2"
 
 func EbitenUpdate(contentView SomeView) {
 	w, h := ebiten.WindowSize()
-	size := Size{float64(w), float64(h)}
+	size := CGSize{float64(w), float64(h)}
 
 	// 1. 更新動畫
 	globalAnimationManager.Update()
@@ -18,7 +18,7 @@ func EbitenUpdate(contentView SomeView) {
 	// 3. 處理輸入事件
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
-		pos := CGPoint(float64(x), float64(y))
+		pos := NewPoint(float64(x), float64(y))
 
 		if !globalEventManager.isTracking {
 			globalEventManager.DispatchTouchEvent(touchEvent{
@@ -35,14 +35,14 @@ func EbitenUpdate(contentView SomeView) {
 		x, y := ebiten.CursorPosition()
 		globalEventManager.DispatchTouchEvent(touchEvent{
 			Phase:    touchPhaseEnded,
-			Position: CGPoint(float64(x), float64(y)),
+			Position: NewPoint(float64(x), float64(y)),
 		})
 	}
 }
 
-func resetLayout(contentView SomeView, size Size) {
+func resetLayout(contentView SomeView, size CGSize) {
 	_, _, layoutFn := contentView.preload()
-	_ = layoutFn(Point{}, size)
+	_ = layoutFn(CGPoint{}, size)
 }
 
 func EbitenDraw(screen *ebiten.Image, contentView SomeView) {
@@ -50,5 +50,5 @@ func EbitenDraw(screen *ebiten.Image, contentView SomeView) {
 }
 
 func EbitenLayout(outsideWidth, outsideHeight int) {
-	globalStateManager.SetBounds(CGRect(0, 0, outsideWidth, outsideHeight))
+	globalStateManager.SetBounds(NewRect(0, 0, outsideWidth, outsideHeight))
 }

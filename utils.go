@@ -20,7 +20,7 @@ func someViews(views ...View) []SomeView {
 }
 
 // 繪製圓角矩形色塊
-func drawRoundedRect(screen *ebiten.Image, bounds Rect, radius float64, col color.Color, op *ebiten.DrawImageOptions) {
+func drawRoundedRect(screen *ebiten.Image, bounds CGRect, radius float64, col color.Color, op *ebiten.DrawImageOptions) {
 	scale := 3.0
 	w := int(bounds.Dx() * scale)
 	h := int(bounds.Dy() * scale)

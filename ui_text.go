@@ -56,10 +56,10 @@ func (t *textImpl) userSetFrameSize() flexibleSize {
 	return ctxUserSetFrameSize
 }
 
-func (t *textImpl) preload() (flexibleSize, Inset, layoutFunc) {
+func (t *textImpl) preload() (flexibleSize, CGInset, layoutFunc) {
 	frameSize, padding, layoutFn := t.ctx.preload()
 	w, h := text.Measure(t.content.Get(), t.face, t.ctx.fontLineHeight.Get())
-	return frameSize, padding, func(start Point, flexFrameSize Size) Rect {
+	return frameSize, padding, func(start CGPoint, flexFrameSize CGSize) CGRect {
 		if isInf(flexFrameSize.Width) {
 			flexFrameSize.Width = w
 		}
