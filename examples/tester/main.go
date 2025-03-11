@@ -108,6 +108,10 @@ func (v *ContentView) Body() SomeView {
 		Rectangle().
 			Frame(Bind(NewSize(100, 50))).
 			Border(Bind(NewInset(10, 10, 10, 10))).
+			Padding(Bind(NewInset(5, 5, 5, 5))),
+		Rectangle().
+			Frame(Bind(NewSize(100, 50))).
+			Border(Bind(NewInset(10, 10, 10, 10))).
 			BackgroundColor(Bind(yellow)).
 			RoundCorner(Bind(15.0)).
 			Padding(Bind(NewInset(5, 5, 5, 5))),

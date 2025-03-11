@@ -36,7 +36,7 @@ func newViewContext(owner SomeView) *viewCtx {
 	}
 }
 
-func (c *viewCtx) wrap(modify func(*viewCtx)) SomeView {
+func (c *viewCtx) wrap(modify ...func(*viewCtx)) SomeView {
 	// 創建一個新的 zstackImpl 實例
 	zs := &zstackImpl{
 		children: []SomeView{c._owner},
@@ -47,7 +47,9 @@ func (c *viewCtx) wrap(modify func(*viewCtx)) SomeView {
 	// zs.viewCtx.viewCtxParam.frameSize = c.frameSize
 
 	// 應用修改
-	modify(zs.viewCtx)
+	for _, m := range modify {
+		m(zs.viewCtx)
+	}
 
 	return zs
 }
@@ -117,10 +119,6 @@ func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptio
 	}
 
 	bgColor := c.backgroundColor.Get()
-	if bgColor == nil {
-		bgColor = color.Transparent
-	}
-
 	borderLength := c.borderInset.Get()
 	borderColor := c.borderColor.Get()
 	if borderColor == nil {
@@ -209,7 +207,7 @@ func (c *viewCtx) RoundCorner(radius ...*Binding[float64]) SomeView {
 	} else {
 		c.roundCorner = Bind(_defaultRoundCorner)
 	}
-	return c._owner
+	return c.wrap()
 }
 
 func (c *viewCtx) Debug(tag string) SomeView {
