@@ -55,14 +55,14 @@ func (v *ContentView) Body() SomeView {
 			HStack(
 				Button("淡出", func() {
 					// 使用動畫上下文包裹多個更改
-					animation.WithAnimation(animation.EaseOut(time.Millisecond*800), func() {
+					WithAnimation(animation.EaseOut(time.Millisecond*800), func() {
 						opacity.Set(0.2)
 						scale.Set(0.8)
 					})
 				}).Padding(Bind(NewInset(10, 10, 10, 10))),
 
 				Button("重置", func() {
-					animation.WithAnimation(animation.EaseIn(time.Millisecond*500), func() {
+					WithAnimation(animation.EaseIn(time.Millisecond*500), func() {
 						opacity.Set(1.0)
 						scale.Set(1.0)
 					})

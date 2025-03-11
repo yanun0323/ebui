@@ -188,7 +188,7 @@ func (b *Binding[T]) Set(newVal T, with ...animation.Style) {
 			animStyle = with[0]
 		} else {
 			// 檢查當前動畫上下文
-			animStyle = animation.GetCurrentStyle()
+			animStyle = getCurrentStyle()
 		}
 
 		// 如果有動畫風格且持續時間大於0，創建動畫

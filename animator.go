@@ -1,78 +1,132 @@
 package ebui
 
 import (
+	"sync"
 	"time"
 
 	"github.com/yanun0323/ebui/animation"
 )
 
-// animator 是一個泛型動畫器，負責計算動畫過程中的值
-type animator[T bindable] struct {
-	style       animation.Style
-	startValue  T
-	endValue    T
-	startTime   time.Time
-	completed   bool
-	onCompleted func()
+var (
+	// 全局動畫上下文，管理當前活動的動畫
+	globalContext = newAnimationContext()
+)
+
+// animationContext 管理動畫上下文和狀態
+type animationContext struct {
+	mu         sync.RWMutex
+	styleStack []animation.Style
+	animations map[string]*animations
 }
 
-// newAnimator 創建一個新的動畫器
-func newAnimator[T bindable](style animation.Style, startValue, endValue T, onCompleted ...func()) animator[T] {
-	var callback func()
-	if len(onCompleted) > 0 {
-		callback = onCompleted[0]
-	}
+// animations 表示一個正在進行的動畫
+type animations struct {
+	ID         string
+	Style      animation.Style
+	StartTime  time.Time
+	Completed  bool
+	OnComplete func()
+}
 
-	return animator[T]{
-		startTime:   time.Now(),
-		style:       style,
-		startValue:  startValue,
-		endValue:    endValue,
-		completed:   false,
-		onCompleted: callback,
+// newAnimationContext 創建新的動畫上下文
+func newAnimationContext() *animationContext {
+	return &animationContext{
+		styleStack: []animation.Style{},
+		animations: make(map[string]*animations),
 	}
 }
 
-// Value 返回當前時間點的動畫值
-func (a animator[T]) Value() T {
-	if a.style == nil {
-		return a.endValue
+// Currentanimation.Style 返回當前活動的動畫風格
+func (ctx *animationContext) CurrentStyle() animation.Style {
+	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
+
+	if len(ctx.styleStack) == 0 {
+		return animation.None()
+	}
+	return ctx.styleStack[len(ctx.styleStack)-1]
+}
+
+// Pushanimation.Style 將動畫風格添加到堆疊
+func (ctx *animationContext) PushStyle(style animation.Style) {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+
+	ctx.styleStack = append(ctx.styleStack, style)
+}
+
+// Popanimation.Style 從堆疊中彈出動畫風格
+func (ctx *animationContext) PopStyle() animation.Style {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+
+	if len(ctx.styleStack) == 0 {
+		return animation.None()
 	}
 
-	elapsed := time.Since(a.startTime)
-	duration := a.style.Duration()
+	style := ctx.styleStack[len(ctx.styleStack)-1]
+	ctx.styleStack = ctx.styleStack[:len(ctx.styleStack)-1]
+	return style
+}
 
-	// 如果動畫時間已經結束，返回終值
-	if elapsed >= duration {
-		if !a.completed && a.onCompleted != nil {
-			a.onCompleted()
+// RegisterAnimation 註冊一個正在進行的動畫
+func (ctx *animationContext) RegisterAnimation(id string, style animation.Style, onComplete func()) *animations {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+
+	anim := &animations{
+		ID:         id,
+		Style:      style,
+		StartTime:  time.Now(),
+		Completed:  false,
+		OnComplete: onComplete,
+	}
+
+	ctx.animations[id] = anim
+	return anim
+}
+
+// RemoveAnimation 移除一個動畫
+func (ctx *animationContext) RemoveAnimation(id string) {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+
+	delete(ctx.animations, id)
+}
+
+// UpdateAnimations 更新所有動畫的狀態
+func (ctx *animationContext) UpdateAnimations() {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+
+	now := time.Now()
+	for id, anim := range ctx.animations {
+		if anim.Completed {
+			continue
 		}
-		return a.endValue
+
+		duration := anim.Style.Duration()
+		elapsed := now.Sub(anim.StartTime)
+
+		if elapsed >= duration {
+			anim.Completed = true
+			if anim.OnComplete != nil {
+				go anim.OnComplete()
+			}
+			delete(ctx.animations, id)
+		}
 	}
-
-	// 計算進度值 (0.0 - 1.0)
-	progress := float64(elapsed) / float64(duration)
-
-	// 應用動畫曲線函數
-	curveProgress := a.style.Value(progress)
-
-	// 根據曲線進度插值計算當前值
-	return animateValue(a.startValue, a.endValue, curveProgress)
 }
 
-// IsCompleted 檢查動畫是否已完成
-func (a animator[T]) IsCompleted() bool {
-	return time.Since(a.startTime) >= a.style.Duration()
+// WithAnimation 使用特定動畫風格執行操作
+// 類似於 SwiftUI 的 withAnimation 函數
+func WithAnimation(style animation.Style, body func()) {
+	globalContext.PushStyle(style)
+	defer globalContext.PopStyle()
+	body()
 }
 
-// DurationLeft 返回剩餘的動畫時間
-func (a animator[T]) DurationLeft() time.Duration {
-	elapsed := time.Since(a.startTime)
-	duration := a.style.Duration()
-
-	if elapsed >= duration {
-		return 0
-	}
-
-	return duration - elapsed
+// getCurrentStyle 獲取當前的動畫風格
+func getCurrentStyle() animation.Style {
+	return globalContext.CurrentStyle()
 }
