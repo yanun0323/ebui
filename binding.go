@@ -182,18 +182,31 @@ func (b *Binding[T]) Set(newVal T, with ...animation.Style) {
 	if b.getter() != newVal {
 		oldVal := b.getter()
 
-		if len(with) != 0 && with[0].Duration() > 0 {
-			a := newAnimator(with[0], oldVal, newVal)
-			globalAnimationManager.AddExecutor(animationExecutor{
-				execute: func() {
-					b.setter(a.Value())
+		// 檢查是否有動畫風格
+		var animStyle animation.Style
+		if len(with) > 0 && with[0].Duration() > 0 {
+			animStyle = with[0]
+		} else {
+			// 檢查當前動畫上下文
+			animStyle = animation.GetCurrentStyle()
+		}
+
+		// 如果有動畫風格且持續時間大於0，創建動畫
+		if animStyle != nil && animStyle.Duration() > 0 {
+			globalAnimationManager.CreateAnimatedExecutor(
+				animStyle,
+				func(progress float64) bool {
+					// 計算插值
+					currentVal := animateValue(oldVal, newVal, progress)
+					b.setter(currentVal)
 					b.notifyListeners(oldVal, newVal)
-					globalStateManager.markDirty()
+					return false // 繼續動畫，直到完成
 				},
-			})
+			)
 			return
 		}
 
+		// 無動畫時直接設置值
 		b.setter(newVal)
 		b.notifyListeners(oldVal, newVal)
 		globalStateManager.markDirty()

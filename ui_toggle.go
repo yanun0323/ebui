@@ -12,30 +12,42 @@ var (
 	defaultToggleOffColor           = NewColor(239, 239, 239, 255)
 	defaultToggleOnBackgroundColor  = NewColor(64, 191, 64, 255)
 	defaultToggleOffBackgroundColor = NewColor(64, 64, 64, 128)
-	toggleDefaultLabel              = func() func(bool) SomeView {
+	toggleDefaultLabel              = func(key string) func(bool) SomeView {
 		return func(enabled bool) SomeView {
 			return HStack(
-				If(enabled, Spacer(), EmptyView()),
-				Circle().
-					Frame(Const(NewSize(_defaultToggleSize, _defaultToggleSize))).
+				If(len(key) == 0, EmptyView(), HStack(
+					Spacer(),
+					VStack(
+						Spacer(),
+						Text(key),
+						Spacer(),
+					),
+					Spacer(),
+				).Frame(Const(NewSize(60, _defaultToggleSize+_defaultTogglePadding*2))).
+					Padding(Const(NewInset(5, 5, 5, 5)))),
+				HStack(
+					If(enabled, Spacer(), EmptyView()),
+					Circle().
+						Frame(Const(NewSize(_defaultToggleSize, _defaultToggleSize))).
+						BackgroundColor(BindFunc(func() CGColor {
+							if enabled {
+								return defaultToggleOnColor
+							}
+							return defaultToggleOffColor
+						}, func(CGColor) {})).
+						Padding(Const(NewInset(_defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding))),
+					If(!enabled, Spacer(), EmptyView()),
+				).
+					Frame(Const(NewSize(60, _defaultToggleSize+_defaultTogglePadding*2))).
 					BackgroundColor(BindFunc(func() CGColor {
 						if enabled {
-							return defaultToggleOnColor
+							return defaultToggleOnBackgroundColor
 						}
-						return defaultToggleOffColor
+						return defaultToggleOffBackgroundColor
 					}, func(CGColor) {})).
-					Padding(Const(NewInset(_defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding))),
-				If(!enabled, Spacer(), EmptyView()),
-			).
-				Frame(Const(NewSize(60, _defaultToggleSize+_defaultTogglePadding*2))).
-				BackgroundColor(BindFunc(func() CGColor {
-					if enabled {
-						return defaultToggleOnBackgroundColor
-					}
-					return defaultToggleOffBackgroundColor
-				}, func(CGColor) {})).
-				RoundCorner(Const(float64(_defaultToggleSize / 2))).
-				Padding(Const(NewInset(5, 5, 5, 5)))
+					RoundCorner(Const(float64(_defaultToggleSize/2))).
+					Padding(Const(NewInset(5, 5, 5, 5))),
+			)
 		}
 	}
 )
@@ -49,8 +61,8 @@ type toggleImpl struct {
 	isPressed   bool
 }
 
-func Toggle(enabled *Binding[bool], label ...func(bool) SomeView) SomeView {
-	lb := toggleDefaultLabel()
+func Toggle(key string, enabled *Binding[bool], label ...func(bool) SomeView) SomeView {
+	lb := toggleDefaultLabel(key)
 	if len(label) != 0 && label[0] != nil {
 		lb = label[0]
 	}

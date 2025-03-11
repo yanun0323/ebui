@@ -36,10 +36,7 @@ func (v *ContentView) Body() SomeView {
 		Image(Bind("image.jpg")).
 			ScaleToFit().
 			KeepAspectRatio(),
-		HStack(
-			Text("Double"),
-			Toggle(v.enabled),
-		),
+		Toggle("Double", v.enabled),
 		Text(Bind("Counter Example")).
 			FontSize(Bind(font.Body)).
 			FontAlignment(Bind(font.AlignCenter)).
