@@ -9,36 +9,14 @@ type View interface {
 	Body() SomeView
 }
 
-// layoutFunc: 用於設置 View 的位置及大小，並回傳實際佔用的空間
+type ViewModifier interface {
+	Body(SomeView) SomeView
+}
+
+// SomeView represents the base of all View
 //
-//	start: 給這個 View 的起始座標
-//	flexBoundsSize: 給這個 View 的外部邊界彈性大小
-//	bounds: 回傳實際佔用的空間(包含 padding 的最外圍邊界)
-type layoutFunc func(start CGPoint, flexBoundsSize CGSize) (bounds CGRect)
-
-func newPreloadData(frameSize CGSize, padding CGInset, border CGInset) preloadData {
-	return preloadData{
-		FrameSize:   frameSize,
-		IsInfWidth:  frameSize.IsInfWidth(),
-		IsInfHeight: frameSize.IsInfHeight(),
-		Padding:     padding,
-		Border:      border,
-	}
-}
-
-type preloadData struct {
-	FrameSize   CGSize // 實際的內部邊界尺寸
-	IsInfWidth  bool
-	IsInfHeight bool
-	Padding     CGInset // padding 是 View 用 Padding 設置的 padding
-	Border      CGInset // border 是 View 用 Border 設置的 border
-}
-
-func (p *preloadData) BoundsSize() CGSize {
-	return p.FrameSize.Expand(p.Padding).Expand(p.Border)
-}
-
-// SomeView 是所有 View 的基礎介面
+// Frame: internal bounds (exclude padding, border ...)
+// Bounds: external bounds (include padding, border ...)
 type SomeView interface {
 	View
 
@@ -76,5 +54,31 @@ type SomeView interface {
 	Opacity(opacity *Binding[float64]) SomeView
 }
 
-// Frame: 不包含 Padding 的內部邊界
-// Bounds: 包含 Padding 的外部邊界
+// layoutFunc: 用於設置 View 的位置及大小，並回傳實際佔用的空間
+//
+//	start: 給這個 View 的起始座標
+//	flexBoundsSize: 給這個 View 的外部邊界彈性大小
+//	bounds: 回傳實際佔用的空間(包含 padding 的最外圍邊界)
+type layoutFunc func(start CGPoint, flexBoundsSize CGSize) (bounds CGRect)
+
+func newPreloadData(frameSize CGSize, padding CGInset, border CGInset) preloadData {
+	return preloadData{
+		FrameSize:   frameSize,
+		IsInfWidth:  frameSize.IsInfWidth(),
+		IsInfHeight: frameSize.IsInfHeight(),
+		Padding:     padding,
+		Border:      border,
+	}
+}
+
+type preloadData struct {
+	FrameSize   CGSize // 實際的內部邊界尺寸
+	IsInfWidth  bool
+	IsInfHeight bool
+	Padding     CGInset // padding 是 View 用 Padding 設置的 padding
+	Border      CGInset // border 是 View 用 Border 設置的 border
+}
+
+func (p *preloadData) BoundsSize() CGSize {
+	return p.FrameSize.Expand(p.Padding).Expand(p.Border)
+}
