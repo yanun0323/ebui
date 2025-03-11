@@ -36,6 +36,10 @@ func newViewContext(owner SomeView) *viewCtx {
 	}
 }
 
+func (c *viewCtx) ctx() *viewCtx {
+	return c
+}
+
 func (c *viewCtx) wrap(modify ...func(*viewCtx)) SomeView {
 	// 創建一個新的 zstackImpl 實例
 	zs := &zstackImpl{
@@ -92,7 +96,8 @@ func (c *viewCtx) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 			finalFrame.End.Y+padding.Top+border.Top,
 		)
 
-		c.debugPrint("preload", finalFrame, flexFrameSize, data)
+		c.debugPrintPreload(finalFrame, flexFrameSize, data)
+
 		return finalFrame.Expand(padding).Expand(border)
 	}
 }

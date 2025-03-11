@@ -27,11 +27,16 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 			case formulaVStack:
 				flexCount.Y++
 				childrenLayoutFns = append(childrenLayoutFns, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect) {
+					child.debugPrint("preload", "start: {%4.f, %4.f}, flexFrameSize: {%4.f, %4.f}",
+						start.X, start.Y,
+						flexFrameSize.Width, flexFrameSize.Height,
+					)
 					return CGRect{start, NewPoint(start.X, start.Y+flexFrameSize.Height)}
 				})
 			case formulaHStack:
 				flexCount.X++
 				childrenLayoutFns = append(childrenLayoutFns, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect) {
+					child.debugPrint("preload", "start: %v, flexFrameSize: %v", start, flexFrameSize)
 					return CGRect{start, NewPoint(start.X+flexFrameSize.Width, start.Y)}
 				})
 			}
@@ -104,16 +109,23 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 		{ // 計算彈性大小公式
 			switch v.types {
 			case formulaVStack:
-				hFlexSize := max(flexFrameSize.Height-childrenSummedBounds.Height, 0)
+				hFlexSize := sData.FrameSize.Height - childrenSummedBounds.Height
+				if sData.IsInfHeight {
+					hFlexSize = max(flexFrameSize.Height-childrenSummedBounds.Height, 0)
+				}
+
 				perFlexFrameSize = NewSize(flexFrameSize.Width, hFlexSize/max(flexCount.Y, 1))
-				ensureWidthMinimum()
+				// ensureWidthMinimum()
 			case formulaHStack:
-				wFlexSize := max(flexFrameSize.Width-childrenSummedBounds.Width, 0)
+				wFlexSize := sData.FrameSize.Width - childrenSummedBounds.Width
+				if sData.IsInfWidth {
+					wFlexSize = max(flexFrameSize.Width-childrenSummedBounds.Width, 0)
+				}
+
 				perFlexFrameSize = NewSize(wFlexSize/max(flexCount.X, 1), flexFrameSize.Height)
-				ensureHeightMinimum()
+				// ensureHeightMinimum()
 			case formulaZStack:
 				perFlexFrameSize = flexFrameSize
-
 				ensureWidthMinimum()
 				ensureHeightMinimum()
 			}

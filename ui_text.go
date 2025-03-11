@@ -20,15 +20,15 @@ type textImpl struct {
 func Text[T string | *Binding[string]](content T) SomeView {
 	switch content := any(content).(type) {
 	case string:
-		return newTextImpl(Bind(content))
+		return newText(Const(content))
 	case *Binding[string]:
-		return newTextImpl(content)
+		return newText(content)
 	}
 
 	return nil
 }
 
-func newTextImpl(content *Binding[string]) *textImpl {
+func newText(content *Binding[string]) SomeView {
 	v := &textImpl{
 		content: content,
 	}
@@ -65,12 +65,12 @@ func (t *textImpl) face() text.Face {
 	}
 
 	face := &text.GoTextFace{
-		Source: _defaultFontResource,
+		Source: defaultFontResource,
 		Size:   size.F64(),
 	}
-	face.SetVariation(_fontTagWeight, weight.F32())
+	face.SetVariation(fontTagWeight, weight.F32())
 	if italic {
-		face.SetVariation(_fontTagItalic, 1)
+		face.SetVariation(fontTagItalic, 1)
 	}
 
 	faceTable.Store(key, face)
@@ -79,7 +79,7 @@ func (t *textImpl) face() text.Face {
 
 func (t *textImpl) userSetFrameSize() CGSize {
 	ctxUserSetFrameSize := t.viewCtx.userSetFrameSize()
-	w, h := text.Measure(t.content.Get(), t.face(), t.fontLineHeight.Get())
+	w, h := t.measure(t.content.Get())
 
 	if ctxUserSetFrameSize.IsInfWidth() {
 		ctxUserSetFrameSize.Width = w
@@ -90,6 +90,14 @@ func (t *textImpl) userSetFrameSize() CGSize {
 	}
 
 	return ctxUserSetFrameSize
+}
+
+func (t *textImpl) measure(content string) (w, h float64) {
+	if len(content) == 0 {
+		content = " "
+	}
+	w, h = text.Measure(content, t.face(), t.fontLineHeight.Get())
+	return
 }
 
 func (t *textImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
@@ -106,7 +114,7 @@ func (t *textImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 		}
 
 		result := layoutFn(start, flexFrameSize)
-		t.viewCtx.debugPrint("preload", result, flexFrameSize, data)
+		t.viewCtx.debugPrintPreload(result, flexFrameSize, data)
 		return result
 	}
 }

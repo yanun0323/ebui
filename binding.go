@@ -13,6 +13,7 @@ type noCopy struct{}
 func (*noCopy) Lock()   {}
 func (*noCopy) Unlock() {}
 
+// Const creates a binding that always returns the same value.
 func Const[T comparable](value T) *Binding[T] {
 	return &Binding[T]{
 		getter: func() T { return value },
@@ -20,6 +21,7 @@ func Const[T comparable](value T) *Binding[T] {
 	}
 }
 
+// Bind creates a binding that can be used to bind a value to a UI element.
 func Bind[T comparable](initialValue ...T) *Binding[T] {
 	var value T
 	if len(initialValue) != 0 {
@@ -32,21 +34,124 @@ func Bind[T comparable](initialValue ...T) *Binding[T] {
 	)
 }
 
+// BindFunc creates a binding that can be used to bind a value to a UI element.
 func BindFunc[T comparable](get func() T, set func(T)) *Binding[T] {
 	return &Binding[T]{
 		getter:    get,
 		setter:    set,
-		listeners: make([]func(), 0),
+		listeners: make([]func(T, T), 0),
 	}
 }
 
+// BindOneWay binds a source binding to a target binding.
+//   - The target binding will be updated with the value of the source binding.
+//   - The source binding will not be updated when the target binding is updated.
+func BindOneWay[T, F comparable](source *Binding[T], forward func(T) F) *Binding[F] {
+	var (
+		sv T
+		fv F
+	)
+	return BindFunc(func() F {
+		s := source.Get()
+		if s == sv {
+			return fv
+		}
+
+		sv = s
+		fv = forward(s)
+		return fv
+	}, func(v F) {})
+}
+
+// BindTwoWay binds a source binding to a target binding.
+//   - The target binding will be updated with the value of the source binding.
+//   - The source binding will be updated when the target binding is updated.
+func BindTwoWay[T, F comparable](source *Binding[T], forward func(T) F, backward func(F) T) *Binding[F] {
+	var (
+		sv T
+		fv F
+	)
+
+	return BindFunc(func() F {
+		s := source.Get()
+		if s == sv {
+			return fv
+		}
+
+		sv = s
+		fv = forward(s)
+		return fv
+	}, func(v F) {
+		if v == fv {
+			return
+		}
+
+		fv = v
+		sv = backward(v)
+		source.Set(sv)
+	})
+}
+
+func BindCombineOneWay[T comparable](a, b *Binding[T], forward func(a, b T) T) *Binding[T] {
+	var (
+		av T
+		bv T
+		cv T
+	)
+
+	return BindFunc(func() T {
+		a := a.Get()
+		b := b.Get()
+		if a == av && b == bv {
+			return cv
+		}
+
+		av = a
+		bv = b
+		cv = forward(av, bv)
+		return cv
+	}, func(v T) {})
+}
+
+func BindCombineTwoWay[T comparable](a, b *Binding[T], forward func(a, b T) T, backward func(T) (a, b T)) *Binding[T] {
+	var (
+		av T
+		bv T
+		cv T
+	)
+
+	return BindFunc(func() T {
+		a := a.Get()
+		b := b.Get()
+		if a == av && b == bv {
+			return cv
+		}
+
+		av = a
+		bv = b
+		cv = forward(av, bv)
+		return cv
+	}, func(v T) {
+		if v == cv {
+			return
+		}
+
+		cv = v
+		av, bv = backward(v)
+		a.Set(av)
+		b.Set(bv)
+	})
+}
+
+// Binding is a binding that can be used to bind a value to a UI element.
 type Binding[T comparable] struct {
 	_         noCopy
 	getter    func() T
 	setter    func(T)
-	listeners []func()
+	listeners []func(T, T)
 }
 
+// Get returns the value of the binding.
 func (b *Binding[T]) Get() T {
 	if b == nil {
 		return *new(T)
@@ -55,19 +160,26 @@ func (b *Binding[T]) Get() T {
 	return b.getter()
 }
 
-func (b *Binding[T]) Set(v T) {
+// Set sets the value of the binding.
+//
+// The binding will notify its listeners when the value is updated.
+func (b *Binding[T]) Set(newVal T) {
 	if b == nil {
 		return
 	}
 
-	if b.getter() != v {
-		b.setter(v)
-		b.notifyListeners()
+	if b.getter() != newVal {
+		oldVal := b.getter()
+		b.setter(newVal)
+		b.notifyListeners(oldVal, newVal)
 		globalStateManager.markDirty()
 	}
 }
 
-func (b *Binding[T]) AddListener(listener func()) {
+// AddListener adds a listener to the binding.
+//
+// The listener will be called when the binding is updated.
+func (b *Binding[T]) AddListener(listener func(oldVal, newVal T)) {
 	if b == nil {
 		return
 	}
@@ -75,28 +187,12 @@ func (b *Binding[T]) AddListener(listener func()) {
 	b.listeners = append(b.listeners, listener)
 }
 
-func (b *Binding[T]) notifyListeners() {
+func (b *Binding[T]) notifyListeners(oldVal, newVal T) {
 	if b == nil {
 		return
 	}
 
 	for _, listener := range b.listeners {
-		listener()
+		listener(oldVal, newVal)
 	}
-}
-
-func (b *Binding[T]) Combine(other *Binding[T], combine func(T, T) T) *Binding[T] {
-	if b == nil {
-		return other
-	}
-
-	if other == nil {
-		return b
-	}
-
-	return BindFunc(func() T {
-		return combine(b.Get(), other.Get())
-	}, func(v T) {
-		// do nothing
-	})
 }

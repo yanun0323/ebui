@@ -13,7 +13,9 @@ func EmptyView() SomeView {
 }
 
 func (e *emptyImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
-	return preloadData{}, nil
+	return preloadData{}, func(start CGPoint, flexBoundsSize CGSize) (bounds CGRect) {
+		return CGRect{start, start}
+	}
 }
 
 func (e *emptyImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {

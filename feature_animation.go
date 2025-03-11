@@ -64,7 +64,7 @@ func (b *Binding[T]) animate(to T, duration time.Duration) *animation {
 		case int16:
 			return float64(val)
 		case int32:
-			return float64(val)
+			return float64(val) 
 		case int64:
 			return float64(val)
 		case uint:

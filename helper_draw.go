@@ -67,7 +67,7 @@ func drawBorderRect(screen *ebiten.Image, bounds CGRect, bgColor color.Color, bo
 		right    = w - int(border.Right)
 		bottom   = h - int(border.Bottom)
 		isBorder = func(x, y int) bool {
-			return x < left || x > right || y < top || y > bottom
+			return x < left || y < top || x >= right || y >= bottom
 		}
 	)
 

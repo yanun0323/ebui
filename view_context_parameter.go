@@ -54,11 +54,18 @@ func (p *viewCtxParam) border() CGInset {
 	return p.borderInset.Get()
 }
 
-func (p *viewCtxParam) debugPrint(stage string, frame CGRect, flexFrameSize CGSize, sData preloadData) {
+func (p *viewCtxParam) debugPrint(prefix string, format string, a ...any) {
 	if len(p._debug) != 0 {
-		logf("%s \x1b[35m[%s]\x1b[0m\tStart(%4.f, %4.f)  End(%4.f, %4.f)  Size(%4.f, %4.f)  FlexSize(%4.f, %4.f), sData:\n%s",
-			stage,
-			p._debug,
+		tag := fmt.Sprintf("%s \x1b[35m[%s]\x1b[0m\t", prefix, p._debug)
+		logf(tag+format, a...)
+	}
+}
+
+func (p *viewCtxParam) debugPrintPreload(frame CGRect, flexFrameSize CGSize, sData preloadData) {
+	if len(p._debug) != 0 {
+		tag := fmt.Sprintf("\x1b[35m[%s]\x1b[0m\t", p._debug)
+		logf("preload %s\tStart(%4.f, %4.f)  End(%4.f, %4.f)  Size(%4.f, %4.f)  FlexSize(%4.f, %4.f), sData:\n%s",
+			tag,
 			frame.Start.X, frame.Start.Y,
 			frame.End.X, frame.End.Y,
 			frame.Dx(), frame.Dy(),

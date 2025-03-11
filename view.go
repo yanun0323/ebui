@@ -20,12 +20,15 @@ type ViewModifier interface {
 type SomeView interface {
 	View
 
+	ctx() *viewCtx
 	// preload 設置環境變量，並回傳 View 的佈局資訊
 	preload(parent *viewCtxEnv) (preloadData, layoutFunc)
 
+	drawOption(rect CGRect, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions
 	// draw 繪製 View
 	draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions))
-	debugPrint(stage string, frame CGRect, flexFrameSize CGSize, sData preloadData)
+
+	debugPrint(prefix string, format string, a ...any)
 
 	setEnv(env *viewCtxEnv)
 

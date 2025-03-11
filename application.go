@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"image/color"
-	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -18,7 +17,7 @@ var (
 	WindowResizingModeOnlyFullscreenEnabled windowResizingMode = windowResizingMode(ebiten.WindowResizingModeOnlyFullscreenEnabled)
 	WindowResizingModeEnabled               windowResizingMode = windowResizingMode(ebiten.WindowResizingModeEnabled)
 
-	resourceDir atomic.Value
+	resourceDir *Binding[string] = Bind("")
 )
 
 type application struct {
@@ -50,7 +49,8 @@ func (app *application) SetWindowResizingMode(mode windowResizingMode) {
 }
 
 func (app *application) SetResourceFolder(folder string) {
-	resourceDir.Store(folder)
+	resourceDir.Set(folder)
+	println("set resource folder:", folder)
 }
 
 func (app *application) Debug() {

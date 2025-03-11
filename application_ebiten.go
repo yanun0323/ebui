@@ -48,7 +48,19 @@ func EbitenUpdate(contentView SomeView) {
 	for _, key := range keys {
 		globalEventManager.DispatchKeyEvent(keyEvent{
 			Key:     key,
-			Pressed: true,
+			Phase:   keyPhaseJustPressed,
+			Shift:   shiftPressing,
+			Control: controlPressing,
+			Alt:     altPressing,
+			Meta:    metaPressing,
+		})
+	}
+
+	keys = inpututil.AppendPressedKeys(nil)
+	for _, key := range keys {
+		globalEventManager.DispatchKeyEvent(keyEvent{
+			Key:     key,
+			Phase:   keyPhasePressing,
 			Shift:   shiftPressing,
 			Control: controlPressing,
 			Alt:     altPressing,
@@ -60,11 +72,19 @@ func EbitenUpdate(contentView SomeView) {
 	for _, key := range keys {
 		globalEventManager.DispatchKeyEvent(keyEvent{
 			Key:     key,
-			Pressed: false,
+			Phase:   keyPhaseJustReleased,
 			Shift:   shiftPressing,
 			Control: controlPressing,
 			Alt:     altPressing,
 			Meta:    metaPressing,
+		})
+	}
+
+	// 5. 處理輸入事件
+	input := ebiten.AppendInputChars(nil)
+	for _, char := range input {
+		globalEventManager.DispatchInputEvent(inputEvent{
+			Char: char,
 		})
 	}
 }

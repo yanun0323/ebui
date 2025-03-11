@@ -23,22 +23,11 @@ func Image[T string | *ebiten.Image](img *Binding[T]) SomeView {
 		v.viewCtx = newViewContext(v)
 		return v
 	case *Binding[string]:
-		var img *ebiten.Image
-		content.AddListener(func() {
-			img = getImage(content.Get())
+		path := BindCombineOneWay(resourceDir, content, func(dir, filename string) string {
+			return getImageFilename(dir, filename)
 		})
-		constraint := BindFunc(func() *ebiten.Image {
-			if img == nil {
-				img = getImage(content.Get())
-				if img == nil {
-					img = ebiten.NewImage(1, 1)
-				}
-			}
 
-			return img
-		}, func(i *ebiten.Image) {})
-
-		return Image(constraint)
+		return Image(BindOneWay(path, getImage))
 	}
 
 	return nil
@@ -83,32 +72,32 @@ func (v *imageImpl) getScale(frameSize, imgSize CGSize) CGPoint {
 
 	scaleX := frameSize.Width / imgSize.Width
 	scaleY := frameSize.Height / imgSize.Height
-	s := scaleX
-	if scaleY < scaleX {
-		s = scaleY
-	}
+	s := min(scaleY, scaleX)
 
 	return NewPoint(s, s)
 }
 
-func getImage(filename string) *ebiten.Image {
+func getImageFilename(dir, filename string) string {
 	path := filename
-	if dir, ok := resourceDir.Load().(string); ok && len(dir) != 0 {
-		println("resourceDir:", dir)
+	if len(dir) != 0 {
 		if !filepath.IsAbs(dir) {
-			println("not abs:", dir)
 			dir, _ = filepath.Abs(dir)
 		}
 		path = filepath.Join(dir, filename)
 	}
 
-	println("image:", path)
+	return path
+}
 
+func getImage(path string) *ebiten.Image {
 	f, err := os.Open(path)
 	if err != nil {
+		println("error:", err.Error())
 		return nil
 	}
 	defer f.Close()
+
+	println("get image:", path)
 
 	img, _, err := image.Decode(f)
 	if err != nil {

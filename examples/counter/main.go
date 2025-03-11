@@ -11,12 +11,14 @@ import (
 type ContentView struct {
 	count     *Binding[int]
 	countText *Binding[string]
+	enabled   *Binding[bool]
 }
 
 func NewContentView() View {
 	return &ContentView{
 		count:     Bind(0),
 		countText: Bind("Current Value: 0"),
+		enabled:   Bind(false),
 	}
 }
 
@@ -34,6 +36,10 @@ func (v *ContentView) Body() SomeView {
 		Image(Bind("image.jpg")).
 			ScaleToFit().
 			KeepAspectRatio(),
+		HStack(
+			Text("Double"),
+			Toggle(v.enabled),
+		),
 		Text(Bind("Counter Example")).
 			FontSize(Bind(font.Body)).
 			FontAlignment(Bind(font.AlignCenter)).
@@ -62,20 +68,23 @@ func (v *ContentView) Body() SomeView {
 		).
 			BackgroundColor(Bind(NewColor(100, 100, 100, 255))),
 		HStack(
-			Button(func() {
-				v.count.Set(v.count.Get() + 1)
+			Button("Increase", func() {
+				delta := 1
+				if v.enabled.Get() {
+					delta = 2
+				}
+				v.count.Set(v.count.Get() + delta)
 				v.countText.Set(fmt.Sprintf("Current Value: %d", v.count.Get()))
 				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
-			}, func() SomeView {
-				return Text(Bind("Increase")).
-					Padding(Bind(NewInset(5, 5, 5, 5))).
-					BackgroundColor(Bind(NewColor(200, 200, 200, 255))).
-					RoundCorner(Bind(10.0))
 			}).
 				Padding(Bind(NewInset(15, 15, 15, 15))),
 			Spacer(),
-			Button(func() {
-				v.count.Set(v.count.Get() - 1)
+			Button("Decrease", func() {
+				delta := 1
+				if v.enabled.Get() {
+					delta = 2
+				}
+				v.count.Set(v.count.Get() - delta)
 				v.countText.Set(fmt.Sprintf("Current Value: %d", v.count.Get()))
 				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
 			}, func() SomeView {

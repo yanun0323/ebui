@@ -3,6 +3,7 @@ package ebui
 import (
 	"embed"
 	"fmt"
+	"image/color"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -19,14 +20,19 @@ const (
 
 var (
 	//go:embed resource/NotoSansTC.ttf
-	_defaultTTF          embed.FS
-	_defaultFontResource = defaultFont()
-	_fontTagWeight       = parseTag("wght") /* 100-900 */
-	_fontTagItalic       = parseTag("ital") /* 0-1 */
+	defaultTTF          embed.FS
+	defaultFontResource = defaultFont()
+	fontTagWeight       = parseTag("wght") /* 100-900 */
+	fontTagItalic       = parseTag("ital") /* 0-1 */
+)
+
+var (
+	AccentColor = NewColor(0, 0, 255, 255)
+	transparent = AnyColor(color.Transparent)
 )
 
 func defaultFont() *text.GoTextFaceSource {
-	f, err := _defaultTTF.Open("resource/NotoSansTC.ttf")
+	f, err := defaultTTF.Open("resource/NotoSansTC.ttf")
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to open font: %w", err))
 	}

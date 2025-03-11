@@ -283,7 +283,7 @@ func (t *TextInput) Draw(screen *ebiten.Image) {
 	// 繪製游標（如果輸入框處於活動狀態）
 	if t.Focused && t.Active {
 		// 讓游標閃爍
-		if (int(ebiten.ActualTPS())/2)%2 == 0 {
+		if (int(ebiten.ActualTPS())*2)%2 == 0 {
 			cursorX := t.X + text.BoundString(regularFont, t.Text[:t.CursorPos]).Dx() + 5
 			ebitenutil.DrawLine(screen, float64(cursorX), float64(t.Y+5), float64(cursorX), float64(t.Y+t.Height-5), color.Black)
 		}
