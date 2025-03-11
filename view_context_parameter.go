@@ -1,5 +1,10 @@
 package ebui
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 // viewCtxParam 提供所有 View 共用的參數
 type viewCtxParam struct {
 	_debug          string
@@ -8,7 +13,8 @@ type viewCtxParam struct {
 	frameSize       *Binding[CGSize]
 	inset           *Binding[CGInset]
 	roundCorner     *Binding[float64]
-
+	borderInset     *Binding[CGInset]
+	borderColor     *Binding[AnyColor]
 	scaleToFit      *Binding[bool]
 	keepAspectRatio *Binding[bool]
 }
@@ -19,9 +25,8 @@ func newParam() *viewCtxParam {
 	}
 }
 
-func (p *viewCtxParam) userSetFrameSize() flexibleSize {
-	frame := p.frameSize.Get()
-	return newFlexibleSize(frame.Width, frame.Height)
+func (p *viewCtxParam) userSetFrameSize() CGSize {
+	return p.frameSize.Get()
 }
 
 // systemSetFrame 回傳的是內部邊界
@@ -31,22 +36,43 @@ func (p *viewCtxParam) systemSetFrame() CGRect {
 
 // systemSetFrame 回傳的是外部邊界
 func (p *viewCtxParam) systemSetBounds() CGRect {
-	inset := p.inset.Get()
+	padding := p.padding()
+	border := p.border()
 	return NewRect(
-		p._systemSetFrame.Start.X-inset.Left,
-		p._systemSetFrame.Start.Y-inset.Top,
-		p._systemSetFrame.End.X+inset.Right,
-		p._systemSetFrame.End.Y+inset.Bottom,
+		p._systemSetFrame.Start.X-padding.Left-border.Left,
+		p._systemSetFrame.Start.Y-padding.Top-border.Top,
+		p._systemSetFrame.End.X+padding.Right+border.Right,
+		p._systemSetFrame.End.Y+padding.Bottom+border.Bottom,
 	)
 }
 
-func (p *viewCtxParam) debugPrint(frame CGRect) {
+func (p *viewCtxParam) padding() CGInset {
+	return p.inset.Get()
+}
+
+func (p *viewCtxParam) border() CGInset {
+	return p.borderInset.Get()
+}
+
+func (p *viewCtxParam) debugPrint(stage string, frame CGRect, flexFrameSize CGSize, sData preloadData) {
 	if len(p._debug) != 0 {
-		logf("\x1b[35m[%s]\x1b[0m\tStart(%4.f, %4.f)\tEnd(%4.f, %4.f)\tSize(%4.f, %4.f)",
+		logf("%s \x1b[35m[%s]\x1b[0m\tStart(%4.f, %4.f)  End(%4.f, %4.f)  Size(%4.f, %4.f)  FlexSize(%4.f, %4.f), sData:\n%s",
+			stage,
 			p._debug,
 			frame.Start.X, frame.Start.Y,
 			frame.End.X, frame.End.Y,
 			frame.Dx(), frame.Dy(),
+			flexFrameSize.Width, flexFrameSize.Height,
+			serialize(sData),
 		)
 	}
+}
+
+func serialize(a any) string {
+	s, err := json.MarshalIndent(a, "", "    ")
+	if err != nil {
+		return fmt.Sprintf("RAW(%v)", a)
+	}
+
+	return string(s)
 }

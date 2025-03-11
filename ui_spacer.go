@@ -15,11 +15,14 @@ func Spacer() SomeView {
 	return sp
 }
 
-func (*spacerImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
-	return newFlexibleSize(Inf, Inf, true), NewInset(0, 0, 0, 0), nil
+func (*spacerImpl) isSpacer() bool {
+	return true
 }
 
-func (*spacerImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+func (*spacerImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
+	return preloadData{}, nil
+}
+
+func (*spacerImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
 	// Spacer 是空白元件，不需要繪製任何內容
-	return &ebiten.DrawImageOptions{}
 }

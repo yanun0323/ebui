@@ -26,21 +26,19 @@ func (v *vstackImpl) count() int {
 	return count
 }
 
-func (v *vstackImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
-	StackFormula := &formulaStack{
+func (v *vstackImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
+	stackFormula := &formulaStack{
 		types:    formulaVStack,
 		stackCtx: v.viewCtx,
 		children: v.children,
 	}
 
-	return StackFormula.preload(parent)
+	return stackFormula.preload(parent)
 }
 
-func (v *vstackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-	op := v.viewCtx.draw(screen, hook...)
+func (v *vstackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
+	v.viewCtx.draw(screen, hook...)
 	for _, child := range v.children {
 		child.draw(screen, hook...)
 	}
-
-	return op
 }

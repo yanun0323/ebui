@@ -93,6 +93,26 @@ func (s CGSize) Empty() bool {
 	return s.Width == 0 && s.Height == 0
 }
 
+func (s CGSize) IsInfWidth() bool {
+	return isInf(s.Width) || s.Width < 0
+}
+
+func (s CGSize) IsInfHeight() bool {
+	return isInf(s.Height) || s.Height < 0
+}
+
+func (s CGSize) NoneInfSize() CGSize {
+	if s.IsInfWidth() {
+		s.Width = 0
+	}
+
+	if s.IsInfHeight() {
+		s.Height = 0
+	}
+
+	return s
+}
+
 func (s CGSize) Eq(other CGSize) bool {
 	return s.Width == other.Width && s.Height == other.Height
 }
@@ -220,6 +240,10 @@ type CGInset struct {
 // NewInset creates an Inset from any numberable type.
 func NewInset[Number numberable](top, right, bottom, left Number) CGInset {
 	return CGInset{Top: float64(top), Right: float64(right), Bottom: float64(bottom), Left: float64(left)}
+}
+
+func (i CGInset) IsZero() bool {
+	return i == CGInset{}
 }
 
 func (i CGInset) Add(other CGInset) CGInset {

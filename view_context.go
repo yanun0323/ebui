@@ -1,6 +1,7 @@
 package ebui
 
 import (
+	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -43,7 +44,7 @@ func (c *viewCtx) wrap(modify func(*viewCtx)) SomeView {
 
 	zs.viewCtx = newViewContext(zs)
 	zs.viewCtx.viewCtxEnv = c.viewCtxEnv
-	zs.viewCtx.viewCtxParam.frameSize = c.frameSize
+	// zs.viewCtx.viewCtxParam.frameSize = c.frameSize
 
 	// 應用修改
 	modify(zs.viewCtx)
@@ -59,60 +60,78 @@ func (c *viewCtx) count() int {
 	return 1
 }
 
-func (c *viewCtx) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
+func (c *viewCtx) isSpacer() bool {
+	return false
+}
+
+func (c *viewCtx) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 	c.viewCtxEnv.inheritFrom(parent)
-	padding := c.inset.Get()
+	padding := c.padding()
+	border := c.border()
 	userSetFrameSize := c._owner.userSetFrameSize()
-	return userSetFrameSize, padding, func(start CGPoint, flexFrameSize CGSize) CGRect {
-		finalFrame := CGRect{start, start.Add(flexFrameSize.ToCGPoint())}
-		finalFrameSize := userSetFrameSize
-		if !finalFrameSize.IsInfX {
-			finalFrame.End.X = start.X + finalFrameSize.Frame.Width
+	data := newPreloadData(userSetFrameSize, padding, border)
+
+	return data, func(start CGPoint, flexBoundsSize CGSize) CGRect {
+		flexFrameSize := flexBoundsSize.Shrink(padding).Shrink(border)
+		flexibleFrame := CGRect{start, start.Add(flexFrameSize.ToCGPoint())}
+		finalFrame := flexibleFrame
+		if !userSetFrameSize.IsInfWidth() {
+			finalFrame.End.X = start.X + userSetFrameSize.Width
 		}
 
-		if !finalFrameSize.IsInfY {
-			finalFrame.End.Y = start.Y + finalFrameSize.Frame.Height
+		if !userSetFrameSize.IsInfHeight() {
+			finalFrame.End.Y = start.Y + userSetFrameSize.Height
 		}
 
 		c._systemSetFrame = NewRect(
-			finalFrame.Start.X+padding.Left,
-			finalFrame.Start.Y+padding.Top,
-			finalFrame.End.X+padding.Left,
-			finalFrame.End.Y+padding.Top,
+			finalFrame.Start.X+padding.Left+border.Left,
+			finalFrame.Start.Y+padding.Top+border.Top,
+			finalFrame.End.X+padding.Left+border.Left,
+			finalFrame.End.Y+padding.Top+border.Top,
 		)
 
-		result := finalFrame.Expand(padding)
-		c.debugPrint(result)
-		return result
+		c.debugPrint("preload", finalFrame, flexFrameSize, data)
+		return finalFrame.Expand(padding).Expand(border)
 	}
 }
 
-func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-	drawFrame := c._owner.systemSetBounds()
+func (c *viewCtx) drawOption(rect CGRect, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
 	opt := &ebiten.DrawImageOptions{}
-	opt.GeoM.Translate(drawFrame.Start.X, drawFrame.Start.Y)
+	opt.GeoM.Translate(rect.Start.X, rect.Start.Y)
 	for _, h := range hook {
 		h(opt)
 	}
 
-	bgColor := c.backgroundColor.Get()
-	if bgColor == nil {
-		return opt
+	if c.opacity != nil {
+		opt.ColorScale.ScaleAlpha(float32(c.opacity.Get()))
+	}
+	return opt
+}
+
+func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
+	drawBounds := c._owner.systemSetBounds()
+	opt := c.drawOption(drawBounds, hook...)
+
+	if !drawBounds.drawable() {
+		return
 	}
 
-	if !drawFrame.drawable() {
-		return opt
+	bgColor := c.backgroundColor.Get()
+	if bgColor == nil {
+		bgColor = color.Transparent
+	}
+
+	borderLength := c.borderInset.Get()
+	borderColor := c.borderColor.Get()
+	if borderColor == nil {
+		borderColor = color.Black
 	}
 
 	if radius := c.roundCorner.Get(); radius > 0 {
-		drawRoundedRect(screen, drawFrame, radius, bgColor, opt)
+		drawRoundedAndBorderRect(screen, drawBounds, radius, bgColor, borderLength, borderColor, opt)
 	} else {
-		img := ebiten.NewImage(int(drawFrame.Dx()), int(drawFrame.Dy()))
-		img.Fill(bgColor)
-		screen.DrawImage(img, opt)
+		drawBorderRect(screen, drawBounds, bgColor, borderLength, borderColor, opt)
 	}
-
-	return opt
 }
 
 func (c *viewCtx) Body() SomeView {
@@ -131,9 +150,9 @@ func (c *viewCtx) Frame(size *Binding[CGSize]) SomeView {
 }
 
 // Padding 修飾器
-func (c *viewCtx) Padding(padding *Binding[CGInset]) SomeView {
+func (c *viewCtx) Padding(inset *Binding[CGInset]) SomeView {
 	return c.wrap(func(c *viewCtx) {
-		c.inset = padding
+		c.inset = inset
 	})
 }
 
@@ -215,5 +234,19 @@ func (c *viewCtx) KeepAspectRatio(enable ...*Binding[bool]) SomeView {
 		c.keepAspectRatio = Bind(true)
 	}
 
+	return c._owner
+}
+
+func (c *viewCtx) Border(border *Binding[CGInset], color ...*Binding[AnyColor]) SomeView {
+	c.borderInset = border
+	if len(color) != 0 {
+		c.borderColor = color[0]
+	}
+
+	return c._owner
+}
+
+func (c *viewCtx) Opacity(opacity *Binding[float64]) SomeView {
+	c.opacity = opacity
 	return c._owner
 }

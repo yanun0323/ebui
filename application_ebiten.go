@@ -2,6 +2,7 @@ package ebui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 func EbitenUpdate(contentView SomeView) {
@@ -36,11 +37,41 @@ func EbitenUpdate(contentView SomeView) {
 			Position: NewPoint(float64(x), float64(y)),
 		})
 	}
+
+	altPressing := ebiten.IsKeyPressed(ebiten.KeyAltLeft) || ebiten.IsKeyPressed(ebiten.KeyAltRight) || ebiten.IsKeyPressed(ebiten.KeyAlt)
+	shiftPressing := ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight) || ebiten.IsKeyPressed(ebiten.KeyShift)
+	controlPressing := ebiten.IsKeyPressed(ebiten.KeyControlLeft) || ebiten.IsKeyPressed(ebiten.KeyControlRight) || ebiten.IsKeyPressed(ebiten.KeyControl)
+	metaPressing := ebiten.IsKeyPressed(ebiten.KeyMeta) || ebiten.IsKeyPressed(ebiten.KeyMetaLeft) || ebiten.IsKeyPressed(ebiten.KeyMetaRight)
+
+	// 4. 處理鍵盤事件
+	keys := inpututil.AppendJustPressedKeys(nil)
+	for _, key := range keys {
+		globalEventManager.DispatchKeyEvent(keyEvent{
+			Key:     key,
+			Pressed: true,
+			Shift:   shiftPressing,
+			Control: controlPressing,
+			Alt:     altPressing,
+			Meta:    metaPressing,
+		})
+	}
+
+	keys = inpututil.AppendJustReleasedKeys(nil)
+	for _, key := range keys {
+		globalEventManager.DispatchKeyEvent(keyEvent{
+			Key:     key,
+			Pressed: false,
+			Shift:   shiftPressing,
+			Control: controlPressing,
+			Alt:     altPressing,
+			Meta:    metaPressing,
+		})
+	}
 }
 
 func resetLayout(contentView SomeView) {
 	bounds := globalStateManager.GetBounds()
-	_, _, layoutFn := contentView.preload(nil)
+	_, layoutFn := contentView.preload(nil)
 	_ = layoutFn(bounds.Start, bounds.Size())
 	globalStateManager.clearDirty()
 }

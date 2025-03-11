@@ -12,10 +12,12 @@ import (
 )
 
 var (
-	red   = NewColor(255, 0, 0, 0)
-	blue  = NewColor(0, 0, 255, 0)
-	green = NewColor(0, 255, 0, 0)
-	black = NewColor(16, 16, 16, 16)
+	white  = NewColor(255, 255, 255, 255)
+	red    = NewColor(255, 0, 0, 255)
+	blue   = NewColor(0, 0, 255, 255)
+	green  = NewColor(0, 255, 0, 255)
+	black  = NewColor(16, 16, 16, 255)
+	yellow = NewColor(255, 255, 0, 255)
 )
 
 func NewContentView() View {
@@ -44,6 +46,73 @@ type ContentView struct {
 func (v *ContentView) Body() SomeView {
 	println("ContentView.Body() called")
 
+	// return VStack(
+	// 	Rectangle().
+	// 		BackgroundColor(Bind(black)).
+	// 		Border(Bind(10.0), Bind(white)).
+	// 		Padding(Bind(CGInset{10, 10, 10, 10})),
+	// 	// Border(Bind(10.0), Bind(white)).
+	// 	// Padding(Bind(CGInset{10, 10, 10, 10})),
+	// 	// ZStack(
+	// 	// 	// Rectangle().
+	// 	// 	// 	BackgroundColor(v.color).
+	// 	// 	// 	RoundCorner(Bind(20.0)).
+	// 	// 	// 	Border(Bind(20.0), Bind(green)),
+	// 	// 	VStack(
+	// 	// 		Spacer(),
+	// 	// 		HStack(
+	// 	// 			Spacer(),
+	// 	// 			Rectangle().
+	// 	// 				Frame(Bind(NewSize(100, 100))).
+	// 	// 				BackgroundColor(Bind(black)),
+	// 	// 			// Text(v.content).
+	// 	// 			// 	FontLetterSpacing(Bind(2.0)),
+	// 	// 			Spacer(),
+	// 	// 		),
+	// 	// 		Spacer(),
+	// 	// 	),
+	// 	// ),
+	// 	Rectangle().
+	// 		Frame(Bind(NewSize(100, 100))).
+	// 		BackgroundColor(Bind(black)),
+	// )
+
+	// return Rectangle().
+	// 	Padding(Bind(CGInset{60, 60, 60, 60})).
+	// 	BackgroundColor(Bind(green))
+
+	// return Rectangle().
+	// 	Padding(Bind(CGInset{10, 10, 10, 10})).
+	// 	BackgroundColor(Bind(green)).
+	// 	Padding(Bind(CGInset{60, 60, 60, 60}))
+
+	return VStack(
+		Rectangle().
+			Frame(Bind(NewSize(100, 50))).
+			RoundCorner(Bind(15.0)).
+			BackgroundColor(Bind(red)).
+			Border(Bind(NewInset(10, 10, 10, 10))).
+			Padding(Bind(NewInset(5, 5, 5, 5))),
+		Rectangle().
+			Frame(Bind(NewSize(100, 50))).
+			Border(Bind(NewInset(10, 10, 10, 10))).
+			RoundCorner(Bind(15.0)).
+			BackgroundColor(Bind(green)).
+			Padding(Bind(NewInset(5, 5, 5, 5))),
+		Rectangle().
+			Frame(Bind(NewSize(100, 50))).
+			BackgroundColor(Bind(blue)).
+			RoundCorner(Bind(15.0)).
+			Border(Bind(NewInset(10, 10, 10, 10))).
+			Padding(Bind(NewInset(5, 5, 5, 5))),
+		Rectangle().
+			Frame(Bind(NewSize(100, 50))).
+			Border(Bind(NewInset(10, 10, 10, 10))).
+			BackgroundColor(Bind(yellow)).
+			RoundCorner(Bind(15.0)).
+			Padding(Bind(NewInset(5, 5, 5, 5))),
+	)
+
 	// 原始的 VStack
 	return VStack(
 		HStack(
@@ -53,28 +122,44 @@ func (v *ContentView) Body() SomeView {
 			EmptyView(),
 			Rectangle().
 				Frame(Bind(NewSize(200, 150))).
-				BackgroundColor(Bind(blue)),
+				BackgroundColor(Bind(blue)).
+				RoundCorner(Bind(15.0)).
+				Border(Bind(NewInset(15, 15, 15, 15))),
 		),
-		Rectangle().BackgroundColor(Bind(NewColor(125, 125, 255, 0))).
-			Frame(Bind(NewSize(100, 100))).
-			BackgroundColor(Bind(red)).
-			Padding(Bind(CGInset{10, 10, 10, 10})).
-			BackgroundColor(Bind(blue)),
+		HStack(
+			Rectangle().
+				BackgroundColor(Bind(green)).
+				Frame(Bind(NewSize(100, 100))).
+				BackgroundColor(Bind(red)).
+				Padding(Bind(CGInset{10, 10, 10, 10})).
+				BackgroundColor(Bind(blue)).
+				Border(Bind(CGInset{10, 10, 10, 10}), Bind(white)),
+			Rectangle().
+				BackgroundColor(Bind(green)).
+				Frame(Bind(NewSize(100, 100))).
+				BackgroundColor(Bind(red)).
+				Padding(Bind(CGInset{10, 10, 10, 10})).
+				BackgroundColor(Bind(blue)).
+				Border(Bind(CGInset{10, 10, 10, 10}), Bind(white)),
+		),
 		ZStack(
 			Rectangle().
+				Debug("rect").
+				RoundCorner(Bind(20.0)).
+				Border(Bind(CGInset{10, 10, 10, 10}), Bind(green)).
 				BackgroundColor(v.color),
 			VStack(
 				Spacer(),
 				HStack(
 					Spacer(),
-					Text(v.content).
-						FontLetterSpacing(Bind(2.0)),
+					Rectangle().
+						Frame(Bind(NewSize(100, 100))).
+						BackgroundColor(Bind(black)),
 					Spacer(),
 				),
 				Spacer(),
 			),
-		).
-			Padding(Bind(CGInset{10, 10, 10, 10})),
+		).Debug("zs").Frame(Bind(CGSize{150, 150})),
 		HStack(
 			Button(func() {
 				if v.isRandom.Swap(true) {
@@ -120,7 +205,7 @@ func (v *ContentView) Body() SomeView {
 			}),
 		).
 			FontSize(Bind(font.Caption)),
-	).Padding(Bind(CGInset{15, 15, 15, 15}))
+	).BackgroundColor(Bind(NewColor(15, 15, 15, 15))).Padding(Bind(CGInset{15, 15, 15, 15}))
 }
 
 func main() {

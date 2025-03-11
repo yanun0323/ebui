@@ -12,10 +12,10 @@ func EmptyView() SomeView {
 	return empty
 }
 
-func (e *emptyImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
-	return flexibleSize{}, CGInset{}, nil
+func (e *emptyImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
+	return preloadData{}, nil
 }
 
-func (e *emptyImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-	return &ebiten.DrawImageOptions{}
+func (e *emptyImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
+	// EmptyView 是空白元件，不需要繪製任何內容
 }

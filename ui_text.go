@@ -20,26 +20,20 @@ type textImpl struct {
 func Text[T string | *Binding[string]](content T) SomeView {
 	switch content := any(content).(type) {
 	case string:
-		return Text(Bind(content))
+		return newTextImpl(Bind(content))
 	case *Binding[string]:
-		v := &textImpl{
-			content: content,
-		}
-		v.viewCtx = newViewContext(v)
-		return v
+		return newTextImpl(content)
 	}
 
 	return nil
 }
 
-func createDefaultFace() text.Face {
-	face := &text.GoTextFace{
-		Source: _defaultFontResource,
-		Size:   font.Body.F64(),
+func newTextImpl(content *Binding[string]) *textImpl {
+	v := &textImpl{
+		content: content,
 	}
-	face.SetVariation(_fontTagWeight, font.Normal.F32())
-	face.SetVariation(_fontTagItalic, 0)
-	return face
+	v.viewCtx = newViewContext(v)
+	return v
 }
 
 func (textImpl) faceKey(size font.Size, weight font.Weight, italic bool) string {
@@ -83,27 +77,26 @@ func (t *textImpl) face() text.Face {
 	return face
 }
 
-func (t *textImpl) userSetFrameSize() flexibleSize {
+func (t *textImpl) userSetFrameSize() CGSize {
 	ctxUserSetFrameSize := t.viewCtx.userSetFrameSize()
 	w, h := text.Measure(t.content.Get(), t.face(), t.fontLineHeight.Get())
 
-	if ctxUserSetFrameSize.IsInfX {
-		ctxUserSetFrameSize.Frame.Width = w
-		ctxUserSetFrameSize.IsInfX = false
+	if ctxUserSetFrameSize.IsInfWidth() {
+		ctxUserSetFrameSize.Width = w
 	}
 
-	if ctxUserSetFrameSize.IsInfY {
-		ctxUserSetFrameSize.Frame.Height = h
-		ctxUserSetFrameSize.IsInfY = false
+	if ctxUserSetFrameSize.IsInfHeight() {
+		ctxUserSetFrameSize.Height = h
 	}
 
 	return ctxUserSetFrameSize
 }
 
-func (t *textImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
-	frameSize, padding, layoutFn := t.viewCtx.preload(parent)
+func (t *textImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
+	data, layoutFn := t.viewCtx.preload(parent)
 	w, h := text.Measure(t.content.Get(), t.face(), t.fontLineHeight.Get())
-	return frameSize, padding, func(start CGPoint, flexFrameSize CGSize) CGRect {
+	return data, func(start CGPoint, flexBoundsSize CGSize) CGRect {
+		flexFrameSize := flexBoundsSize.Shrink(data.Padding).Shrink(data.Border)
 		if isInf(flexFrameSize.Width) {
 			flexFrameSize.Width = w
 		}
@@ -113,18 +106,20 @@ func (t *textImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFun
 		}
 
 		result := layoutFn(start, flexFrameSize)
-		t.viewCtx.debugPrint(result)
+		t.viewCtx.debugPrint("preload", result, flexFrameSize, data)
 		return result
 	}
 }
 
-func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-	op := t.viewCtx.draw(screen, hook...)
+func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
+	t.viewCtx.draw(screen, hook...)
 
 	content := t.content.Get()
 	if content == "" {
-		return &ebiten.DrawImageOptions{}
+		return
 	}
+
+	op := t.viewCtx.drawOption(t.systemSetBounds(), hook...)
 
 	// 計算文字位置
 	// frame := t.systemSetFrame()
@@ -159,6 +154,4 @@ func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpti
 
 		screen.DrawImage(gl.Image, opt)
 	}
-
-	return op
 }

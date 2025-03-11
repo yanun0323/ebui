@@ -15,6 +15,7 @@ type viewCtxEnv struct {
 	fontLetterSpacing *Binding[float64]
 	fontAlignment     *Binding[font.Alignment]
 	fontItalic        *Binding[bool]
+	opacity           *Binding[float64]
 }
 
 func newEnv() *viewCtxEnv {
@@ -35,7 +36,7 @@ func (e *viewCtxEnv) inheritFrom(parent *viewCtxEnv) *viewCtxEnv {
 	e.fontLetterSpacing = getNewIfOldNil(parent.fontLetterSpacing, e.fontLetterSpacing)
 	e.fontAlignment = getNewIfOldNil(parent.fontAlignment, e.fontAlignment)
 	e.fontItalic = getNewIfOldNil(parent.fontItalic, e.fontItalic)
-
+	e.opacity = getNewIfOldNil(parent.opacity, e.opacity)
 	return e
 }
 

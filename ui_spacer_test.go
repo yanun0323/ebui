@@ -40,7 +40,7 @@ func (su *SpacerSuite) Test() {
 				sp4,
 			),
 		)
-		_, _, layoutFn := view.preload(nil)
+		_, layoutFn := view.preload(nil)
 		bound := layoutFn(NewPoint(0, 0), NewSize(500, 500))
 		su.Equal(NewPoint(0, 0), bound.Start)
 		su.Equal(NewPoint(500, 500), bound.End)

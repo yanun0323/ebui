@@ -27,6 +27,11 @@ type touchEvent struct {
 type keyEvent struct {
 	Key     ebiten.Key
 	Pressed bool
+
+	Shift   bool
+	Control bool
+	Alt     bool // Option
+	Meta    bool // Windows or Command
 }
 
 var globalEventManager = &eventManager{
@@ -52,6 +57,16 @@ func (em *eventManager) DispatchTouchEvent(event touchEvent) bool {
 			return true
 		}
 	}
+	return false
+}
+
+func (em *eventManager) DispatchKeyEvent(event keyEvent) bool {
+	for i := len(em.handlers) - 1; i >= 0; i-- {
+		if em.handlers[i].HandleKeyEvent(event) {
+			return true
+		}
+	}
+
 	return false
 }
 

@@ -23,7 +23,7 @@ func Button(action func(), label func() SomeView) SomeView {
 	return btn
 }
 
-func (b *buttonImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
+func (b *buttonImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 	b.labelLoaded = b.label()
 	formulaStack := &formulaStack{
 		types:    formulaZStack,
@@ -34,17 +34,15 @@ func (b *buttonImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutF
 	return formulaStack.preload(parent)
 }
 
-func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
 	hook = append(hook, func(opt *ebiten.DrawImageOptions) {
 		if b.isPressed {
 			opt.ColorScale.ScaleAlpha(0.5)
 		}
 	})
 
-	op := b.viewCtx.draw(screen, hook...)
-	_ = b.labelLoaded.draw(screen, hook...)
-
-	return op
+	b.viewCtx.draw(screen, hook...)
+	b.labelLoaded.draw(screen, hook...)
 }
 
 // Button 的事件處理

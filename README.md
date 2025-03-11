@@ -138,12 +138,11 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 - [x] EmptyView
 - [x] Circle
 - [x] Rectangle
-- [ ] Divider
-- [ ] Indicator
-- [ ] Menu
-- [ ] Sheet
 - [ ] TextField
 - [ ] TextEditor
+- [ ] Divider
+- [ ] Menu
+- [ ] Sheet
 - [ ] ScrollView
 - [ ] ListView
 - [ ] TableView

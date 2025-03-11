@@ -20,12 +20,6 @@ func Const[T comparable](value T) *Binding[T] {
 	}
 }
 
-type constant[T comparable] struct{ value T }
-
-func (c constant[T]) Get() T           { return c.value }
-func (constant[T]) Set(T)              {}
-func (constant[T]) AddListener(func()) {}
-
 func Bind[T comparable](initialValue ...T) *Binding[T] {
 	var value T
 	if len(initialValue) != 0 {

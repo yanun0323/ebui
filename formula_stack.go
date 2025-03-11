@@ -14,16 +14,15 @@ type formulaStack struct {
 	children []SomeView
 }
 
-func (v *formulaStack) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
+func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 	stackEnv := v.stackCtx.inheritFrom(parent)
-	childrenSummedBounds := NewSize(0, 0)
+	childrenSummedBounds := CGSize{}
 	childrenLayoutFns := make([]layoutFunc, 0, len(v.children))
 	flexCount := NewPoint(0, 0)
 	for _, child := range v.children {
-		childFrame, childInset, layoutFn := child.preload(stackEnv)
-		childFrameSize := childFrame.Frame
+		childData, layoutFn := child.preload(stackEnv)
 
-		if childFrame.IsSpacer {
+		if child.isSpacer() {
 			switch v.types {
 			case formulaVStack:
 				flexCount.Y++
@@ -37,19 +36,23 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layou
 				})
 			}
 		} else {
-			if childFrame.IsInfX {
+			if childData.IsInfWidth {
 				flexCount.X++
-				childFrameSize.Width = 0
+				if childData.FrameSize.IsInfWidth() {
+					childData.FrameSize.Width = 0
+				}
 			}
 
-			if childFrame.IsInfY {
+			if childData.IsInfHeight {
 				flexCount.Y++
-				childFrameSize.Height = 0
+				if childData.FrameSize.IsInfHeight() {
+					childData.FrameSize.Height = 0
+				}
 			}
 		}
 
-		childBoundsSize := childFrameSize.Expand(childInset)
-		{ // 計算子視圖大小總和
+		childBoundsSize := childData.BoundsSize()
+		{ // 計算子視圖大小總和及最小允許彈性邊界
 			switch v.types {
 			case formulaVStack:
 				childrenSummedBounds = NewSize(max(childrenSummedBounds.Width, childBoundsSize.Width), childrenSummedBounds.Height+childBoundsSize.Height)
@@ -65,74 +68,102 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layou
 		}
 	}
 
-	sSize, sInset, sLayoutFn := v.stackCtx.preload(stackEnv)
+	sData, sLayoutFn := v.stackCtx.preload(stackEnv)
 	{
 		// 如果 Stack 本身沒有設定大小
 		// 		-> 有彈性子視圖：使用無限大小
 		// 		-> 沒有彈性子視圖：使用子視圖大小總和
 		// 如果 Stack 本身有設定大小，則使用 Stack 的大小
-		if sSize.IsInfX {
-			sSize.Frame.Width = childrenSummedBounds.Width
-			sSize.IsInfX = flexCount.X > 0
+		if sData.IsInfWidth {
+			sData.FrameSize.Width = childrenSummedBounds.Width
+			sData.IsInfWidth = flexCount.X > 0
 		}
 
-		if sSize.IsInfY {
-			sSize.Frame.Height = childrenSummedBounds.Height
-			sSize.IsInfY = flexCount.Y > 0
+		if sData.IsInfHeight {
+			sData.FrameSize.Height = childrenSummedBounds.Height
+			sData.IsInfHeight = flexCount.Y > 0
 		}
 	}
 
-	return sSize, sInset, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect) {
-		perFlexFrameSize := flexFrameSize.Shrink(sInset)
-		{ // 計算彈性大小公式
-			switch v.types {
-			case formulaVStack:
-				hFlexSize := max(perFlexFrameSize.Height-childrenSummedBounds.Height, 0)
-				perFlexFrameSize = NewSize(perFlexFrameSize.Width, hFlexSize/max(flexCount.Y, 1))
-			case formulaHStack:
-				wFlexSize := max(perFlexFrameSize.Width-childrenSummedBounds.Width, 0)
-				perFlexFrameSize = NewSize(wFlexSize/max(flexCount.X, 1), perFlexFrameSize.Height)
+	return sData, func(start CGPoint, flexBoundsSize CGSize) (bounds CGRect) {
+		flexFrameSize := flexBoundsSize.Shrink(sData.Padding).Shrink(sData.Border)
+		perFlexFrameSize := CGSize{}
+
+		ensureWidthMinimum := func() {
+			if !sData.IsInfWidth {
+				perFlexFrameSize.Width = max(perFlexFrameSize.Width, sData.FrameSize.Width)
 			}
 		}
 
-		anchor := start.Add(NewPoint(sInset.Left, sInset.Top))
-		summedSize := NewSize(0, 0)
+		ensureHeightMinimum := func() {
+			if !sData.IsInfHeight {
+				perFlexFrameSize.Height = max(perFlexFrameSize.Height, sData.FrameSize.Height)
+			}
+		}
+
+		{ // 計算彈性大小公式
+			switch v.types {
+			case formulaVStack:
+				hFlexSize := max(flexFrameSize.Height-childrenSummedBounds.Height, 0)
+				perFlexFrameSize = NewSize(flexFrameSize.Width, hFlexSize/max(flexCount.Y, 1))
+				ensureWidthMinimum()
+			case formulaHStack:
+				wFlexSize := max(flexFrameSize.Width-childrenSummedBounds.Width, 0)
+				perFlexFrameSize = NewSize(wFlexSize/max(flexCount.X, 1), flexFrameSize.Height)
+				ensureHeightMinimum()
+			case formulaZStack:
+				perFlexFrameSize = flexFrameSize
+
+				ensureWidthMinimum()
+				ensureHeightMinimum()
+			}
+		}
+
+		anchor := start.
+			Add(NewPoint(sData.Padding.Left, sData.Padding.Top)).
+			Add(NewPoint(sData.Border.Left, sData.Border.Top))
+		summedBoundsSize := NewSize(0, 0)
 
 		for _, childLayoutFn := range childrenLayoutFns {
-			childFrame := childLayoutFn(anchor, perFlexFrameSize)
-			childSize := childFrame.Size()
+			childBounds := childLayoutFn(anchor, perFlexFrameSize)
+			childBoundsSize := childBounds.Size()
 			{ // 計算子視圖的 layout 最後位置
 				switch v.types {
 				case formulaVStack:
-					anchor = NewPoint(anchor.X, childFrame.End.Y)
-					summedSize = NewSize(
-						max(summedSize.Width, childSize.Width),
-						summedSize.Height+childSize.Height,
+					anchor = NewPoint(anchor.X, childBounds.End.Y)
+					summedBoundsSize = NewSize(
+						max(summedBoundsSize.Width, childBoundsSize.Width),
+						summedBoundsSize.Height+childBoundsSize.Height,
 					)
 				case formulaHStack:
-					anchor = NewPoint(childFrame.End.X, anchor.Y)
-					summedSize = NewSize(
-						summedSize.Width+childSize.Width,
-						max(summedSize.Height, childSize.Height),
+					anchor = NewPoint(childBounds.End.X, anchor.Y)
+					summedBoundsSize = NewSize(
+						summedBoundsSize.Width+childBoundsSize.Width,
+						max(summedBoundsSize.Height, childBoundsSize.Height),
 					)
 				case formulaZStack:
-					summedSize = summedSize.Add(childFrame.Size())
+					summedBoundsSize = NewSize(
+						max(summedBoundsSize.Width, childBoundsSize.Width),
+						max(summedBoundsSize.Height, childBoundsSize.Height),
+					)
 				}
 			}
 		}
 
-		finalFlexibleBounds := flexFrameSize.Shrink(sInset)
-		finalBound := sSize.Frame
+		finalFrameSize := summedBoundsSize
+		finalFrame := sData.FrameSize
 		{
-			if sSize.IsInfX {
-				finalBound.Width = finalFlexibleBounds.Width
+			if sData.IsInfWidth {
+				finalFrame.Width = finalFrameSize.Width
 			}
 
-			if sSize.IsInfY {
-				finalBound.Height = finalFlexibleBounds.Height
+			if sData.IsInfHeight {
+				finalFrame.Height = finalFrameSize.Height
 			}
 		}
 
-		return sLayoutFn(start, finalBound)
+		finalBounds := finalFrame.Expand(sData.Padding).Expand(sData.Border)
+
+		return sLayoutFn(start, finalBounds)
 	}
 }

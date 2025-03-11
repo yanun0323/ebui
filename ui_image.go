@@ -44,17 +44,19 @@ func Image[T string | *ebiten.Image](img *Binding[T]) SomeView {
 	return nil
 }
 
-func (v *imageImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-	op := v.viewCtx.draw(screen, hook...)
+func (v *imageImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
+	v.viewCtx.draw(screen, hook...)
 	img := v.image.Get()
 	if img == nil {
-		return op
+		return
 	}
 
 	frame := v.viewCtx.systemSetFrame()
 	if !frame.drawable() {
-		return op
+		return
 	}
+
+	op := v.viewCtx.drawOption(frame, hook...)
 
 	frameSize := frame.Size()
 	imgSize := NewSize(float64(img.Bounds().Dx()), float64(img.Bounds().Dy()))
@@ -66,8 +68,6 @@ func (v *imageImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpt
 	opt.GeoM.Concat(op.GeoM)
 
 	screen.DrawImage(img, opt)
-
-	return opt
 }
 
 func (v *imageImpl) getScale(frameSize, imgSize CGSize) CGPoint {

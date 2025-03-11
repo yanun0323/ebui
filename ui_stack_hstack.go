@@ -27,20 +27,18 @@ func (h *hstackImpl) count() int {
 	return count
 }
 
-func (h *hstackImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
-	StackFormula := &formulaStack{
+func (h *hstackImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
+	stackFormula := &formulaStack{
 		types:    formulaHStack,
 		stackCtx: h.viewCtx,
 		children: h.children,
 	}
 
-	return StackFormula.preload(parent)
+	return stackFormula.preload(parent)
 }
-func (h *hstackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-	op := h.viewCtx.draw(screen, hook...)
+func (h *hstackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
+	h.viewCtx.draw(screen, hook...)
 	for _, child := range h.children {
 		child.draw(screen, hook...)
 	}
-
-	return op
 }

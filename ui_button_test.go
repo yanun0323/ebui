@@ -34,9 +34,9 @@ func (su *ButtonSuite) TestButton() {
 		})
 		btn.Padding(Bind(NewInset(20, 20, 20, 20)))
 
-		btnFrameSize, btnInset, btnLayoutFn := btn.preload(nil)
-		su.Equal(NewSize(220, 120), btnFrameSize.Frame)
-		su.Equal(NewInset(0, 0, 0, 0), btnInset)
+		btnData, btnLayoutFn := btn.preload(nil)
+		su.Equal(NewSize(220, 120), btnData.FrameSize)
+		su.Equal(NewInset(0, 0, 0, 0), btnData.Padding)
 		su.NotNil(btnLayoutFn)
 	}
 }

@@ -16,32 +16,26 @@ func Circle() SomeView {
 	return circle
 }
 
-func (c *circleImpl) userSetFrameSize() flexibleSize {
+func (c *circleImpl) userSetFrameSize() CGSize {
 	frameSize := c.viewCtx.userSetFrameSize()
-	frameSize.Frame = NewSize(
-		min(frameSize.Frame.Width, frameSize.Frame.Height),
-		min(frameSize.Frame.Width, frameSize.Frame.Height),
-	)
+	frameSize.Width = min(frameSize.Width, frameSize.Height)
+	frameSize.Height = frameSize.Width
 
 	return frameSize
 }
 
-func (c *circleImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
+func (c *circleImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
 	drawFrame := c._owner.systemSetBounds()
 
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(drawFrame.Start.X, drawFrame.Start.Y)
-	for _, h := range hook {
-		h(op)
-	}
+	bOpt := c.drawOption(drawFrame, hook...)
 
 	bgColor := c.backgroundColor.Get()
 	if bgColor == nil {
-		return op
+		return
 	}
 
 	if !drawFrame.drawable() {
-		return op
+		return
 	}
 
 	w := int(drawFrame.Dx() * _roundedScale)
@@ -63,9 +57,7 @@ func (c *circleImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 	opt := &ebiten.DrawImageOptions{}
 	opt.GeoM.Scale(_roundedScaleInverse, _roundedScaleInverse)
 	opt.Filter = ebiten.FilterLinear
-	opt.GeoM.Concat(op.GeoM)
-	opt.ColorScale.ScaleWithColorScale(op.ColorScale)
+	opt.GeoM.Concat(bOpt.GeoM)
+	opt.ColorScale.ScaleWithColorScale(bOpt.ColorScale)
 	screen.DrawImage(img, opt)
-
-	return op
 }
