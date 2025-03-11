@@ -20,14 +20,14 @@ func someViews(views ...View) []SomeView {
 }
 
 // 繪製圓角矩形色塊
-func drawRoundedAndBorderRect(screen *ebiten.Image, bounds CGRect, radius float64, bgColor color.Color, border CGInset, borderColor color.Color, bOpt *ebiten.DrawImageOptions) {
+func drawRoundedAndBorderRect(screen *ebiten.Image, bounds CGRect, radius float64, bgColor CGColor, border CGInset, borderColor CGColor, bOpt *ebiten.DrawImageOptions) {
 	w := int(bounds.Dx() * _roundedScale)
 	h := int(bounds.Dy() * _roundedScale)
 	r := (radius + border.Top) * _roundedScale // FIXME: using inset to calculate border
 	b := border.Top * _roundedScale
 
 	img := ebiten.NewImage(w, h)
-	if bgColor != nil {
+	if bgColor != transparent {
 		img.Fill(bgColor)
 	}
 
@@ -53,11 +53,11 @@ func drawRoundedAndBorderRect(screen *ebiten.Image, bounds CGRect, radius float6
 	screen.DrawImage(img, opt)
 }
 
-func drawBorderRect(screen *ebiten.Image, bounds CGRect, bgColor color.Color, border CGInset, borderColor color.Color, bOpt *ebiten.DrawImageOptions) {
+func drawBorderRect(screen *ebiten.Image, bounds CGRect, bgColor CGColor, border CGInset, borderColor CGColor, bOpt *ebiten.DrawImageOptions) {
 	w := int(bounds.Dx())
 	h := int(bounds.Dy())
 	img := ebiten.NewImage(w, h)
-	if bgColor != nil {
+	if bgColor != transparent {
 		img.Fill(bgColor)
 	}
 

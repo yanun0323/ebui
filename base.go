@@ -2,7 +2,6 @@ package ebui
 
 import (
 	"image"
-	"image/color"
 
 	"github.com/yanun0323/ebui/direction"
 )
@@ -13,14 +12,19 @@ type numberable interface {
 		~float32 | ~float64
 }
 
-// AnyColor is a alias of image/color.AnyColor.
-type AnyColor color.Color
+type CGColor struct {
+	R, G, B, A uint8
+}
+
+func (c CGColor) RGBA() (r, g, b, a uint32) {
+	return uint32(c.R) * 256, uint32(c.G) * 256, uint32(c.B) * 256, uint32(c.A) * 256
+}
 
 // NewColor uses a traditional 32-bit alpha-premultiplied color, having 8 bits for each of red, green, blue and alpha.
 //
 // An alpha-premultiplied color component C has been scaled by alpha (A), so has valid values 0 <= C <= A.
-func NewColor[Number numberable](r, g, b, a Number) AnyColor {
-	return AnyColor(color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)})
+func NewColor[Number numberable](r, g, b, a Number) CGColor {
+	return CGColor{uint8(r), uint8(g), uint8(b), uint8(a)}
 }
 
 // CGPoint represents a coordinate in 2D space.
@@ -174,8 +178,8 @@ type CGRect struct {
 // NewRect creates a CGRect from any numberable type.
 func NewRect[Number numberable](minX, minY, maxX, maxY Number) CGRect {
 	return CGRect{
-		Start: CGPoint{X: float64(minX), Y: float64(minY)},
-		End:   CGPoint{X: float64(max(maxX, minX)), Y: float64(max(maxY, minY))},
+		Start: CGPoint{X: float64(min(minX, maxX)), Y: float64(min(minY, maxY))},
+		End:   CGPoint{X: float64(max(minX, maxX)), Y: float64(max(minY, maxY))},
 	}
 }
 

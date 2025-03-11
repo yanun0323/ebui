@@ -9,12 +9,12 @@ import (
 type viewCtxParam struct {
 	_debug          string
 	_systemSetFrame CGRect // 不包含 Padding 的內部邊界
-	backgroundColor *Binding[AnyColor]
+	backgroundColor *Binding[CGColor]
 	frameSize       *Binding[CGSize]
 	inset           *Binding[CGInset]
 	roundCorner     *Binding[float64]
 	borderInset     *Binding[CGInset]
-	borderColor     *Binding[AnyColor]
+	borderColor     *Binding[CGColor]
 	scaleToFit      *Binding[bool]
 	keepAspectRatio *Binding[bool]
 }

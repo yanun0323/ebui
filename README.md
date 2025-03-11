@@ -148,9 +148,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 - [ ] ListView
 - [ ] TableView
 - [ ] Slider
-- [ ] Toggle
+- [x] Toggle
 - [ ] Navigation
-- [ ] Checkbox
 - [ ] Radio
 - [ ] Picker
 - [ ] DatePicker

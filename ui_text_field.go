@@ -19,7 +19,7 @@ type textFieldImpl struct {
 	text *textImpl
 
 	isFocused    bool
-	focusedColor *Binding[AnyColor]
+	focusedColor *Binding[CGColor]
 	content      *Binding[string]
 	placeholder  *Binding[string]
 	cursorPos    int

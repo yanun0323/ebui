@@ -3,7 +3,6 @@ package ebui
 import (
 	"embed"
 	"fmt"
-	"image/color"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -28,7 +27,9 @@ var (
 
 var (
 	AccentColor = NewColor(0, 0, 255, 255)
-	transparent = AnyColor(color.Transparent)
+	white       = CGColor{255, 255, 255, 255}
+	black       = CGColor{0, 0, 0, 255}
+	transparent = CGColor{}
 )
 
 func defaultFont() *text.GoTextFaceSource {

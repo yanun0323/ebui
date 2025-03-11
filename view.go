@@ -42,8 +42,8 @@ type SomeView interface {
 	Debug(tag string) SomeView
 	Frame(*Binding[CGSize]) SomeView
 	Padding(inset *Binding[CGInset]) SomeView
-	ForegroundColor(color *Binding[AnyColor]) SomeView
-	BackgroundColor(color *Binding[AnyColor]) SomeView
+	ForegroundColor(color *Binding[CGColor]) SomeView
+	BackgroundColor(color *Binding[CGColor]) SomeView
 	FontSize(size *Binding[font.Size]) SomeView
 	FontWeight(weight *Binding[font.Weight]) SomeView
 	FontLineHeight(height *Binding[float64]) SomeView
@@ -53,7 +53,7 @@ type SomeView interface {
 	RoundCorner(radius ...*Binding[float64]) SomeView
 	ScaleToFit(enable ...*Binding[bool]) SomeView
 	KeepAspectRatio(enable ...*Binding[bool]) SomeView
-	Border(border *Binding[CGInset], color ...*Binding[AnyColor]) SomeView
+	Border(border *Binding[CGInset], color ...*Binding[CGColor]) SomeView
 	Opacity(opacity *Binding[float64]) SomeView
 }
 

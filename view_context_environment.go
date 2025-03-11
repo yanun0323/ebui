@@ -1,14 +1,12 @@
 package ebui
 
 import (
-	"image/color"
-
 	"github.com/yanun0323/ebui/font"
 )
 
 // viewCtxEnv 提供所有 View 共用的環境變量
 type viewCtxEnv struct {
-	foregroundColor   *Binding[AnyColor]
+	foregroundColor   *Binding[CGColor]
 	fontSize          *Binding[font.Size]
 	fontWeight        *Binding[font.Weight]
 	fontLineHeight    *Binding[float64]
@@ -21,7 +19,7 @@ type viewCtxEnv struct {
 
 func newEnv() *viewCtxEnv {
 	return &viewCtxEnv{
-		foregroundColor: Bind[AnyColor](color.White),
+		foregroundColor: Bind[CGColor](white),
 	}
 }
 
@@ -43,7 +41,7 @@ func (e *viewCtxEnv) inheritFrom(parent *viewCtxEnv) *viewCtxEnv {
 	return e
 }
 
-func getNewIfOldNil[T comparable](newValue, oldValue *Binding[T]) *Binding[T] {
+func getNewIfOldNil[T bindable](newValue, oldValue *Binding[T]) *Binding[T] {
 	if oldValue != nil {
 		return oldValue
 	}

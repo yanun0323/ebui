@@ -2,7 +2,6 @@ package ebui
 
 import (
 	"context"
-	"image/color"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -55,9 +54,9 @@ func (su *ZSTestZStackSuite) TestZStack() {
 	}
 
 	{ // 子視圖不固定大小 + Padding
-		rect1 := Rectangle().Debug("rect").(*rectangleImpl)
-		z := ZStack(rect1).Debug("z").(*zstackImpl)
-		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10}))).Debug("zz").(*zstackImpl)
+		rect1 := Rectangle().(*rectangleImpl)
+		z := ZStack(rect1).(*zstackImpl)
+		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10}))).(*zstackImpl)
 
 		data, layoutFn := zz.preload(nil)
 		su.Equal(NewSize(0, 0), data.FrameSize)
@@ -116,7 +115,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		rect1 := Rectangle().(*rectangleImpl)
 		z := newZStackImpl(rect1)
 		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10})).
-			Border(Bind(CGInset{10, 10, 10, 10}), Bind(AnyColor(color.White)))).(*zstackImpl)
+			Border(Bind(CGInset{10, 10, 10, 10}), Bind(white))).(*zstackImpl)
 
 		data, layoutFn := zz.preload(nil)
 		su.Equal(NewSize(0, 0), data.FrameSize)
@@ -146,7 +145,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		rect1 := Rectangle().Frame(Bind(NewSize(100, 100))).(*rectangleImpl)
 		z := newZStackImpl(rect1)
 		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10})).
-			Border(Bind(CGInset{10, 10, 10, 10}), Bind(AnyColor(color.White)))).(*zstackImpl)
+			Border(Bind(CGInset{10, 10, 10, 10}), Bind(white))).(*zstackImpl)
 
 		data, layoutFn := zz.preload(nil)
 		su.Equal(NewSize(100, 100), data.FrameSize)
@@ -175,10 +174,10 @@ func (su *ZSTestZStackSuite) TestZStack() {
 	{
 		rect1 := Rectangle().Frame(Bind(NewSize(100, 500))).
 			Padding(Bind(CGInset{10, 10, 10, 10})).
-			Border(Bind(CGInset{10, 10, 10, 10}), Bind(AnyColor(color.White))).(*zstackImpl)
+			Border(Bind(CGInset{10, 10, 10, 10}), Bind(white)).(*zstackImpl)
 		rect2 := Rectangle().Frame(Bind(NewSize(200, 100))).
 			Padding(Bind(CGInset{50, 50, 50, 50})).
-			Border(Bind(CGInset{50, 50, 50, 50}), Bind(AnyColor(color.White))).(*zstackImpl)
+			Border(Bind(CGInset{50, 50, 50, 50}), Bind(white)).(*zstackImpl)
 		z := ZStack(rect1, rect2).(*zstackImpl)
 
 		data, layoutFn := z.preload(nil)

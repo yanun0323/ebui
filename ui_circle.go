@@ -29,11 +29,11 @@ func (c *circleImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 
 	bOpt := c.drawOption(drawFrame, hook...)
 
-	bgColor := c.backgroundColor.Get()
-	if bgColor == nil {
+	if c.backgroundColor == nil {
 		return
 	}
 
+	bgColor := c.backgroundColor.Get()
 	if !drawFrame.drawable() {
 		return
 	}

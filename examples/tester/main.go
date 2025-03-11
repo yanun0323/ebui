@@ -38,7 +38,7 @@ type ContentView struct {
 
 	isRandom  *atomic.Bool
 	pauseFunc context.CancelFunc
-	color     *Binding[AnyColor]
+	color     *Binding[CGColor]
 	content   *Binding[string]
 }
 

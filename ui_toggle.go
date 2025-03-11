@@ -18,22 +18,22 @@ var (
 				If(enabled, Spacer(), EmptyView()),
 				Circle().
 					Frame(Const(NewSize(_defaultToggleSize, _defaultToggleSize))).
-					BackgroundColor(BindFunc(func() AnyColor {
+					BackgroundColor(BindFunc(func() CGColor {
 						if enabled {
 							return defaultToggleOnColor
 						}
 						return defaultToggleOffColor
-					}, func(AnyColor) {})).
+					}, func(CGColor) {})).
 					Padding(Const(NewInset(_defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding))),
 				If(!enabled, Spacer(), EmptyView()),
 			).
 				Frame(Const(NewSize(60, _defaultToggleSize+_defaultTogglePadding*2))).
-				BackgroundColor(BindFunc(func() AnyColor {
+				BackgroundColor(BindFunc(func() CGColor {
 					if enabled {
 						return defaultToggleOnBackgroundColor
 					}
 					return defaultToggleOffBackgroundColor
-				}, func(AnyColor) {})).
+				}, func(CGColor) {})).
 				RoundCorner(Const(float64(_defaultToggleSize / 2))).
 				Padding(Const(NewInset(5, 5, 5, 5)))
 		}

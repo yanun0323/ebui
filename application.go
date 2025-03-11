@@ -35,7 +35,7 @@ func NewApplication(root View) *application {
 }
 
 // SetWindowBackgroundColor sets the background color of the application.
-func (app *application) SetWindowBackgroundColor(color AnyColor) {
+func (app *application) SetWindowBackgroundColor(color CGColor) {
 	app.backgroundColor = color
 }
 

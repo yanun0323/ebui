@@ -1,5 +1,10 @@
 package ebui
 
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/yanun0323/ebui/animation"
+)
+
 // noCopy may be added to structs which must not be copied
 // after the first use.
 //
@@ -13,8 +18,13 @@ type noCopy struct{}
 func (*noCopy) Lock()   {}
 func (*noCopy) Unlock() {}
 
+// bindable is a type that can be bound to a UI element.
+type bindable interface {
+	numberable | ~string | ~bool | CGPoint | CGSize | CGRect | CGInset | CGColor | *ebiten.Image
+}
+
 // Const creates a binding that always returns the same value.
-func Const[T comparable](value T) *Binding[T] {
+func Const[T bindable](value T) *Binding[T] {
 	return &Binding[T]{
 		getter: func() T { return value },
 		setter: func(T) {},
@@ -22,7 +32,7 @@ func Const[T comparable](value T) *Binding[T] {
 }
 
 // Bind creates a binding that can be used to bind a value to a UI element.
-func Bind[T comparable](initialValue ...T) *Binding[T] {
+func Bind[T bindable](initialValue ...T) *Binding[T] {
 	var value T
 	if len(initialValue) != 0 {
 		value = initialValue[0]
@@ -35,7 +45,7 @@ func Bind[T comparable](initialValue ...T) *Binding[T] {
 }
 
 // BindFunc creates a binding that can be used to bind a value to a UI element.
-func BindFunc[T comparable](get func() T, set func(T)) *Binding[T] {
+func BindFunc[T bindable](get func() T, set func(T)) *Binding[T] {
 	return &Binding[T]{
 		getter:    get,
 		setter:    set,
@@ -46,7 +56,7 @@ func BindFunc[T comparable](get func() T, set func(T)) *Binding[T] {
 // BindOneWay binds a source binding to a target binding.
 //   - The target binding will be updated with the value of the source binding.
 //   - The source binding will not be updated when the target binding is updated.
-func BindOneWay[T, F comparable](source *Binding[T], forward func(T) F) *Binding[F] {
+func BindOneWay[T, F bindable](source *Binding[T], forward func(T) F) *Binding[F] {
 	var (
 		sv T
 		fv F
@@ -66,7 +76,7 @@ func BindOneWay[T, F comparable](source *Binding[T], forward func(T) F) *Binding
 // BindTwoWay binds a source binding to a target binding.
 //   - The target binding will be updated with the value of the source binding.
 //   - The source binding will be updated when the target binding is updated.
-func BindTwoWay[T, F comparable](source *Binding[T], forward func(T) F, backward func(F) T) *Binding[F] {
+func BindTwoWay[T, F bindable](source *Binding[T], forward func(T) F, backward func(F) T) *Binding[F] {
 	var (
 		sv T
 		fv F
@@ -92,7 +102,7 @@ func BindTwoWay[T, F comparable](source *Binding[T], forward func(T) F, backward
 	})
 }
 
-func BindCombineOneWay[T comparable](a, b *Binding[T], forward func(a, b T) T) *Binding[T] {
+func BindCombineOneWay[T bindable](a, b *Binding[T], forward func(a, b T) T) *Binding[T] {
 	var (
 		av T
 		bv T
@@ -113,7 +123,7 @@ func BindCombineOneWay[T comparable](a, b *Binding[T], forward func(a, b T) T) *
 	}, func(v T) {})
 }
 
-func BindCombineTwoWay[T comparable](a, b *Binding[T], forward func(a, b T) T, backward func(T) (a, b T)) *Binding[T] {
+func BindCombineTwoWay[T bindable](a, b *Binding[T], forward func(a, b T) T, backward func(T) (a, b T)) *Binding[T] {
 	var (
 		av T
 		bv T
@@ -144,8 +154,9 @@ func BindCombineTwoWay[T comparable](a, b *Binding[T], forward func(a, b T) T, b
 }
 
 // Binding is a binding that can be used to bind a value to a UI element.
-type Binding[T comparable] struct {
-	_         noCopy
+type Binding[T bindable] struct {
+	_ noCopy
+
 	getter    func() T
 	setter    func(T)
 	listeners []func(T, T)
@@ -163,13 +174,26 @@ func (b *Binding[T]) Get() T {
 // Set sets the value of the binding.
 //
 // The binding will notify its listeners when the value is updated.
-func (b *Binding[T]) Set(newVal T) {
+func (b *Binding[T]) Set(newVal T, with ...animation.Style) {
 	if b == nil {
 		return
 	}
 
 	if b.getter() != newVal {
 		oldVal := b.getter()
+
+		if len(with) != 0 && with[0].Duration() > 0 {
+			a := newAnimator(with[0], oldVal, newVal)
+			globalAnimationManager.AddExecutor(animationExecutor{
+				execute: func() {
+					b.setter(a.Value())
+					b.notifyListeners(oldVal, newVal)
+					globalStateManager.markDirty()
+				},
+			})
+			return
+		}
+
 		b.setter(newVal)
 		b.notifyListeners(oldVal, newVal)
 		globalStateManager.markDirty()

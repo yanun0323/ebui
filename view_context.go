@@ -1,7 +1,6 @@
 package ebui
 
 import (
-	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -125,9 +124,9 @@ func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptio
 
 	bgColor := c.backgroundColor.Get()
 	borderLength := c.borderInset.Get()
-	borderColor := c.borderColor.Get()
-	if borderColor == nil {
-		borderColor = color.Black
+	borderColor := black
+	if c.borderColor != nil {
+		borderColor = c.borderColor.Get()
 	}
 
 	if radius := c.roundCorner.Get(); radius > 0 {
@@ -160,13 +159,13 @@ func (c *viewCtx) Padding(inset *Binding[CGInset]) SomeView {
 }
 
 // ForegroundColor 修飾器
-func (c *viewCtx) ForegroundColor(color *Binding[AnyColor]) SomeView {
+func (c *viewCtx) ForegroundColor(color *Binding[CGColor]) SomeView {
 	c.foregroundColor = color
 	return c._owner
 }
 
 // BackgroundColor 修飾器
-func (c *viewCtx) BackgroundColor(color *Binding[AnyColor]) SomeView {
+func (c *viewCtx) BackgroundColor(color *Binding[CGColor]) SomeView {
 	c.backgroundColor = color
 	return c._owner
 }
@@ -240,7 +239,7 @@ func (c *viewCtx) KeepAspectRatio(enable ...*Binding[bool]) SomeView {
 	return c._owner
 }
 
-func (c *viewCtx) Border(border *Binding[CGInset], color ...*Binding[AnyColor]) SomeView {
+func (c *viewCtx) Border(border *Binding[CGInset], color ...*Binding[CGColor]) SomeView {
 	c.borderInset = border
 	if len(color) != 0 {
 		c.borderColor = color[0]

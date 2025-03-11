@@ -5,6 +5,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
+var (
+	popupViews []SomeView
+)
+
 func EbitenUpdate(contentView SomeView) {
 	// 1. 更新動畫
 	globalAnimationManager.Update()
@@ -98,6 +102,10 @@ func resetLayout(contentView SomeView) {
 
 func EbitenDraw(screen *ebiten.Image, contentView SomeView) {
 	contentView.draw(screen)
+
+	for i := range popupViews {
+		popupViews[i].draw(screen)
+	}
 }
 
 func EbitenLayout(outsideWidth, outsideHeight int) {
