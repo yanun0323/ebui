@@ -72,7 +72,7 @@ func (su *ViewContextSuite) TestPreload() {
 		su.Equal(NewInset(0, 0, 0, 0), data.Padding)
 		su.NotNil(layoutFn)
 
-		res := layoutFn(CGPoint{}, NewSize(500, 500))
+		res, _ := layoutFn(CGPoint{}, NewSize(500, 500))
 		su.Equal(CGPoint{}, res.Start)
 		su.Equal(NewPoint(500, 500), res.End)
 
@@ -90,7 +90,7 @@ func (su *ViewContextSuite) TestPreload() {
 		su.Equal(CGInset{10, 10, 10, 10}, data.Padding)
 		su.NotNil(layoutFn)
 
-		res := layoutFn(CGPoint{}, NewSize(500, 500))
+		res, _ := layoutFn(CGPoint{}, NewSize(500, 500))
 		su.Equal(NewPoint(0, 0), res.Start)
 		su.Equal(NewPoint(500, 500), res.End)
 
@@ -108,7 +108,7 @@ func (su *ViewContextSuite) TestPreload() {
 		su.Equal(NewInset(0, 0, 0, 0), data.Padding)
 		su.NotNil(layoutFn)
 
-		res := layoutFn(CGPoint{}, NewSize(500, 500))
+		res, _ := layoutFn(CGPoint{}, NewSize(500, 500))
 		su.Equal(CGPoint{}, res.Start)
 		su.Equal(NewPoint(100, 100), res.End)
 
@@ -126,7 +126,7 @@ func (su *ViewContextSuite) TestPreload() {
 		su.Equal(CGInset{}, data.Padding)
 		su.NotNil(layoutFn)
 
-		res := layoutFn(CGPoint{}, NewSize(500, 500))
+		res, _ := layoutFn(CGPoint{}, NewSize(500, 500))
 		su.Equal(CGPoint{}, res.Start)
 		su.Equal(NewPoint(100, 100), res.End)
 

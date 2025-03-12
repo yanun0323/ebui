@@ -32,7 +32,7 @@ func (v *ContentView) Body() SomeView {
 
 func main() {
 	app := NewApplication(NewContentView())
-	app.SetWindowBackgroundColor(NewColor(32, 32, 32, 32))
+	app.SetWindowBackgroundColor(NewColor(32))
 	app.SetWindowSize(600, 500)
 	app.SetWindowResizingMode(WindowResizingModeEnabled)
 	app.SetResourceFolder("resource")

@@ -1,27 +1,12 @@
 package ebui
 
 import (
+	"sync"
+	"time"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/animation"
 )
-
-// noCopy may be added to structs which must not be copied
-// after the first use.
-//
-// See https://golang.org/issues/8005#issuecomment-190753527
-// for details.
-//
-// Note that it must not be embedded, due to the Lock and Unlock methods.
-type noCopy struct{}
-
-// Lock is a no-op used by -copylocks checker from `go vet`.
-func (*noCopy) Lock()   {}
-func (*noCopy) Unlock() {}
-
-// bindable is a type that can be bound to a UI element.
-type bindable interface {
-	numberable | ~string | ~bool | CGPoint | CGSize | CGRect | CGInset | CGColor | *ebiten.Image
-}
 
 // Const creates a binding that always returns the same value.
 func Const[T bindable](value T) *Binding[T] {
@@ -153,32 +138,115 @@ func BindCombineTwoWay[T bindable](a, b *Binding[T], forward func(a, b T) T, bac
 	})
 }
 
+/*
+	######## 		####		##    ##		########
+	##     ##		 ## 		###   ##		##     ##
+	##     ##		 ## 		####  ##		##     ##
+	######## 		 ## 		## ## ##		##     ##
+	##     ##		 ## 		##  ####		##     ##
+	##     ##		 ## 		##   ###		##     ##
+	######## 		####		##    ##		########
+*/
+
+// bindable is a type that can be bound to a UI element.
+type bindable interface {
+	numberable | ~string | ~bool | CGPoint | CGSize | CGRect | CGInset | CGColor | *ebiten.Image
+}
+
 // Binding is a binding that can be used to bind a value to a UI element.
+//
+// Binding is thread-safe.
 type Binding[T bindable] struct {
-	_ noCopy
+	mu sync.RWMutex
 
 	getter    func() T
 	setter    func(T)
 	listeners []func(T, T)
+
+	animStyle       animation.Style    // 設定的預設動畫
+	animProgressing func() (any, bool) // 回傳最後一次設定動畫的目標值，以及是否正在此動畫中
 }
 
-// Get returns the value of the binding.
-func (b *Binding[T]) Get() T {
+// Get returns the current value of the binding.
+//
+// When ignoreAnim is true, it returns the final target value of the binding, ignoring any intermediate values during animation.
+//
+// Get is thread-safe.
+func (b *Binding[T]) Get(ignoreAnim ...bool) T {
 	if b == nil {
 		return *new(T)
 	}
 
-	return b.getter()
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	return b.getValue(len(ignoreAnim) != 0 && ignoreAnim[0])
 }
 
 // Set sets the value of the binding.
 //
 // The binding will notify its listeners when the value is updated.
+//
+// Set is thread-safe.
 func (b *Binding[T]) Set(newVal T, with ...animation.Style) {
 	if b == nil {
 		return
 	}
 
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.set(newVal, with...)
+}
+
+// Update returns the current value of the binding without considering the animation value offset, and sets the new value.
+//
+// Update is thread-safe.
+func (b *Binding[T]) Update(fn func(oldVal T) (newVal T), with ...animation.Style) {
+	if b == nil {
+		return
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.set(fn(b.getValue(false)), with...)
+}
+
+// AddListener adds a listener to the binding.
+//
+// The listener will be called when the binding is updated.
+//
+// AddListener is thread-safe.
+func (b *Binding[T]) AddListener(listener func(oldVal, newVal T)) {
+	if b == nil {
+		return
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.listeners = append(b.listeners, listener)
+}
+
+func (b *Binding[T]) getValue(ignoreAnim bool) T {
+	if ignoreAnim {
+		if b.animProgressing == nil {
+			return b.getter()
+		}
+
+		val, progressing := b.animProgressing()
+		if progressing {
+			return val.(T)
+		}
+
+		return b.getter()
+	}
+
+	return b.getter()
+}
+
+func (b *Binding[T]) set(newVal T, with ...animation.Style) {
 	if b.getter() != newVal {
 		oldVal := b.getter()
 
@@ -187,13 +255,21 @@ func (b *Binding[T]) Set(newVal T, with ...animation.Style) {
 		if len(with) > 0 && with[0].Duration() > 0 {
 			animStyle = with[0]
 		} else {
-			// 檢查當前動畫上下文
-			animStyle = getCurrentStyle()
+			animStyle = b.animStyle
+		}
+
+		if b.animProgressing != nil {
+			val, progressing := b.animProgressing()
+			if progressing {
+				oldVal = val.(T)
+			}
+
+			b.animProgressing = nil
 		}
 
 		// 如果有動畫風格且持續時間大於0，創建動畫
 		if animStyle != nil && animStyle.Duration() > 0 {
-			globalAnimationManager.CreateAnimatedExecutor(
+			startTime := globalAnimationManager.CreateAnimatedExecutor(
 				animStyle,
 				func(progress float64) bool {
 					// 計算插值
@@ -203,6 +279,14 @@ func (b *Binding[T]) Set(newVal T, with ...animation.Style) {
 					return false // 繼續動畫，直到完成
 				},
 			)
+
+			println("add animation")
+
+			final := newVal
+			b.animProgressing = func() (any, bool) {
+				return final, time.Since(startTime) <= animStyle.Duration()
+			}
+
 			return
 		}
 
@@ -213,17 +297,6 @@ func (b *Binding[T]) Set(newVal T, with ...animation.Style) {
 	}
 }
 
-// AddListener adds a listener to the binding.
-//
-// The listener will be called when the binding is updated.
-func (b *Binding[T]) AddListener(listener func(oldVal, newVal T)) {
-	if b == nil {
-		return
-	}
-
-	b.listeners = append(b.listeners, listener)
-}
-
 func (b *Binding[T]) notifyListeners(oldVal, newVal T) {
 	if b == nil {
 		return
@@ -231,5 +304,17 @@ func (b *Binding[T]) notifyListeners(oldVal, newVal T) {
 
 	for _, listener := range b.listeners {
 		listener(oldVal, newVal)
+	}
+}
+
+// Animated sets the animated style as the default animated style for the binding.
+//
+// Animated is thread-safe.
+func (b *Binding[T]) Animated(with ...animation.Style) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if len(with) != 0 {
+		b.animStyle = with[0]
 	}
 }

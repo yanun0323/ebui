@@ -1,16 +1,7 @@
 package ebui
 
-import (
-	"github.com/hajimehoshi/ebiten/v2"
-)
-
 func animateValue[T bindable](startValue, endValue T, delta float64) T {
 	switch any(startValue).(type) {
-	case string, bool, *ebiten.Image:
-		if delta < 0.5 {
-			return startValue
-		}
-		return endValue
 	case int:
 		sv := any(startValue).(int)
 		ev := any(endValue).(int)

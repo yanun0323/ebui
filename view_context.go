@@ -5,6 +5,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/font"
+	"github.com/yanun0323/ebui/layout"
 )
 
 var _ SomeView = &viewCtx{}
@@ -69,6 +70,10 @@ func (c *viewCtx) isSpacer() bool {
 	return false
 }
 
+func (c *viewCtx) align(offset CGPoint) {
+	c._systemSetFrame = c._systemSetFrame.Move(offset)
+}
+
 func (c *viewCtx) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 	c.viewCtxEnv.inheritFrom(parent)
 	padding := c.padding()
@@ -76,7 +81,7 @@ func (c *viewCtx) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 	userSetFrameSize := c._owner.userSetFrameSize()
 	data := newPreloadData(userSetFrameSize, padding, border)
 
-	return data, func(start CGPoint, flexBoundsSize CGSize) CGRect {
+	return data, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc) {
 		flexFrameSize := flexBoundsSize.Shrink(padding).Shrink(border)
 		flexibleFrame := CGRect{start, start.Add(flexFrameSize.ToCGPoint())}
 		finalFrame := flexibleFrame
@@ -97,7 +102,7 @@ func (c *viewCtx) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 
 		c.debugPrintPreload(finalFrame, flexFrameSize, data)
 
-		return finalFrame.Expand(padding).Expand(border)
+		return finalFrame.Expand(padding).Expand(border), c.align
 	}
 }
 
@@ -190,7 +195,7 @@ func (c *viewCtx) FontLetterSpacing(spacing *Binding[float64]) SomeView {
 	return c._owner
 }
 
-func (c *viewCtx) FontAlignment(alignment *Binding[font.Alignment]) SomeView {
+func (c *viewCtx) FontAlignment(alignment *Binding[font.TextAlign]) SomeView {
 	c.fontAlignment = alignment
 	return c._owner
 }
@@ -214,7 +219,7 @@ func (c *viewCtx) RoundCorner(radius ...*Binding[float64]) SomeView {
 	return c.wrap()
 }
 
-func (c *viewCtx) Debug(tag string) SomeView {
+func (c *viewCtx) DebugPrint(tag string) SomeView {
 	c._debug = tag
 	return c._owner
 }
@@ -251,4 +256,34 @@ func (c *viewCtx) Border(border *Binding[CGInset], color ...*Binding[CGColor]) S
 func (c *viewCtx) Opacity(opacity *Binding[float64]) SomeView {
 	c.opacity = opacity
 	return c._owner
+}
+
+func (c *viewCtx) Modifier(modifier ViewModifier) SomeView {
+	return modifier.Body(c)
+}
+
+func (c *viewCtx) Modify(with func(SomeView) SomeView) SomeView {
+	return with(c)
+}
+
+func (c *viewCtx) Align(alignment *Binding[layout.Align]) SomeView {
+	c.alignment = alignment
+	return c._owner
+}
+
+func (c *viewCtx) Debug() SomeView {
+	c.Border(Const(NewInset(1)), Const(NewColor(255, 0, 0)))
+	return c.wrap()
+}
+
+func (c *viewCtx) Center() SomeView {
+	return VStack(
+		Spacer(),
+		HStack(
+			Spacer(),
+			c._owner,
+			Spacer(),
+		),
+		Spacer(),
+	)
 }

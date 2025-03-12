@@ -98,7 +98,9 @@ func (t *textFieldImpl) HandleKeyEvent(event keyEvent) {
 	if event.Phase != keyPhaseJustReleased {
 		switch event.Key {
 		case ebiten.KeyBackspace:
-			t.content.Set(removeLastChar(t.content.Get()))
+			t.content.Update(func(val string) string {
+				return removeLastChar(val)
+			})
 			t.cursorPos--
 		}
 	}
@@ -110,6 +112,8 @@ func (t *textFieldImpl) HandleInputEvent(event inputEvent) {
 		if t.cursorPos == utf8.RuneCountInString(content) {
 			t.cursorPos += 1
 		}
-		t.content.Set(t.content.Get() + string(event.Char))
+		t.content.Update(func(val string) string {
+			return val + string(event.Char)
+		})
 	}
 }

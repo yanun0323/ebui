@@ -103,7 +103,7 @@ func (t *textImpl) measure(content string) (w, h float64) {
 func (t *textImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 	data, layoutFn := t.viewCtx.preload(parent)
 	w, h := text.Measure(t.content.Get(), t.face(), t.fontLineHeight.Get())
-	return data, func(start CGPoint, flexBoundsSize CGSize) CGRect {
+	return data, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc) {
 		flexFrameSize := flexBoundsSize.Shrink(data.Padding).Shrink(data.Border)
 		if isInf(flexFrameSize.Width) {
 			flexFrameSize.Width = w
@@ -113,9 +113,9 @@ func (t *textImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 			flexFrameSize.Height = h
 		}
 
-		result := layoutFn(start, flexFrameSize)
+		result, _ := layoutFn(start, flexFrameSize)
 		t.viewCtx.debugPrintPreload(result, flexFrameSize, data)
-		return result
+		return result, t.viewCtx.align
 	}
 }
 
@@ -128,20 +128,6 @@ func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpti
 	}
 
 	op := t.viewCtx.drawOption(t.systemSetBounds(), hook...)
-
-	// 計算文字位置
-	// frame := t.systemSetFrame()
-	// x := frame.Start.X
-	// y := frame.Start.Y
-
-	// 處理對齊
-	// w, _ := text.Measure(content, t.face, t.ctx.fontLineHeight.Get())
-	// switch t.ctx.fontAlignment.Get() {
-	// case font.AlignCenter:
-	// 	x += float64(frame.Dx()-w) / 2
-	// case font.AlignRight:
-	// 	x += float64(frame.Dx() - w)
-	// }
 
 	// 繪製文字
 	face := t.face()

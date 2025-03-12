@@ -96,7 +96,7 @@ func EbitenUpdate(contentView SomeView) {
 func resetLayout(contentView SomeView) {
 	bounds := globalStateManager.GetBounds()
 	_, layoutFn := contentView.preload(nil)
-	_ = layoutFn(bounds.Start, bounds.Size())
+	_, _ = layoutFn(bounds.Start, bounds.Size())
 	globalStateManager.clearDirty()
 }
 

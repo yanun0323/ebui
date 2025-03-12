@@ -3,6 +3,7 @@ package ebui
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/font"
+	layout "github.com/yanun0323/ebui/layout"
 )
 
 type View interface {
@@ -39,7 +40,7 @@ type SomeView interface {
 	systemSetFrame() CGRect
 	systemSetBounds() CGRect
 
-	Debug(tag string) SomeView
+	DebugPrint(tag string) SomeView
 	Frame(*Binding[CGSize]) SomeView
 	Padding(inset *Binding[CGInset]) SomeView
 	ForegroundColor(color *Binding[CGColor]) SomeView
@@ -48,21 +49,28 @@ type SomeView interface {
 	FontWeight(weight *Binding[font.Weight]) SomeView
 	FontLineHeight(height *Binding[float64]) SomeView
 	FontLetterSpacing(spacing *Binding[float64]) SomeView
-	FontAlignment(alignment *Binding[font.Alignment]) SomeView
+	FontAlignment(alignment *Binding[font.TextAlign]) SomeView
 	FontItalic(italic ...*Binding[bool]) SomeView
 	RoundCorner(radius ...*Binding[float64]) SomeView
 	ScaleToFit(enable ...*Binding[bool]) SomeView
 	KeepAspectRatio(enable ...*Binding[bool]) SomeView
 	Border(border *Binding[CGInset], color ...*Binding[CGColor]) SomeView
 	Opacity(opacity *Binding[float64]) SomeView
+	Modifier(ViewModifier) SomeView
+	Modify(with func(SomeView) SomeView) SomeView
+	Align(alignment *Binding[layout.Align]) SomeView
+	Center() SomeView
+	Debug() SomeView
 }
+
+type alignFunc func(offset CGPoint)
 
 // layoutFunc: 用於設置 View 的位置及大小，並回傳實際佔用的空間
 //
 //	start: 給這個 View 的起始座標
 //	flexBoundsSize: 給這個 View 的外部邊界彈性大小
 //	bounds: 回傳實際佔用的空間(包含 padding 的最外圍邊界)
-type layoutFunc func(start CGPoint, flexBoundsSize CGSize) (bounds CGRect)
+type layoutFunc func(start CGPoint, flexBoundsSize CGSize) (bounds CGRect, alignFunc alignFunc)
 
 func newPreloadData(frameSize CGSize, padding CGInset, border CGInset) preloadData {
 	return preloadData{

@@ -2,6 +2,7 @@ package ebui
 
 import (
 	"github.com/yanun0323/ebui/font"
+	"github.com/yanun0323/ebui/layout"
 )
 
 // viewCtxEnv 提供所有 View 共用的環境變量
@@ -11,10 +12,11 @@ type viewCtxEnv struct {
 	fontWeight        *Binding[font.Weight]
 	fontLineHeight    *Binding[float64]
 	fontLetterSpacing *Binding[float64]
-	fontAlignment     *Binding[font.Alignment]
+	fontAlignment     *Binding[font.TextAlign]
 	fontItalic        *Binding[bool]
 	opacity           *Binding[float64]
 	disabled          *Binding[bool]
+	alignment         *Binding[layout.Align]
 }
 
 func newEnv() *viewCtxEnv {
@@ -37,7 +39,7 @@ func (e *viewCtxEnv) inheritFrom(parent *viewCtxEnv) *viewCtxEnv {
 	e.fontItalic = getNewIfOldNil(parent.fontItalic, e.fontItalic)
 	e.opacity = getNewIfOldNil(parent.opacity, e.opacity)
 	e.disabled = getNewIfOldNil(parent.disabled, e.disabled)
-
+	e.alignment = getNewIfOldNil(parent.alignment, e.alignment)
 	return e
 }
 

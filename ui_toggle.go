@@ -1,6 +1,10 @@
 package ebui
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/yanun0323/ebui/animation"
+	layout "github.com/yanun0323/ebui/layout"
+)
 
 const (
 	_defaultToggleSize    = 30
@@ -12,72 +16,56 @@ var (
 	defaultToggleOffColor           = NewColor(239, 239, 239, 255)
 	defaultToggleOnBackgroundColor  = NewColor(64, 191, 64, 255)
 	defaultToggleOffBackgroundColor = NewColor(64, 64, 64, 128)
-	toggleDefaultLabel              = func(key string) func(bool) SomeView {
-		return func(enabled bool) SomeView {
-			return HStack(
-				If(len(key) == 0, EmptyView(), HStack(
-					Spacer(),
-					VStack(
-						Spacer(),
-						Text(key),
-						Spacer(),
-					),
-					Spacer(),
-				).Frame(Const(NewSize(60, _defaultToggleSize+_defaultTogglePadding*2))).
-					Padding(Const(NewInset(5, 5, 5, 5)))),
-				HStack(
-					If(enabled, Spacer(), EmptyView()),
-					Circle().
-						Frame(Const(NewSize(_defaultToggleSize, _defaultToggleSize))).
-						BackgroundColor(BindFunc(func() CGColor {
-							if enabled {
-								return defaultToggleOnColor
-							}
-							return defaultToggleOffColor
-						}, func(CGColor) {})).
-						Padding(Const(NewInset(_defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding))),
-					If(!enabled, Spacer(), EmptyView()),
-				).
-					Frame(Const(NewSize(60, _defaultToggleSize+_defaultTogglePadding*2))).
-					BackgroundColor(BindFunc(func() CGColor {
-						if enabled {
-							return defaultToggleOnBackgroundColor
-						}
-						return defaultToggleOffBackgroundColor
-					}, func(CGColor) {})).
-					RoundCorner(Const(float64(_defaultToggleSize/2))).
-					Padding(Const(NewInset(5, 5, 5, 5))),
-			)
-		}
-	}
 )
 
 type toggleImpl struct {
 	*viewCtx
 
-	label       func(bool) SomeView
+	label       func() SomeView
 	labelLoaded SomeView
 	enabled     *Binding[bool]
 	isPressed   bool
+
+	defaultToggleColor           *Binding[CGColor]
+	defaultToggleBackgroundColor *Binding[CGColor]
 }
 
-func Toggle(key string, enabled *Binding[bool], label ...func(bool) SomeView) SomeView {
-	lb := toggleDefaultLabel(key)
-	if len(label) != 0 && label[0] != nil {
-		lb = label[0]
-	}
-
+func Toggle(enabled *Binding[bool], label ...func() SomeView) SomeView {
 	t := &toggleImpl{
 		enabled: enabled,
-		label:   lb,
 	}
+
+	if len(label) != 0 && label[0] != nil {
+		t.label = label[0]
+	} else {
+		t.defaultToggleColor = Bind(defaultToggleOffColor)
+		t.defaultToggleBackgroundColor = Bind(defaultToggleOffBackgroundColor)
+		if t.enabled.Get() {
+			t.defaultToggleColor.Set(defaultToggleOnColor)
+			t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor)
+		}
+		enabled.AddListener(func(oldVal bool, newVal bool) {
+			if newVal {
+				t.defaultToggleColor.Set(defaultToggleOnColor, animation.Linear())
+				t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor, animation.Linear())
+			} else {
+				t.defaultToggleColor.Set(defaultToggleOffColor, animation.Linear())
+				t.defaultToggleBackgroundColor.Set(defaultToggleOffBackgroundColor, animation.Linear())
+			}
+		})
+
+		t.labelLoaded = t.defaultLabel()
+	}
+
 	t.viewCtx = newViewContext(t)
 	globalEventManager.RegisterHandler(t)
 	return t
 }
 
 func (b *toggleImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
-	b.labelLoaded = b.label(b.enabled.Get())
+	if b.label != nil {
+		b.labelLoaded = b.label()
+	}
 	if b.labelLoaded == nil {
 		panic("empty view from button label")
 	}
@@ -102,6 +90,20 @@ func (b *toggleImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 	b.labelLoaded.draw(screen, hook...)
 }
 
+func (b *toggleImpl) defaultLabel() SomeView {
+	return HStack(
+		Circle().
+			Frame(Const(NewSize(_defaultToggleSize, _defaultToggleSize))).
+			BackgroundColor(b.defaultToggleColor).
+			Padding(Const(NewInset(_defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding))),
+	).
+		Frame(Const(NewSize(60, _defaultToggleSize+_defaultTogglePadding*2))).
+		BackgroundColor(b.defaultToggleBackgroundColor).
+		RoundCorner(Const(float64(_defaultToggleSize / 2))).
+		Padding(Const(NewInset(5, 5, 5, 5))).
+		Align(Bind(layout.AlignLeading | layout.AlignTop))
+}
+
 func (t *toggleImpl) HandleTouchEvent(event touchEvent) {
 	if t.viewCtxEnv.disabled.Get() {
 		return
@@ -118,7 +120,9 @@ func (t *toggleImpl) HandleTouchEvent(event touchEvent) {
 		}
 
 		if event.Position.In(t.labelLoaded.systemSetBounds()) {
-			t.enabled.Set(!t.enabled.Get())
+			t.enabled.Update(func(val bool) bool {
+				return !val
+			})
 		}
 	}
 }

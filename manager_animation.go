@@ -1,7 +1,6 @@
 package ebui
 
 import (
-	"fmt"
 	"slices"
 	"sync"
 	"time"
@@ -11,7 +10,6 @@ import (
 
 // animationExecutor 表示一個動畫執行器
 type animationExecutor struct {
-	id        string          // 唯一識別符
 	execute   func() bool     // 執行函數，返回是否完成
 	style     animation.Style // 動畫風格
 	startTime time.Time       // 開始時間
@@ -27,26 +25,12 @@ type animationManager struct {
 var globalAnimationManager = &animationManager{}
 
 // AddExecutor 添加一個動畫執行器
-func (am *animationManager) AddExecutor(executor animationExecutor) string {
+func (am *animationManager) AddExecutor(executor animationExecutor) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
 
 	am.nextID++
-	id := fmt.Sprintf("anim_%d", am.nextID)
-	executor.id = id
 	am.executors = append(am.executors, executor)
-
-	return id
-}
-
-// RemoveExecutor 移除指定ID的執行器
-func (am *animationManager) RemoveExecutor(id string) {
-	am.mu.Lock()
-	defer am.mu.Unlock()
-
-	am.executors = slices.DeleteFunc(am.executors, func(e animationExecutor) bool {
-		return e.id == id
-	})
 }
 
 // Update 更新所有動畫執行器
@@ -84,29 +68,20 @@ func (am *animationManager) Update() {
 	}
 }
 
-// HasActiveAnimations 檢查是否有活動的動畫
-func (am *animationManager) HasActiveAnimations() bool {
-	am.mu.RLock()
-	defer am.mu.RUnlock()
-	return len(am.executors) > 0
-}
-
 // CreateAnimatedExecutor 創建一個基於動畫的執行器
 // 它會在每一幀調用 onUpdate 直到動畫完成
 func (am *animationManager) CreateAnimatedExecutor(
 	style animation.Style,
 	onUpdate func(progress float64) bool, // 每幀更新時調用，返回值表示是否提前完成
-) string {
+) time.Time {
 	startTime := time.Now()
+	duration := style.Duration()
 
 	executor := animationExecutor{
 		style:     style,
 		startTime: startTime,
 		execute: func() bool {
-			now := time.Now()
-			elapsed := now.Sub(startTime)
-			duration := style.Duration()
-
+			elapsed := time.Since(startTime)
 			if elapsed >= duration {
 				// 動畫完成，使用最終進度值
 				return onUpdate(1.0)
@@ -121,5 +96,6 @@ func (am *animationManager) CreateAnimatedExecutor(
 		},
 	}
 
-	return am.AddExecutor(executor)
+	am.AddExecutor(executor)
+	return startTime
 }

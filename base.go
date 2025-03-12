@@ -2,8 +2,6 @@ package ebui
 
 import (
 	"image"
-
-	"github.com/yanun0323/ebui/direction"
 )
 
 type numberable interface {
@@ -23,8 +21,24 @@ func (c CGColor) RGBA() (r, g, b, a uint32) {
 // NewColor uses a traditional 32-bit alpha-premultiplied color, having 8 bits for each of red, green, blue and alpha.
 //
 // An alpha-premultiplied color component C has been scaled by alpha (A), so has valid values 0 <= C <= A.
-func NewColor[Number numberable](r, g, b, a Number) CGColor {
-	return CGColor{uint8(r), uint8(g), uint8(b), uint8(a)}
+//
+// # Usage:
+//
+//	NewColor()  /* transparent color */
+//	NewColor(gray)  /* color with gray */
+//	NewColor(r, g, b)  /* color with alpha 255 */
+//	NewColor(r, g, b, a)  /* color with alpha */
+func NewColor[Number numberable](val ...Number) CGColor {
+	switch len(val) {
+	case 1:
+		return CGColor{uint8(val[0]), uint8(val[0]), uint8(val[0]), 255}
+	case 3:
+		return CGColor{uint8(val[0]), uint8(val[1]), uint8(val[2]), 255}
+	case 4:
+		return CGColor{uint8(val[0]), uint8(val[1]), uint8(val[2]), uint8(val[3])}
+	default:
+		return CGColor{}
+	}
 }
 
 // CGPoint represents a coordinate in 2D space.
@@ -34,8 +48,21 @@ type CGPoint struct {
 }
 
 // NewPoint creates a CGPoint from any numberable type.
-func NewPoint[Number numberable](x, y Number) CGPoint {
-	return CGPoint{X: float64(x), Y: float64(y)}
+//
+// # Usage:
+//
+//	NewPoint() /* zero value */
+//	NewPoint(v) /* x = v, y = v */
+//	NewPoint(x, y) /* x, y */
+func NewPoint[Number numberable](val ...Number) CGPoint {
+	switch len(val) {
+	case 1:
+		return CGPoint{X: float64(val[0]), Y: float64(val[0])}
+	case 2:
+		return CGPoint{X: float64(val[0]), Y: float64(val[1])}
+	default:
+		return CGPoint{}
+	}
 }
 
 func (p CGPoint) Add(other CGPoint) CGPoint {
@@ -50,7 +77,7 @@ func (p CGPoint) In(r CGRect) bool {
 	return p.X >= r.Start.X && p.X <= r.End.X && p.Y >= r.Start.Y && p.Y <= r.End.Y
 }
 
-func (p CGPoint) Max(other CGPoint, d direction.D) CGPoint {
+func (p CGPoint) Max(other CGPoint) CGPoint {
 	if p.X > other.X && p.Y > other.Y {
 		return p
 	}
@@ -58,7 +85,7 @@ func (p CGPoint) Max(other CGPoint, d direction.D) CGPoint {
 	return other
 }
 
-func (p CGPoint) Min(other CGPoint, d direction.D) CGPoint {
+func (p CGPoint) Min(other CGPoint) CGPoint {
 	if p.X < other.X && p.Y < other.Y {
 		return p
 	}
@@ -89,8 +116,21 @@ type CGSize struct {
 }
 
 // NewSize creates a CGSize from any numberable type.
-func NewSize[Number numberable](width, height Number) CGSize {
-	return CGSize{Width: max(float64(width), 0), Height: max(float64(height), 0)}
+//
+// # Usage:
+//
+//	NewSize() /* zero value */
+//	NewSize(size) /* width, height = size */
+//	NewSize(width, height) /* width, height */
+func NewSize[Number numberable](val ...Number) CGSize {
+	switch len(val) {
+	case 1:
+		return CGSize{Width: float64(val[0]), Height: float64(val[0])}
+	case 2:
+		return CGSize{Width: float64(val[0]), Height: float64(val[1])}
+	default:
+		return CGSize{}
+	}
 }
 
 func (s CGSize) Empty() bool {
@@ -176,10 +216,32 @@ type CGRect struct {
 }
 
 // NewRect creates a CGRect from any numberable type.
-func NewRect[Number numberable](minX, minY, maxX, maxY Number) CGRect {
-	return CGRect{
-		Start: CGPoint{X: float64(min(minX, maxX)), Y: float64(min(minY, maxY))},
-		End:   CGPoint{X: float64(max(minX, maxX)), Y: float64(max(minY, maxY))},
+//
+// # Usage:
+//
+//	NewRect() /* zero value */
+//	NewRect(xy) /* start = xy, end = xy */
+//	NewRect(minXY, maxXY) /* start = minXY, end = maxXY */
+//	NewRect(minX, minY, maxX, maxY) /* minX, minY, maxX, maxY */
+func NewRect[Number numberable](val ...Number) CGRect {
+	switch len(val) {
+	case 1:
+		return CGRect{
+			Start: CGPoint{X: float64(val[0]), Y: float64(val[0])},
+			End:   CGPoint{X: float64(val[0]), Y: float64(val[0])},
+		}
+	case 2:
+		return CGRect{
+			Start: CGPoint{X: float64(val[0]), Y: float64(val[0])},
+			End:   CGPoint{X: float64(val[1]), Y: float64(val[1])},
+		}
+	case 4:
+		return CGRect{
+			Start: CGPoint{X: float64(min(val[0], val[2])), Y: float64(min(val[1], val[3]))},
+			End:   CGPoint{X: float64(max(val[0], val[2])), Y: float64(max(val[1], val[3]))},
+		}
+	default:
+		return CGRect{}
 	}
 }
 
@@ -242,8 +304,24 @@ type CGInset struct {
 }
 
 // NewInset creates an Inset from any numberable type.
-func NewInset[Number numberable](top, right, bottom, left Number) CGInset {
-	return CGInset{Top: float64(top), Right: float64(right), Bottom: float64(bottom), Left: float64(left)}
+//
+// # Usage:
+//
+//	NewInset() /* zero value */
+//	NewInset(all)
+//	NewInset(horizontal, vertical)
+//	NewInset(top, right, bottom, left)
+func NewInset[Number numberable](inset ...Number) CGInset {
+	switch len(inset) {
+	case 1:
+		return CGInset{Top: float64(inset[0]), Right: float64(inset[0]), Bottom: float64(inset[0]), Left: float64(inset[0])}
+	case 2:
+		return CGInset{Top: float64(inset[0]), Right: float64(inset[1]), Bottom: float64(inset[0]), Left: float64(inset[1])}
+	case 4:
+		return CGInset{Top: float64(inset[0]), Right: float64(inset[1]), Bottom: float64(inset[2]), Left: float64(inset[3])}
+	default:
+		return CGInset{}
+	}
 }
 
 func (i CGInset) IsZero() bool {
@@ -264,33 +342,5 @@ func (i CGInset) MaxBounds(other CGInset) CGInset {
 		Right:  max(i.Right, other.Right),
 		Bottom: max(i.Bottom, other.Bottom),
 		Left:   max(i.Left, other.Left),
-	}
-}
-
-// flexibleSize 表示一個可能包含無限維度的彈性尺寸
-type flexibleSize struct {
-	Frame    CGSize // 實際的有限尺寸
-	IsInfX   bool   // X 軸是否無限
-	IsInfY   bool   // Y 軸是否無限
-	IsSpacer bool
-}
-
-func newFlexibleSize(width, height float64, isSpacer ...bool) flexibleSize {
-	isInfX := isInf(width) || width < 0
-	isInfY := isInf(height) || height < 0
-
-	if isInfX {
-		width = 0
-	}
-
-	if isInfY {
-		height = 0
-	}
-
-	return flexibleSize{
-		Frame:    NewSize(width, height),
-		IsInfX:   isInfX,
-		IsInfY:   isInfY,
-		IsSpacer: len(isSpacer) != 0 && isSpacer[0],
 	}
 }

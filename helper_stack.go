@@ -1,5 +1,7 @@
 package ebui
 
+import layout "github.com/yanun0323/ebui/layout"
+
 type formulaType int
 
 const (
@@ -26,18 +28,18 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 			switch v.types {
 			case formulaVStack:
 				flexCount.Y++
-				childrenLayoutFns = append(childrenLayoutFns, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect) {
+				childrenLayoutFns = append(childrenLayoutFns, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect, alignFunc alignFunc) {
 					child.debugPrint("preload", "start: {%4.f, %4.f}, flexFrameSize: {%4.f, %4.f}",
 						start.X, start.Y,
 						flexFrameSize.Width, flexFrameSize.Height,
 					)
-					return CGRect{start, NewPoint(start.X, start.Y+flexFrameSize.Height)}
+					return CGRect{start, NewPoint(start.X, start.Y+flexFrameSize.Height)}, func(CGPoint) {}
 				})
 			case formulaHStack:
 				flexCount.X++
-				childrenLayoutFns = append(childrenLayoutFns, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect) {
+				childrenLayoutFns = append(childrenLayoutFns, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect, alignFunc alignFunc) {
 					child.debugPrint("preload", "start: %v, flexFrameSize: %v", start, flexFrameSize)
-					return CGRect{start, NewPoint(start.X+flexFrameSize.Width, start.Y)}
+					return CGRect{start, NewPoint(start.X+flexFrameSize.Width, start.Y)}, func(CGPoint) {}
 				})
 			}
 		} else {
@@ -90,7 +92,7 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 		}
 	}
 
-	return sData, func(start CGPoint, flexBoundsSize CGSize) (bounds CGRect) {
+	return sData, func(start CGPoint, flexBoundsSize CGSize) (bounds CGRect, alignFunc alignFunc) {
 		flexFrameSize := flexBoundsSize.Shrink(sData.Padding).Shrink(sData.Border)
 		perFlexFrameSize := CGSize{}
 
@@ -136,8 +138,12 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 			Add(NewPoint(sData.Border.Left, sData.Border.Top))
 		summedBoundsSize := NewSize(0, 0)
 
+		alignFuncs := make([]func(CGPoint), 0, len(childrenLayoutFns))
+		aligners := make([]func(CGSize), 0, len(childrenLayoutFns))
 		for _, childLayoutFn := range childrenLayoutFns {
-			childBounds := childLayoutFn(anchor, perFlexFrameSize)
+			childBounds, alignChild := childLayoutFn(anchor, perFlexFrameSize)
+			alignFuncs = append(alignFuncs, alignChild)
+			aligners = append(aligners, v.newAligner(childBounds, alignChild))
 			childBoundsSize := childBounds.Size()
 			{ // 計算子視圖的 layout 最後位置
 				switch v.types {
@@ -176,6 +182,56 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 
 		finalBounds := finalFrame.Expand(sData.Padding).Expand(sData.Border)
 
-		return sLayoutFn(start, finalBounds)
+		resBounds, resAlignFunc := sLayoutFn(start, finalBounds)
+
+		resFrame := v.stackCtx.systemSetFrame()
+		for _, aligner := range aligners {
+			aligner(resFrame.Size())
+		}
+
+		return resBounds, func(offset CGPoint) {
+			resAlignFunc(offset)
+			for _, af := range alignFuncs {
+				af(offset)
+			}
+		}
+	}
+}
+
+func (v *formulaStack) newAligner(childBounds CGRect, alignFunc alignFunc) func(stackFrame CGSize) {
+	a := v.stackCtx.alignment.Get()
+	if a == layout.AlignDefault {
+		return func(CGSize) {}
+	}
+
+	return func(stackFrame CGSize) {
+		dw, dh := stackFrame.Width-childBounds.Dx(), stackFrame.Height-childBounds.Dy()
+		offset := CGPoint{}
+		alignContains(a, func(containLeading, containTop, containTrailing, containBottom bool) {
+			if containBottom {
+				offset.Y = dh
+			}
+
+			if containTrailing {
+				offset.X = dw
+			}
+
+			if containTop {
+				offset.Y = offset.Y / 2
+			}
+
+			if containLeading {
+				offset.X = offset.X / 2
+			}
+		})
+
+		switch v.types {
+		case formulaVStack:
+			offset.Y = 0
+		case formulaHStack:
+			offset.X = 0
+		}
+
+		alignFunc(offset)
 	}
 }

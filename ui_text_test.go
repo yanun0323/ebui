@@ -34,7 +34,7 @@ func (su *TextSuite) Test() {
 	su.Equal(NewSize(w, h), data.FrameSize)
 	su.Equal(NewInset(0, 0, 0, 0), data.Padding)
 
-	bound := layoutFn(NewPoint(0, 0), NewSize(500.0, 500.0))
+	bound, _ := layoutFn(NewPoint(0, 0), NewSize(500.0, 500.0))
 	su.Equal(NewPoint(0, 0), bound.Start)
 	su.Equal(NewPoint(w, h), bound.End)
 
