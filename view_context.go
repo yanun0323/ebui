@@ -287,3 +287,8 @@ func (c *viewCtx) Center() SomeView {
 		Spacer(),
 	)
 }
+
+func (c *viewCtx) Offset(offset *Binding[CGPoint]) SomeView {
+	c.offset = offset
+	return c._owner
+}

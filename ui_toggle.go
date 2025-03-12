@@ -2,7 +2,6 @@ package ebui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/yanun0323/ebui/animation"
 	layout "github.com/yanun0323/ebui/layout"
 )
 
@@ -12,10 +11,11 @@ const (
 )
 
 var (
-	defaultToggleOnColor            = NewColor(239, 239, 239, 255)
-	defaultToggleOffColor           = NewColor(239, 239, 239, 255)
-	defaultToggleOnBackgroundColor  = NewColor(64, 191, 64, 255)
-	defaultToggleOffBackgroundColor = NewColor(64, 64, 64, 128)
+	defaultToggleOnColor            = NewColor(239, 239, 239)
+	defaultToggleOffColor           = NewColor(239, 239, 239)
+	defaultToggleOnBackgroundColor  = NewColor(64, 191, 64)
+	defaultToggleOffBackgroundColor = NewColor(64, 64, 64)
+	defaultToggleOffset             = NewPoint(_defaultToggleSize-(2*_defaultTogglePadding), 0)
 )
 
 type toggleImpl struct {
@@ -26,6 +26,7 @@ type toggleImpl struct {
 	enabled     *Binding[bool]
 	isPressed   bool
 
+	defaultToggleOffset          *Binding[CGPoint]
 	defaultToggleColor           *Binding[CGColor]
 	defaultToggleBackgroundColor *Binding[CGColor]
 }
@@ -38,19 +39,23 @@ func Toggle(enabled *Binding[bool], label ...func() SomeView) SomeView {
 	if len(label) != 0 && label[0] != nil {
 		t.label = label[0]
 	} else {
-		t.defaultToggleColor = Bind(defaultToggleOffColor)
-		t.defaultToggleBackgroundColor = Bind(defaultToggleOffBackgroundColor)
+		t.defaultToggleOffset = Bind(CGPoint{}).Animated()
+		t.defaultToggleColor = Bind(defaultToggleOffColor).Animated()
+		t.defaultToggleBackgroundColor = Bind(defaultToggleOffBackgroundColor).Animated()
 		if t.enabled.Get() {
+			t.defaultToggleOffset.Set(defaultToggleOffset)
 			t.defaultToggleColor.Set(defaultToggleOnColor)
 			t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor)
 		}
-		enabled.AddListener(func(oldVal bool, newVal bool) {
+		enabled.AddListener(func(_, newVal bool) {
 			if newVal {
-				t.defaultToggleColor.Set(defaultToggleOnColor, animation.Linear())
-				t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor, animation.Linear())
+				t.defaultToggleOffset.Set(defaultToggleOffset)
+				t.defaultToggleColor.Set(defaultToggleOnColor)
+				t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor)
 			} else {
-				t.defaultToggleColor.Set(defaultToggleOffColor, animation.Linear())
-				t.defaultToggleBackgroundColor.Set(defaultToggleOffBackgroundColor, animation.Linear())
+				t.defaultToggleOffset.Set(CGPoint{})
+				t.defaultToggleColor.Set(defaultToggleOffColor)
+				t.defaultToggleBackgroundColor.Set(defaultToggleOffBackgroundColor)
 			}
 		})
 
@@ -94,6 +99,7 @@ func (b *toggleImpl) defaultLabel() SomeView {
 	return HStack(
 		Circle().
 			Frame(Const(NewSize(_defaultToggleSize, _defaultToggleSize))).
+			Offset(b.defaultToggleOffset).
 			BackgroundColor(b.defaultToggleColor).
 			Padding(Const(NewInset(_defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding))),
 	).

@@ -20,8 +20,8 @@ func WithAnimation(body func(), style ...animation.Style) {
 		s = style[0]
 	}
 
-	globalContext.PushStyle(s)
-	defer globalContext.PopStyle()
+	popStyle := globalContext.PushStyle(s)
+	defer popStyle()
 	body()
 }
 
@@ -54,29 +54,28 @@ func (ctx *animationContext) CurrentStyle() animation.Style {
 	defer ctx.mu.RUnlock()
 
 	if len(ctx.styleStack) == 0 {
-		return animation.None()
+		return nil
 	}
 	return ctx.styleStack[len(ctx.styleStack)-1]
 }
 
 // PushStyle 將動畫風格添加到堆疊
-func (ctx *animationContext) PushStyle(style animation.Style) {
+func (ctx *animationContext) PushStyle(style animation.Style) (popStyle func() animation.Style) {
 	ctx.mu.Lock()
 	defer ctx.mu.Unlock()
 
 	ctx.styleStack = append(ctx.styleStack, style)
-}
 
-// PopStyle 從堆疊中彈出動畫風格
-func (ctx *animationContext) PopStyle() animation.Style {
-	ctx.mu.Lock()
-	defer ctx.mu.Unlock()
+	return func() animation.Style {
+		ctx.mu.Lock()
+		defer ctx.mu.Unlock()
 
-	if len(ctx.styleStack) == 0 {
-		return animation.None()
+		if len(ctx.styleStack) == 0 {
+			return animation.None()
+		}
+
+		style := ctx.styleStack[len(ctx.styleStack)-1]
+		ctx.styleStack = ctx.styleStack[:len(ctx.styleStack)-1]
+		return style
 	}
-
-	style := ctx.styleStack[len(ctx.styleStack)-1]
-	ctx.styleStack = ctx.styleStack[:len(ctx.styleStack)-1]
-	return style
 }

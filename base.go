@@ -51,7 +51,7 @@ type CGPoint struct {
 //
 // # Usage:
 //
-//	NewPoint() /* zero value */
+//	CGPoint{} /* zero value */
 //	NewPoint(v) /* x = v, y = v */
 //	NewPoint(x, y) /* x, y */
 func NewPoint[Number numberable](val ...Number) CGPoint {
@@ -119,7 +119,7 @@ type CGSize struct {
 //
 // # Usage:
 //
-//	NewSize() /* zero value */
+//	CGSize{} /* zero value */
 //	NewSize(size) /* width, height = size */
 //	NewSize(width, height) /* width, height */
 func NewSize[Number numberable](val ...Number) CGSize {
@@ -219,7 +219,7 @@ type CGRect struct {
 //
 // # Usage:
 //
-//	NewRect() /* zero value */
+//	CGRect{} /* zero value */
 //	NewRect(xy) /* start = xy, end = xy */
 //	NewRect(minXY, maxXY) /* start = minXY, end = maxXY */
 //	NewRect(minX, minY, maxX, maxY) /* minX, minY, maxX, maxY */
@@ -307,7 +307,7 @@ type CGInset struct {
 //
 // # Usage:
 //
-//	NewInset() /* zero value */
+//	CGInset{} /* zero value */
 //	NewInset(all)
 //	NewInset(horizontal, vertical)
 //	NewInset(top, right, bottom, left)

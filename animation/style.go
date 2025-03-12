@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	_defaultAnimationDuration = 500 * time.Millisecond
+	_defaultAnimationDuration = 300 * time.Millisecond
 )
 
 // Style is a curve that describes the progress of an animation over time.

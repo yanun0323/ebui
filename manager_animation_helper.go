@@ -98,10 +98,10 @@ func animateValue[T bindable](startValue, endValue T, delta float64) T {
 	case CGColor:
 		sv := any(startValue).(CGColor)
 		ev := any(endValue).(CGColor)
-		r := uint8(float64(sv.R) + float64(ev.R-sv.R)*delta)
-		g := uint8(float64(sv.G) + float64(ev.G-sv.G)*delta)
-		b := uint8(float64(sv.B) + float64(ev.B-sv.B)*delta)
-		a := uint8(float64(sv.A) + float64(ev.A-sv.A)*delta)
+		r := uint8(float64(sv.R) + (float64(ev.R)-float64(sv.R))*delta)
+		g := uint8(float64(sv.G) + (float64(ev.G)-float64(sv.G))*delta)
+		b := uint8(float64(sv.B) + (float64(ev.B)-float64(sv.B))*delta)
+		a := uint8(float64(sv.A) + (float64(ev.A)-float64(sv.A))*delta)
 		return any(CGColor{R: r, G: g, B: b, A: a}).(T)
 	}
 

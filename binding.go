@@ -3,6 +3,7 @@ package ebui
 import (
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/animation"
@@ -10,10 +11,7 @@ import (
 
 // Const creates a binding that always returns the same value.
 func Const[T bindable](value T) *Binding[T] {
-	return &Binding[T]{
-		getter: func() T { return value },
-		setter: func(T) {},
-	}
+	return Bind(value)
 }
 
 // Bind creates a binding that can be used to bind a value to a UI element.
@@ -163,8 +161,8 @@ type Binding[T bindable] struct {
 	setter    func(T)
 	listeners []func(T, T)
 
-	animStyle       animation.Style    // 設定的預設動畫
-	animProgressing func() (any, bool) // 回傳最後一次設定動畫的目標值，以及是否正在此動畫中
+	animStyle  animation.Style // 設定的預設動畫
+	animResult *T
 }
 
 // Get returns the current value of the binding.
@@ -210,7 +208,7 @@ func (b *Binding[T]) Update(fn func(oldVal T) (newVal T), with ...animation.Styl
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	b.set(fn(b.getValue(false)), with...)
+	b.set(fn(b.getValue(true)), with...)
 }
 
 // AddListener adds a listener to the binding.
@@ -230,71 +228,77 @@ func (b *Binding[T]) AddListener(listener func(oldVal, newVal T)) {
 }
 
 func (b *Binding[T]) getValue(ignoreAnim bool) T {
-	if ignoreAnim {
-		if b.animProgressing == nil {
-			return b.getter()
-		}
-
-		val, progressing := b.animProgressing()
-		if progressing {
-			return val.(T)
-		}
-
-		return b.getter()
+	if ignoreAnim && b.animResult != nil {
+		return *b.animResult
 	}
 
 	return b.getter()
 }
 
 func (b *Binding[T]) set(newVal T, with ...animation.Style) {
-	if b.getter() != newVal {
-		oldVal := b.getter()
-
+	oldVal := b.getValue(true)
+	if oldVal != newVal {
 		// 檢查是否有動畫風格
 		var animStyle animation.Style
 		if len(with) > 0 && with[0].Duration() > 0 {
 			animStyle = with[0]
-		} else {
-			animStyle = b.animStyle
 		}
 
-		if b.animProgressing != nil {
-			val, progressing := b.animProgressing()
-			if progressing {
-				oldVal = val.(T)
-			}
+		if animStyle == nil {
+			animStyle = globalContext.CurrentStyle()
+		}
 
-			b.animProgressing = nil
+		if animStyle == nil {
+			animStyle = b.animStyle
 		}
 
 		// 如果有動畫風格且持續時間大於0，創建動畫
 		if animStyle != nil && animStyle.Duration() > 0 {
-			startTime := globalAnimationManager.CreateAnimatedExecutor(
-				animStyle,
-				func(progress float64) bool {
-					// 計算插值
-					currentVal := animateValue(oldVal, newVal, progress)
-					b.setter(currentVal)
-					b.notifyListeners(oldVal, newVal)
-					return false // 繼續動畫，直到完成
+			id := animationID(unsafe.Pointer(b))
+			executor, ok := globalAnimationManager.RemoveExecutor(id)
+			if ok {
+				executor.onCancel()
+			}
+
+			var (
+				startTime = time.Now().UnixMilli()
+				duration  = animStyle.Duration().Milliseconds()
+			)
+
+			globalAnimationManager.AddExecutor(
+				id,
+				animationExecutor{
+					onUpdate: func(now int64) bool {
+						elapsed := now - startTime
+						if elapsed >= duration {
+							return true
+						}
+
+						value := animateValue(oldVal, newVal, float64(elapsed)/float64(duration))
+						b.setValue(oldVal, value)
+						return false
+					},
+					onCancel: func() {
+						b.setValue(oldVal, newVal)
+						b.animResult = nil
+					},
 				},
 			)
 
-			println("add animation")
-
-			final := newVal
-			b.animProgressing = func() (any, bool) {
-				return final, time.Since(startTime) <= animStyle.Duration()
-			}
+			b.animResult = &newVal
 
 			return
 		}
 
 		// 無動畫時直接設置值
-		b.setter(newVal)
-		b.notifyListeners(oldVal, newVal)
-		globalStateManager.markDirty()
+		b.setValue(oldVal, newVal)
 	}
+}
+
+func (b *Binding[T]) setValue(oldVal, newVal T) {
+	b.setter(newVal)
+	b.notifyListeners(oldVal, newVal)
+	globalStateManager.markDirty()
 }
 
 func (b *Binding[T]) notifyListeners(oldVal, newVal T) {
@@ -310,11 +314,15 @@ func (b *Binding[T]) notifyListeners(oldVal, newVal T) {
 // Animated sets the animated style as the default animated style for the binding.
 //
 // Animated is thread-safe.
-func (b *Binding[T]) Animated(with ...animation.Style) {
+func (b *Binding[T]) Animated(with ...animation.Style) *Binding[T] {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	if len(with) != 0 {
+	if len(with) == 0 {
+		b.animStyle = animation.EaseInOut()
+	} else {
 		b.animStyle = with[0]
 	}
+
+	return b
 }

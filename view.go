@@ -61,6 +61,7 @@ type SomeView interface {
 	Align(alignment *Binding[layout.Align]) SomeView
 	Center() SomeView
 	Debug() SomeView
+	Offset(offset *Binding[CGPoint]) SomeView
 }
 
 type alignFunc func(offset CGPoint)

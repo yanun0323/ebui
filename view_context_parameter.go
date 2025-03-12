@@ -17,6 +17,7 @@ type viewCtxParam struct {
 	borderColor     *Binding[CGColor]
 	scaleToFit      *Binding[bool]
 	keepAspectRatio *Binding[bool]
+	offset          *Binding[CGPoint]
 }
 
 func newParam() *viewCtxParam {
@@ -31,18 +32,20 @@ func (p *viewCtxParam) userSetFrameSize() CGSize {
 
 // systemSetFrame 回傳的是內部邊界
 func (p *viewCtxParam) systemSetFrame() CGRect {
-	return p._systemSetFrame
+	offset := p.offset.Get()
+	return p._systemSetFrame.Move(offset)
 }
 
 // systemSetFrame 回傳的是外部邊界
 func (p *viewCtxParam) systemSetBounds() CGRect {
 	padding := p.padding()
 	border := p.border()
+	systemSetFrame := p.systemSetFrame()
 	return NewRect(
-		p._systemSetFrame.Start.X-padding.Left-border.Left,
-		p._systemSetFrame.Start.Y-padding.Top-border.Top,
-		p._systemSetFrame.End.X+padding.Right+border.Right,
-		p._systemSetFrame.End.Y+padding.Bottom+border.Bottom,
+		systemSetFrame.Start.X-padding.Left-border.Left,
+		systemSetFrame.Start.Y-padding.Top-border.Top,
+		systemSetFrame.End.X+padding.Right+border.Right,
+		systemSetFrame.End.Y+padding.Bottom+border.Bottom,
 	)
 }
 
