@@ -139,8 +139,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 - [x] Circle
 - [x] Rectangle
 - [x] ViewModifier
-- [ ] TextField
-- [ ] TextEditor
 - [ ] Divider
 - [ ] Menu
 - [ ] Sheet
@@ -156,12 +154,14 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 - [ ] TimePicker
 - [ ] ColorPicker
 - [ ] ProgressView
+- [ ] TextField
+- [ ] TextEditor
 
 ### Feature
 
 - [x] Modifier Stack
 - [x] CornerRadius
-- [ ] Animation
+- [x] Animation
 - [ ] Gesture
 - [ ] Overlay
 - [ ] Mask
