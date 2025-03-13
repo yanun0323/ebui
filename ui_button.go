@@ -9,7 +9,7 @@ var (
 		return func() SomeView {
 			return Text(key).
 				Padding(Bind(NewInset(5, 15, 5, 15))).
-				BackgroundColor(Bind(AccentColor)).
+				BackgroundColor(AccentColor).
 				RoundCorner(Bind(15.0))
 		}
 	}
@@ -39,7 +39,7 @@ func Button(key string, action func(), label ...func() SomeView) SomeView {
 	return btn
 }
 
-func (b *buttonImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
+func (b *buttonImpl) preload(parent *viewCtxEnv, _ ...formulaType) (preloadData, layoutFunc) {
 	b.labelLoaded = b.label()
 	if b.labelLoaded == nil {
 		panic("empty view from button label")
@@ -65,7 +65,6 @@ func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 	b.labelLoaded.draw(screen, hook...)
 }
 
-// Button 的事件處理
 func (b *buttonImpl) HandleTouchEvent(event touchEvent) {
 	if b.viewCtxEnv.disabled.Get() {
 		b.isPressed = false

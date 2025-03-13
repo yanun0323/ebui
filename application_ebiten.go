@@ -1,24 +1,36 @@
 package ebui
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/yanun0323/ebui/internal/helper"
 )
 
 var (
 	popupViews []SomeView
 )
 
+// EbitenUpdate updates the application state
+//
+// should be called in ebiten.Update
 func EbitenUpdate(contentView SomeView) {
-	// 1. 更新動畫
+	m := helper.NewMetric()
+
+	// 1. update animations
 	globalAnimationManager.Update()
 
-	// 2. 處理狀態更新
+	mAnim := m.ElapsedAndReset()
+
+	// 2. handle state updates
 	if globalStateManager.isDirty() {
 		resetLayout(contentView)
 	}
 
-	// 3. 處理輸入事件
+	mLayout := m.ElapsedAndReset()
+
+	// 3. handle input events
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		pos := NewPoint(float64(x), float64(y))
@@ -42,12 +54,14 @@ func EbitenUpdate(contentView SomeView) {
 		})
 	}
 
+	mMouse := m.ElapsedAndReset()
+
+	// 4. handle keyboard events
 	altPressing := ebiten.IsKeyPressed(ebiten.KeyAltLeft) || ebiten.IsKeyPressed(ebiten.KeyAltRight) || ebiten.IsKeyPressed(ebiten.KeyAlt)
 	shiftPressing := ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight) || ebiten.IsKeyPressed(ebiten.KeyShift)
 	controlPressing := ebiten.IsKeyPressed(ebiten.KeyControlLeft) || ebiten.IsKeyPressed(ebiten.KeyControlRight) || ebiten.IsKeyPressed(ebiten.KeyControl)
 	metaPressing := ebiten.IsKeyPressed(ebiten.KeyMeta) || ebiten.IsKeyPressed(ebiten.KeyMetaLeft) || ebiten.IsKeyPressed(ebiten.KeyMetaRight)
 
-	// 4. 處理鍵盤事件
 	keys := inpututil.AppendJustPressedKeys(nil)
 	for _, key := range keys {
 		globalEventManager.DispatchKeyEvent(keyEvent{
@@ -84,12 +98,23 @@ func EbitenUpdate(contentView SomeView) {
 		})
 	}
 
-	// 5. 處理輸入事件
+	mKeyboard := m.ElapsedAndReset()
+
+	// 5. handle input events
 	input := ebiten.AppendInputChars(nil)
 	for _, char := range input {
 		globalEventManager.DispatchInputEvent(inputEvent{
 			Char: char,
 		})
+	}
+
+	mInput := m.ElapsedAndReset()
+
+	m.Reset()
+
+	if false {
+		fmt.Printf("\x1b[34m[UPD]\x1b[0m\t anim: %.4f, layout: %.4f, mouse: %.4f, keyboard: %.4f, input: %.4f\n",
+			mAnim.Seconds(), mLayout.Seconds(), mMouse.Seconds(), mKeyboard.Seconds(), mInput.Seconds())
 	}
 }
 
@@ -100,14 +125,31 @@ func resetLayout(contentView SomeView) {
 	globalStateManager.clearDirty()
 }
 
+// EbitenDraw draws the application state
+//
+// should be called in ebiten.Draw
 func EbitenDraw(screen *ebiten.Image, contentView SomeView) {
+	m := helper.NewMetric()
+
 	contentView.draw(screen)
+
+	mDraw := m.ElapsedAndReset()
 
 	for i := range popupViews {
 		popupViews[i].draw(screen)
 	}
+
+	mDrawPopup := m.ElapsedAndReset()
+
+	if false {
+		fmt.Printf("\x1b[36m[DRAW]\x1b[0m\t draw: %.4f, draw popup: %.4f\n",
+			mDraw.Seconds(), mDrawPopup.Seconds())
+	}
 }
 
+// EbitenLayout sets the application bounds
+//
+// should be called in ebiten.Layout
 func EbitenLayout(outsideWidth, outsideHeight int) {
 	globalStateManager.SetBounds(NewRect(0, 0, outsideWidth, outsideHeight))
 }

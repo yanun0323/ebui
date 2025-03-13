@@ -32,14 +32,14 @@ func BindFunc[T bindable](get func() T, set func(T)) *Binding[T] {
 	return &Binding[T]{
 		getter:    get,
 		setter:    set,
-		listeners: make([]func(T, T), 0),
+		listeners: make([]func(T, T, animation.Style, bool), 0),
 	}
 }
 
-// BindOneWay binds a source binding to a target binding.
+// BindForward binds a source binding to a target binding.
 //   - The target binding will be updated with the value of the source binding.
 //   - The source binding will not be updated when the target binding is updated.
-func BindOneWay[T, F bindable](source *Binding[T], forward func(T) F) *Binding[F] {
+func BindForward[T, F bindable](source *Binding[T], forward func(T) F) *Binding[F] {
 	var (
 		sv T
 		fv F
@@ -56,36 +56,10 @@ func BindOneWay[T, F bindable](source *Binding[T], forward func(T) F) *Binding[F
 	}, func(v F) {})
 }
 
-// BindTwoWay binds a source binding to a target binding.
-//   - The target binding will be updated with the value of the source binding.
-//   - The source binding will be updated when the target binding is updated.
-func BindTwoWay[T, F bindable](source *Binding[T], forward func(T) F, backward func(F) T) *Binding[F] {
-	var (
-		sv T
-		fv F
-	)
-
-	return BindFunc(func() F {
-		s := source.Get()
-		if s == sv {
-			return fv
-		}
-
-		sv = s
-		fv = forward(s)
-		return fv
-	}, func(v F) {
-		if v == fv {
-			return
-		}
-
-		fv = v
-		sv = backward(v)
-		source.Set(sv)
-	})
-}
-
-func BindCombineOneWay[T bindable](a, b *Binding[T], forward func(a, b T) T) *Binding[T] {
+// BindCombineForward binds two bindings and returns a new binding that combines the two bindings.
+//   - The new binding will be updated with the value of the two bindings.
+//   - The two bindings will not be updated when the new binding is updated.
+func BindCombineForward[T bindable](a, b *Binding[T], forward func(a, b T) T) *Binding[T] {
 	var (
 		av T
 		bv T
@@ -104,36 +78,6 @@ func BindCombineOneWay[T bindable](a, b *Binding[T], forward func(a, b T) T) *Bi
 		cv = forward(av, bv)
 		return cv
 	}, func(v T) {})
-}
-
-func BindCombineTwoWay[T bindable](a, b *Binding[T], forward func(a, b T) T, backward func(T) (a, b T)) *Binding[T] {
-	var (
-		av T
-		bv T
-		cv T
-	)
-
-	return BindFunc(func() T {
-		a := a.Get()
-		b := b.Get()
-		if a == av && b == bv {
-			return cv
-		}
-
-		av = a
-		bv = b
-		cv = forward(av, bv)
-		return cv
-	}, func(v T) {
-		if v == cv {
-			return
-		}
-
-		cv = v
-		av, bv = backward(v)
-		a.Set(av)
-		b.Set(bv)
-	})
 }
 
 /*
@@ -159,9 +103,9 @@ type Binding[T bindable] struct {
 
 	getter    func() T
 	setter    func(T)
-	listeners []func(T, T)
+	listeners []func(T, T, animation.Style, bool)
 
-	animStyle  animation.Style // 設定的預設動畫
+	animStyle  animation.Style // set default animation
 	animResult *T
 }
 
@@ -211,12 +155,12 @@ func (b *Binding[T]) Update(fn func(oldVal T) (newVal T), with ...animation.Styl
 	b.set(fn(b.getValue(true)), with...)
 }
 
-// AddListener adds a listener to the binding.
+// addListener adds a listener to the binding.
 //
 // The listener will be called when the binding is updated.
 //
-// AddListener is thread-safe.
-func (b *Binding[T]) AddListener(listener func(oldVal, newVal T)) {
+// addListener is thread-safe.
+func (b *Binding[T]) addListener(listener func(oldVal, newVal T, animStyle animation.Style, isAnimating bool)) {
 	if b == nil {
 		return
 	}
@@ -238,21 +182,23 @@ func (b *Binding[T]) getValue(ignoreAnim bool) T {
 func (b *Binding[T]) set(newVal T, with ...animation.Style) {
 	oldVal := b.getValue(true)
 	if oldVal != newVal {
-		// 檢查是否有動畫風格
+		// check if there is an animation style
 		var animStyle animation.Style
-		if len(with) > 0 && with[0].Duration() > 0 {
+		if len(with) > 0 {
 			animStyle = with[0]
-		}
-
-		if animStyle == nil {
+		} else {
 			animStyle = globalContext.CurrentStyle()
+
+			if animStyle == nil {
+				animStyle = b.animStyle
+			}
 		}
 
 		if animStyle == nil {
-			animStyle = b.animStyle
+			animStyle = animation.None()
 		}
 
-		// 如果有動畫風格且持續時間大於0，創建動畫
+		// if there is an animation style and the duration is greater than 0, create an animation
 		if animStyle != nil && animStyle.Duration() > 0 {
 			id := animationID(unsafe.Pointer(b))
 			executor, ok := globalAnimationManager.RemoveExecutor(id)
@@ -274,12 +220,14 @@ func (b *Binding[T]) set(newVal T, with ...animation.Style) {
 							return true
 						}
 
-						value := animateValue(oldVal, newVal, float64(elapsed)/float64(duration))
-						b.setValue(oldVal, value)
-						return false
+						progress := float64(elapsed) / float64(duration)
+						progress = animStyle.Value(progress)
+						value := animateValue(oldVal, newVal, progress)
+						b.setValue(oldVal, value, animStyle, true)
+						return value == newVal
 					},
 					onCancel: func() {
-						b.setValue(oldVal, newVal)
+						b.setValue(oldVal, newVal, animStyle, false)
 						b.animResult = nil
 					},
 				},
@@ -290,28 +238,30 @@ func (b *Binding[T]) set(newVal T, with ...animation.Style) {
 			return
 		}
 
-		// 無動畫時直接設置值
-		b.setValue(oldVal, newVal)
+		// when there is no animation, set the value directly
+		b.setValue(oldVal, newVal, animStyle, false)
 	}
 }
 
-func (b *Binding[T]) setValue(oldVal, newVal T) {
+func (b *Binding[T]) setValue(oldVal, newVal T, animStyle animation.Style, isAnimating bool) {
 	b.setter(newVal)
-	b.notifyListeners(oldVal, newVal)
+	go b.notifyListeners(oldVal, newVal, animStyle, isAnimating)
 	globalStateManager.markDirty()
 }
 
-func (b *Binding[T]) notifyListeners(oldVal, newVal T) {
+func (b *Binding[T]) notifyListeners(oldVal, newVal T, animStyle animation.Style, isAnimating bool) {
 	if b == nil {
 		return
 	}
 
 	for _, listener := range b.listeners {
-		listener(oldVal, newVal)
+		listener(oldVal, newVal, animStyle, isAnimating)
 	}
 }
 
 // Animated sets the animated style as the default animated style for the binding.
+//
+// If not provided any animation style, it will use the default animation style.
 //
 // Animated is thread-safe.
 func (b *Binding[T]) Animated(with ...animation.Style) *Binding[T] {

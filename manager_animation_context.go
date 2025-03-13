@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	// 全局動畫上下文，管理當前活動的動畫
+	// global animation context, manages the current active animations
 	globalContext = newAnimationContext()
 )
 
@@ -25,14 +25,14 @@ func WithAnimation(body func(), style ...animation.Style) {
 	body()
 }
 
-// animationContext 管理動畫上下文和狀態
+// animationContext manages the animation context and state
 type animationContext struct {
 	mu         sync.RWMutex
 	styleStack []animation.Style
 	animations map[string]*animations
 }
 
-// animations 表示一個正在進行的動畫
+// animations represents an ongoing animation
 type animations struct {
 	ID         string
 	Style      animation.Style
@@ -48,7 +48,7 @@ func newAnimationContext() *animationContext {
 	}
 }
 
-// CurrentStyle 返回當前活動的動畫風格
+// CurrentStyle returns the current active animation style
 func (ctx *animationContext) CurrentStyle() animation.Style {
 	ctx.mu.RLock()
 	defer ctx.mu.RUnlock()
@@ -59,7 +59,7 @@ func (ctx *animationContext) CurrentStyle() animation.Style {
 	return ctx.styleStack[len(ctx.styleStack)-1]
 }
 
-// PushStyle 將動畫風格添加到堆疊
+// PushStyle adds an animation style to the stack
 func (ctx *animationContext) PushStyle(style animation.Style) (popStyle func() animation.Style) {
 	ctx.mu.Lock()
 	defer ctx.mu.Unlock()

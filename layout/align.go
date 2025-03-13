@@ -1,5 +1,7 @@
 package layout
 
+import "github.com/yanun0323/ebui/internal/helper"
+
 type Align int8
 
 const (
@@ -31,4 +33,8 @@ func (a Align) Contain(other Align) bool {
 	}
 
 	return a&other == other
+}
+
+func (a Align) Hash() []byte {
+	return helper.BytesInt8(int8(a))
 }

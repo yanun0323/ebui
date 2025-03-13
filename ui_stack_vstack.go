@@ -26,7 +26,7 @@ func (v *vstackImpl) count() int {
 	return count
 }
 
-func (v *vstackImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
+func (v *vstackImpl) preload(parent *viewCtxEnv, _ ...formulaType) (preloadData, layoutFunc) {
 	stackFormula := &formulaStack{
 		types:    formulaVStack,
 		stackCtx: v.viewCtx,

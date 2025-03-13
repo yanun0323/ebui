@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+// TODO: Implement gesture recognizer manager
+
 type gestureType int
 
 const (
@@ -29,8 +31,8 @@ type gestureEvent struct {
 	State     gestureState
 	Location  CGPoint
 	Delta     CGPoint
-	Scale     float64 // 用於捏合手勢
-	Rotation  float64 // 用於旋轉手勢
+	Scale     float64 // for pinch gesture
+	Rotation  float64 // for rotation gesture
 	Velocity  CGPoint
 	Timestamp time.Time
 }
@@ -38,7 +40,7 @@ type gestureEvent struct {
 type gestureRecognizer struct {
 	onGesture func(gestureEvent)
 
-	// 內部狀態
+	// internal state
 	startTime   time.Time
 	startPos    CGPoint
 	lastPos     CGPoint
@@ -88,7 +90,7 @@ func (gr *gestureRecognizer) updateTracking(event touchEvent) {
 	now := time.Now()
 	delta := event.Position.Sub(gr.lastPos)
 
-	// 計算速度
+	// calculate velocity
 	duration := now.Sub(gr.lastTime).Seconds()
 	velocity := CGPoint{
 		X: delta.X / duration,
@@ -112,7 +114,7 @@ func (gr *gestureRecognizer) updateTracking(event touchEvent) {
 func (gr *gestureRecognizer) endTracking(event touchEvent) {
 	duration := time.Since(gr.startTime)
 
-	// 檢測點擊
+	// detect tap
 	if duration < 300*time.Millisecond &&
 		math.Abs(float64(event.Position.X-gr.startPos.X)) < 10 &&
 		math.Abs(float64(event.Position.Y-gr.startPos.Y)) < 10 {

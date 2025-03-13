@@ -30,14 +30,14 @@ func (z *zstackImpl) count() int {
 	return count
 }
 
-func (z *zstackImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
+func (z *zstackImpl) preload(parent *viewCtxEnv, types ...formulaType) (preloadData, layoutFunc) {
 	stackFormula := &formulaStack{
 		types:    formulaZStack,
 		stackCtx: z.viewCtx,
 		children: z.children,
 	}
 
-	return stackFormula.preload(parent)
+	return stackFormula.preload(parent, types...)
 }
 func (z *zstackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
 	z.viewCtx.draw(screen, hook...)

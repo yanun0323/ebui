@@ -3,6 +3,7 @@ module github.com/yanun0323/ebui
 go 1.24
 
 require (
+	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/hajimehoshi/ebiten/v2 v2.8.6
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/image v0.23.0

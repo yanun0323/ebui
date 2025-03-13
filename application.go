@@ -41,6 +41,7 @@ func (app *application) SetWindowBackgroundColor(color CGColor) {
 
 // SetWindowSize sets the size of the window.
 func (app *application) SetWindowSize(width, height int) {
+	ebiten.SetWindowSize(width, height)
 	EbitenLayout(width, height)
 }
 

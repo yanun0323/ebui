@@ -8,6 +8,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+// TODO: Implement the TextField
+
 var (
 	textFieldPlaceholderColor     = NewColor(128, 128, 128, 128)
 	textFieldBackgroundColor      = NewColor(128, 128, 128, 128)
@@ -56,7 +58,7 @@ func (t *textFieldImpl) setFocused(focused bool) {
 	logf("setFocused: %v", focused)
 	t.isFocused = focused
 	if focused {
-		t.focusedColor.Set(AccentColor)
+		t.focusedColor.Set(AccentColor.Get())
 	} else {
 		t.focusedColor.Set(textFieldUnfocusedBorderColor)
 	}

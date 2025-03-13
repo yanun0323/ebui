@@ -23,11 +23,11 @@ func Image[T string | *ebiten.Image](img *Binding[T]) SomeView {
 		v.viewCtx = newViewContext(v)
 		return v
 	case *Binding[string]:
-		path := BindCombineOneWay(resourceDir, content, func(dir, filename string) string {
+		path := BindCombineForward(resourceDir, content, func(dir, filename string) string {
 			return getImageFilename(dir, filename)
 		})
 
-		return Image(BindOneWay(path, getImage))
+		return Image(BindForward(path, getImage))
 	}
 
 	return nil

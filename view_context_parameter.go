@@ -1,14 +1,19 @@
 package ebui
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+
+	"github.com/yanun0323/ebui/internal/helper"
 )
 
-// viewCtxParam 提供所有 View 共用的參數
+// viewCtxParam provides the parameters for all views
+//
+// It can NOT be inherited by subviews.
 type viewCtxParam struct {
 	_debug          string
-	_systemSetFrame CGRect // 不包含 Padding 的內部邊界
+	_systemSetFrame CGRect // the internal bounds without padding and border
 	backgroundColor *Binding[CGColor]
 	frameSize       *Binding[CGSize]
 	inset           *Binding[CGInset]
@@ -17,7 +22,8 @@ type viewCtxParam struct {
 	borderColor     *Binding[CGColor]
 	scaleToFit      *Binding[bool]
 	keepAspectRatio *Binding[bool]
-	offset          *Binding[CGPoint]
+	offset          *Binding[CGPoint] /* only use for systemSetFrame */
+	spacing         *Binding[float64]
 }
 
 func newParam() *viewCtxParam {
@@ -30,13 +36,13 @@ func (p *viewCtxParam) userSetFrameSize() CGSize {
 	return p.frameSize.Get()
 }
 
-// systemSetFrame 回傳的是內部邊界
+// systemSetFrame returns the internal bounds
 func (p *viewCtxParam) systemSetFrame() CGRect {
 	offset := p.offset.Get()
 	return p._systemSetFrame.Move(offset)
 }
 
-// systemSetFrame 回傳的是外部邊界
+// systemSetFrame returns the external bounds
 func (p *viewCtxParam) systemSetBounds() CGRect {
 	padding := p.padding()
 	border := p.border()
@@ -85,4 +91,29 @@ func serialize(a any) string {
 	}
 
 	return string(s)
+}
+
+/*
+	##     ##    ###     ######  ##     ##    ###    ########  ##       ########
+	##     ##   ## ##   ##    ## ##     ##   ## ##   ##     ## ##       ##
+	##     ##  ##   ##  ##       ##     ##  ##   ##  ##     ## ##       ##
+	######### ##     ##  ######  ######### ##     ## ########  ##       ######
+	##     ## #########       ## ##     ## ######### ##     ## ##       ##
+	##     ## ##     ## ##    ## ##     ## ##     ## ##     ## ##       ##
+	##     ## ##     ##  ######  ##     ## ##     ## ########  ######## ########
+*/
+
+func (p *viewCtxParam) Bytes() []byte {
+	b := bytes.Buffer{}
+	b.Write(p._systemSetFrame.Bytes())
+	b.Write(p.backgroundColor.Get().Bytes())
+	b.Write(p.inset.Get().Bytes())
+	b.Write(helper.BytesFloat64(p.roundCorner.Get()))
+	b.Write(p.borderInset.Get().Bytes())
+	b.Write(p.borderColor.Get().Bytes())
+	b.Write(helper.BytesBool(p.scaleToFit.Get()))
+	b.Write(helper.BytesBool(p.keepAspectRatio.Get()))
+	b.Write(helper.BytesFloat64(p.spacing.Get()))
+
+	return b.Bytes()
 }

@@ -1,10 +1,15 @@
 package ebui
 
 import (
+	"bytes"
 	"math"
+	"strconv"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/yanun0323/ebui/animation"
 	"github.com/yanun0323/ebui/font"
+	"github.com/yanun0323/ebui/internal/helper"
 	"github.com/yanun0323/ebui/layout"
 )
 
@@ -15,33 +20,42 @@ var isInf = func(f float64) bool {
 	return math.IsInf(f, 1)
 }
 
-const (
-	_defaultRoundCorner float64 = 8.0
-)
-
-// viewCtx 提供所有 View 共用的修飾器方法和狀態
+// viewCtx provides the common modifiers and states for all views
 type viewCtx struct {
 	*viewCtxEnv
 	*viewCtxParam
 
 	_owner SomeView
+	_cache *helper.HashCache[*ebiten.Image]
 }
 
-// 初始化 ViewContext
+// initialize ViewContext
 func newViewContext(owner SomeView) *viewCtx {
 	return &viewCtx{
 		viewCtxEnv:   newEnv(),
 		viewCtxParam: newParam(),
 		_owner:       owner,
+		_cache:       helper.NewHashCache[*ebiten.Image](),
 	}
 }
 
-func (c *viewCtx) ctx() *viewCtx {
-	return c
+func (c *viewCtx) Bytes(withFont bool) []byte {
+	b := bytes.Buffer{}
+	b.Write(c.viewCtxEnv.Bytes(withFont))
+	b.Write(c.viewCtxParam.Bytes())
+
+	return b.Bytes()
+}
+
+func (c *viewCtx) Hash(withFont bool) string {
+	h := xxhash.New()
+	h.Write(c.viewCtxEnv.Bytes(withFont))
+	h.Write(c.viewCtxParam.Bytes())
+	return strconv.FormatUint(h.Sum64(), 16)
 }
 
 func (c *viewCtx) wrap(modify ...func(*viewCtx)) SomeView {
-	// 創建一個新的 zstackImpl 實例
+	// create a new zstackImpl instance
 	zs := &zstackImpl{
 		children: []SomeView{c._owner},
 	}
@@ -50,7 +64,7 @@ func (c *viewCtx) wrap(modify ...func(*viewCtx)) SomeView {
 	zs.viewCtx.viewCtxEnv = c.viewCtxEnv
 	// zs.viewCtx.viewCtxParam.frameSize = c.frameSize
 
-	// 應用修改
+	// apply modifiers
 	for _, m := range modify {
 		m(zs.viewCtx)
 	}
@@ -66,21 +80,16 @@ func (c *viewCtx) count() int {
 	return 1
 }
 
-func (c *viewCtx) isSpacer() bool {
-	return false
-}
-
 func (c *viewCtx) align(offset CGPoint) {
 	c._systemSetFrame = c._systemSetFrame.Move(offset)
 }
 
-func (c *viewCtx) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
+func (c *viewCtx) preload(parent *viewCtxEnv, _ ...formulaType) (preloadData, layoutFunc) {
 	c.viewCtxEnv.inheritFrom(parent)
 	padding := c.padding()
 	border := c.border()
 	userSetFrameSize := c._owner.userSetFrameSize()
 	data := newPreloadData(userSetFrameSize, padding, border)
-
 	return data, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc) {
 		flexFrameSize := flexBoundsSize.Shrink(padding).Shrink(border)
 		flexibleFrame := CGRect{start, start.Add(flexFrameSize.ToCGPoint())}
@@ -100,6 +109,7 @@ func (c *viewCtx) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 			finalFrame.End.Y+padding.Top+border.Top,
 		)
 
+		c._cache.SetNextHash(c.Hash(false))
 		c.debugPrintPreload(finalFrame, flexFrameSize, data)
 
 		return finalFrame.Expand(padding).Expand(border), c.align
@@ -121,7 +131,6 @@ func (c *viewCtx) drawOption(rect CGRect, hook ...func(*ebiten.DrawImageOptions)
 
 func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
 	drawBounds := c._owner.systemSetBounds()
-	opt := c.drawOption(drawBounds, hook...)
 
 	if !drawBounds.drawable() {
 		return
@@ -134,21 +143,31 @@ func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptio
 		borderColor = c.borderColor.Get()
 	}
 
+	opt := c.drawOption(drawBounds, hook...)
 	if radius := c.roundCorner.Get(); radius > 0 {
-		drawRoundedAndBorderRect(screen, drawBounds, radius, bgColor, borderLength, borderColor, opt)
+		c.drawRoundedAndBorderRect(screen, drawBounds, radius, bgColor, borderLength, borderColor, opt)
 	} else {
-		drawBorderRect(screen, drawBounds, bgColor, borderLength, borderColor, opt)
+		c.drawBorderRect(screen, drawBounds, bgColor, borderLength, borderColor, opt)
 	}
 }
+
+/*
+	####   ##     ##   ########    ##         ########   ##     ##   ########   ##    ##   ########
+	 ##    ###   ###   ##     ##   ##         ##         ###   ###   ##         ###   ##      ##
+	 ##    #### ####   ##     ##   ##         ##         #### ####   ##         ####  ##      ##
+	 ##    ## ### ##   ########    ##         ######     ## ### ##   ######     ## ## ##      ##
+	 ##    ##     ##   ##          ##         ##         ##     ##   ##         ##  ####      ##
+	 ##    ##     ##   ##          ##         ##         ##     ##   ##         ##   ###      ##
+	####   ##     ##   ##          ########   ########   ##     ##   ########   ##    ##      ##
+*/
 
 func (c *viewCtx) Body() SomeView {
 	return c._owner
 }
 
-// Frame 修飾器
 func (c *viewCtx) Frame(size *Binding[CGSize]) SomeView {
 	if size == nil {
-		size = Bind(NewSize(Inf, Inf))
+		size = Const(NewSize(Inf, Inf))
 	}
 
 	c.frameSize = size
@@ -156,20 +175,23 @@ func (c *viewCtx) Frame(size *Binding[CGSize]) SomeView {
 	return c._owner
 }
 
-// Padding 修飾器
-func (c *viewCtx) Padding(inset *Binding[CGInset]) SomeView {
-	return c.wrap(func(c *viewCtx) {
-		c.inset = inset
-	})
+func (c *viewCtx) Padding(padding ...*Binding[CGInset]) SomeView {
+	if len(padding) != 0 {
+		return c.wrap(func(c *viewCtx) {
+			c.inset = padding[0]
+		})
+	} else {
+		return c.wrap(func(c *viewCtx) {
+			c.inset = DefaultPadding
+		})
+	}
 }
 
-// ForegroundColor 修飾器
 func (c *viewCtx) ForegroundColor(color *Binding[CGColor]) SomeView {
 	c.foregroundColor = color
 	return c._owner
 }
 
-// BackgroundColor 修飾器
 func (c *viewCtx) BackgroundColor(color *Binding[CGColor]) SomeView {
 	c.backgroundColor = color
 	return c._owner
@@ -190,8 +212,8 @@ func (c *viewCtx) FontLineHeight(height *Binding[float64]) SomeView {
 	return c._owner
 }
 
-func (c *viewCtx) FontLetterSpacing(spacing *Binding[float64]) SomeView {
-	c.fontLetterSpacing = spacing
+func (c *viewCtx) FontKerning(spacing *Binding[float64]) SomeView {
+	c.fontKerning = spacing
 	return c._owner
 }
 
@@ -204,7 +226,7 @@ func (c *viewCtx) FontItalic(italic ...*Binding[bool]) SomeView {
 	if len(italic) != 0 {
 		c.fontItalic = italic[0]
 	} else {
-		c.fontItalic.Set(true)
+		c.fontItalic = Const(true)
 	}
 
 	return c._owner
@@ -214,7 +236,7 @@ func (c *viewCtx) RoundCorner(radius ...*Binding[float64]) SomeView {
 	if len(radius) != 0 {
 		c.roundCorner = radius[0]
 	} else {
-		c.roundCorner = Bind(_defaultRoundCorner)
+		c.roundCorner = DefaultRoundCorner
 	}
 	return c.wrap()
 }
@@ -228,7 +250,7 @@ func (c *viewCtx) ScaleToFit(enable ...*Binding[bool]) SomeView {
 	if len(enable) != 0 {
 		c.scaleToFit = enable[0]
 	} else {
-		c.scaleToFit = Bind(true)
+		c.scaleToFit = Const(true)
 	}
 
 	return c._owner
@@ -238,7 +260,7 @@ func (c *viewCtx) KeepAspectRatio(enable ...*Binding[bool]) SomeView {
 	if len(enable) != 0 {
 		c.keepAspectRatio = enable[0]
 	} else {
-		c.keepAspectRatio = Bind(true)
+		c.keepAspectRatio = Const(true)
 	}
 
 	return c._owner
@@ -248,6 +270,8 @@ func (c *viewCtx) Border(border *Binding[CGInset], color ...*Binding[CGColor]) S
 	c.borderInset = border
 	if len(color) != 0 {
 		c.borderColor = color[0]
+	} else {
+		c.borderColor = DefaultBorderColor
 	}
 
 	return c._owner
@@ -266,8 +290,36 @@ func (c *viewCtx) Modify(with func(SomeView) SomeView) SomeView {
 	return with(c)
 }
 
+func (c *viewCtx) Disabled(disabled ...*Binding[bool]) SomeView {
+	if len(disabled) != 0 {
+		c.disabled = disabled[0]
+	} else {
+		c.disabled = Const(true)
+	}
+
+	return c._owner
+}
+
 func (c *viewCtx) Align(alignment *Binding[layout.Align]) SomeView {
 	c.alignment = alignment
+
+	if alignment == nil {
+		return c._owner
+	}
+
+	if c.transitionAlign == nil {
+		c.transitionAlign = Bind(CGPoint{})
+	}
+
+	c.transitionAlign.Set(alignToCGPoint(alignment.Get()), nil)
+	alignment.addListener(func(oldVal, newVal layout.Align, animStyle animation.Style, isAnimating bool) {
+		println("align changed", "old", serialize(oldVal), "new", serialize(newVal), "isAnimating", serialize(isAnimating))
+		if isAnimating {
+			return
+		}
+		c.transitionAlign.Set(alignToCGPoint(newVal), animStyle)
+	})
+
 	return c._owner
 }
 
@@ -290,5 +342,15 @@ func (c *viewCtx) Center() SomeView {
 
 func (c *viewCtx) Offset(offset *Binding[CGPoint]) SomeView {
 	c.offset = offset
+	return c._owner
+}
+
+func (c *viewCtx) Spacing(spacing ...*Binding[float64]) SomeView {
+	if len(spacing) != 0 {
+		c.spacing = spacing[0]
+	} else {
+		c.spacing = DefaultSpacing
+	}
+
 	return c._owner
 }

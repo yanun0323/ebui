@@ -25,7 +25,7 @@ type ButtonSuite struct {
 
 func (su *ButtonSuite) TestButton() {
 
-	{ // 按鈕無大小，按鈕標籤有大小
+	{ // button with no size, button label with size
 		rect := newRectangleForTest().
 			Padding(Bind(NewInset(10, 10, 10, 10))).
 			Frame(Bind(NewSize(200, 100)))

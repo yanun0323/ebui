@@ -3,8 +3,11 @@ package main
 import (
 	"log"
 	"sync/atomic"
+	"time"
 
 	. "github.com/yanun0323/ebui"
+	"github.com/yanun0323/ebui/animation"
+	"github.com/yanun0323/ebui/font"
 	"github.com/yanun0323/ebui/layout"
 )
 
@@ -28,6 +31,8 @@ func NewContentView() View {
 		isRandom:    &atomic.Bool{},
 		color:       Bind(red),
 		content:     Bind(pauseString),
+		offset:      Bind(CGPoint{}).Animated(animation.EaseInOut(time.Second)),
+		offset2:     Bind(CGPoint{}).Animated(animation.EaseInOut(time.Second)),
 	}
 }
 
@@ -38,6 +43,8 @@ type ContentView struct {
 	isRandom *atomic.Bool
 	color    *Binding[CGColor]
 	content  *Binding[string]
+	offset   *Binding[CGPoint]
+	offset2  *Binding[CGPoint]
 }
 
 func (v *ContentView) Body() SomeView {
@@ -45,7 +52,10 @@ func (v *ContentView) Body() SomeView {
 
 	return VStack(
 		HStack(
+			Divider(),
+
 			VStack(
+				Text("align leading"),
 				Rectangle().
 					Frame(Bind(NewSize(80, 40))).
 					RoundCorner(Bind(15.0)).
@@ -53,7 +63,7 @@ func (v *ContentView) Body() SomeView {
 					Border(Bind(borderInset), Bind(white)).
 					Padding(Bind(NewInset(5))),
 				Rectangle().
-					Frame(Bind(NewSize(100, 50))).
+					Frame(Bind(NewSize(100, 30))).
 					Border(Bind(borderInset), Bind(white)).
 					RoundCorner(Bind(15.0)).
 					BackgroundColor(Bind(green)).
@@ -61,13 +71,20 @@ func (v *ContentView) Body() SomeView {
 			).Modify(debugFunc).
 				Align(Bind(layout.AlignLeading)),
 
+			Divider(),
+
+			Spacer().Padding(Bind(NewInset(5))).Debug(),
+
 			VStack(
+				Text("align center"),
 				Rectangle().
-					Frame(Bind(NewSize(100, 80))).
+					Frame(Bind(NewSize(Inf, 20))).
 					BackgroundColor(Bind(blue)).
 					RoundCorner(Bind(15.0)).
+					Debug().
 					Border(Bind(borderInset), Bind(white)).
-					Padding(Bind(NewInset(5))),
+					Padding(Bind(NewInset(5))).
+					Debug(),
 				Rectangle().
 					Frame(Bind(NewSize(80, 40))).
 					Border(Bind(borderInset), Bind(white)).
@@ -75,44 +92,118 @@ func (v *ContentView) Body() SomeView {
 			).Modify(debugFunc).
 				Align(Bind(layout.AlignCenter)),
 
+			Divider(),
+
 			VStack(
+				Text("Counter Demo"),
+				Text("align trailing"),
 				Rectangle().
-					Frame(Bind(NewSize(120, 50))).
+					Frame(Bind(NewSize(120, 30))).
 					Border(Bind(borderInset), Bind(white)).
 					BackgroundColor(Bind(yellow)).
 					RoundCorner(Bind(15.0)).
 					Padding(Bind(NewInset(5))),
 				Rectangle().
-					Frame(Bind(NewSize(100, 50))).
+					Frame(Bind(NewSize(100, 20))).
 					Border(Bind(CGInset{}), Bind(white)).
 					BackgroundColor(Bind(green)).
 					RoundCorner(Bind(15.0)).
 					Padding(Bind(NewInset(5))),
 			).Modify(debugFunc).
 				Align(Bind(layout.AlignTrailing)),
+		).Debug(),
+
+		Divider().Padding(Bind(NewInset(5))).Debug(),
+
+		HStack(
+			VStack(
+				HStack(
+					Text("align top"),
+					rect(50, 20, red),
+					rect(50, 40, green),
+					rect(50, 60, blue),
+				).Modify(debugFunc).
+					Align(Bind(layout.AlignTop)),
+
+				Divider(),
+
+				HStack(
+					Text("align center").Debug(),
+					rect(50, 20, red),
+					rect(50, 40, green),
+					rect(50, 60, blue),
+				).Modify(debugFunc).
+					Align(Bind(layout.AlignCenter)),
+
+				Divider(),
+
+				HStack(
+					Text("align bottom").FontKerning(Bind(1.0)).Debug(),
+					rect(50, 20, red),
+					rect(50, 40, green),
+					rect(50, 60, blue),
+				).Modify(debugFunc).
+					Align(Bind(layout.AlignBottom)),
+
+				Divider(),
+			).Debug(),
+
+			VStack(
+				Text("測試開關"),
+
+				Toggle(Bind(false)),
+			).Debug(),
 		),
 
-		HStack(
-			rect(50, 20, red),
-			rect(50, 40, green),
-			rect(50, 60, blue),
-		).Modify(debugFunc).
-			Align(Bind(layout.AlignTop)),
+		Divider().Padding(Bind(NewInset(5))).Debug(),
 
-		HStack(
-			rect(50, 20, red),
-			rect(50, 40, green),
-			rect(50, 60, blue),
-		).Modify(debugFunc).
-			Align(Bind(layout.AlignCenter)),
-
-		HStack(
-			rect(50, 20, red),
-			rect(50, 40, green),
-			rect(50, 60, blue),
-		).Modify(debugFunc).
-			Align(Bind(layout.AlignBottom)),
-	)
+		VStack(
+			HStack(
+				Text("EaseInOut").
+					Frame(Bind(NewSize(150, Inf))),
+				Button("", func() {
+					if v.offset.Get().X == 0 {
+						v.offset.Set(CGPoint{X: 280, Y: 0})
+						v.offset2.Set(CGPoint{X: 280, Y: 0})
+					} else {
+						v.offset.Set(CGPoint{X: 0, Y: 0})
+						v.offset2.Set(CGPoint{X: 0, Y: 0})
+					}
+				}, func() SomeView {
+					return HStack(
+						Circle().
+							Frame(Bind(NewSize(20))).
+							Offset(v.offset).
+							BackgroundColor(Bind(red)),
+						Spacer(),
+					).Frame(Bind(NewSize(300, 20))).
+						Padding(Bind(NewInset(5))).
+						BackgroundColor(Bind(blue)).
+						RoundCorner(Bind(10.0))
+				}).Padding(Bind(NewInset(5))),
+			).Padding(Bind(NewInset(0, 0, 0, 10))).
+				Align(Bind(layout.AlignCenter)),
+			HStack(
+				Text("EaseInOut Strength").
+					Frame(Bind(NewSize(150, Inf))),
+				HStack(
+					Circle().
+						Frame(Bind(NewSize(20))).
+						Offset(v.offset2.Animated(animation.EaseInOut(time.Second).Strengthen(5))).
+						BackgroundColor(Bind(red)),
+					Spacer(),
+				).Frame(Bind(NewSize(300, 20))).
+					Padding(Bind(NewInset(5))).
+					BackgroundColor(Bind(blue)).
+					RoundCorner(Bind(10.0)).
+					Padding(Bind(NewInset(5))),
+			).Padding(Bind(NewInset(0, 0, 0, 10))).
+				Align(Bind(layout.AlignCenter)),
+		).Debug(),
+	).Debug().FontSize(Const(font.Body)).
+		Padding(Bind(NewInset(30))).
+		Debug().
+		FontWeight(Bind(font.Bold))
 }
 
 func rect(w, h int, color CGColor) SomeView {
@@ -150,7 +241,7 @@ func debugFunc(view SomeView) SomeView {
 func main() {
 	app := NewApplication(NewContentView())
 	app.SetWindowBackgroundColor(NewColor(64, 16, 64, 64))
-	app.SetWindowSize(600, 500)
+	app.SetWindowSize(800, 600)
 	app.SetWindowResizingMode(WindowResizingModeEnabled)
 	app.SetResourceFolder("resource")
 	app.VSyncEnabled(false)

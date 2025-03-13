@@ -9,6 +9,7 @@ func removeLastChar(s string) string {
 	return string(runes[:len(runes)-1])
 }
 
+// XXX: Remove me
 type sig chan struct{}
 
 func (s sig) Send() {

@@ -1,6 +1,12 @@
 package ebui
 
-import "unicode/utf8"
+import (
+	"unicode/utf8"
+
+	"github.com/yanun0323/ebui/animation"
+)
+
+// TODO: Implement selectable text
 
 type selectableText struct {
 	content *Binding[string]
@@ -13,7 +19,7 @@ func newSelectableText(content *Binding[string]) *selectableText {
 		cursor:  utf8.RuneCountInString(content.Get()),
 	}
 
-	content.AddListener(func(oldVal, newVal string) {
+	content.addListener(func(oldVal, newVal string, animStyle animation.Style, isAnimating bool) {
 		if s.cursor >= utf8.RuneCountInString(oldVal) {
 			s.cursor = utf8.RuneCountInString(newVal)
 		}

@@ -1,7 +1,5 @@
 package ebui
 
-import layout "github.com/yanun0323/ebui/layout"
-
 type formulaType int
 
 const (
@@ -16,33 +14,41 @@ type formulaStack struct {
 	children []SomeView
 }
 
-func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
-	stackEnv := v.stackCtx.inheritFrom(parent)
-	childrenSummedBounds := CGSize{}
-	childrenLayoutFns := make([]layoutFunc, 0, len(v.children))
-	flexCount := NewPoint(0, 0)
-	for _, child := range v.children {
-		childData, layoutFn := child.preload(stackEnv)
+func (v *formulaStack) childrenWithSpacing() []SomeView {
+	spacing := v.stackCtx.spacing.Get()
+	if spacing == 0 {
+		return v.children
+	}
 
-		if child.isSpacer() {
-			switch v.types {
-			case formulaVStack:
-				flexCount.Y++
-				childrenLayoutFns = append(childrenLayoutFns, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect, alignFunc alignFunc) {
-					child.debugPrint("preload", "start: {%4.f, %4.f}, flexFrameSize: {%4.f, %4.f}",
-						start.X, start.Y,
-						flexFrameSize.Width, flexFrameSize.Height,
-					)
-					return CGRect{start, NewPoint(start.X, start.Y+flexFrameSize.Height)}, func(CGPoint) {}
-				})
-			case formulaHStack:
-				flexCount.X++
-				childrenLayoutFns = append(childrenLayoutFns, func(start CGPoint, flexFrameSize CGSize) (bounds CGRect, alignFunc alignFunc) {
-					child.debugPrint("preload", "start: %v, flexFrameSize: %v", start, flexFrameSize)
-					return CGRect{start, NewPoint(start.X+flexFrameSize.Width, start.Y)}, func(CGPoint) {}
-				})
-			}
-		} else {
+	children := make([]SomeView, len(v.children)*2-1)
+	for i, child := range v.children {
+		children[i*2] = child
+		if i != len(v.children)-1 {
+			children[i*2+1] = spacingBlock(v.stackCtx.spacing)
+		}
+	}
+
+	return children
+}
+
+func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloadData, layoutFunc) {
+	var (
+		children             = v.children
+		stackEnv             = v.stackCtx.inheritFrom(parent)
+		childrenSummedBounds = CGSize{}
+		childrenLayoutFns    = make([]layoutFunc, 0, len(children))
+		flexCount            = NewPoint(0, 0)
+	)
+
+	t := v.types
+	if t == formulaZStack && len(types) != 0 {
+		t = types[0]
+	}
+
+	for _, child := range children {
+		childData, layoutFn := child.preload(stackEnv, t)
+
+		{
 			if childData.IsInfWidth {
 				flexCount.X++
 				if childData.FrameSize.IsInfWidth() {
@@ -59,7 +65,7 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 		}
 
 		childBoundsSize := childData.BoundsSize()
-		{ // 計算子視圖大小總和及最小允許彈性邊界
+		{ // calculate the summed size of the subviews and the minimum allowed flexible bounds
 			switch v.types {
 			case formulaVStack:
 				childrenSummedBounds = NewSize(max(childrenSummedBounds.Width, childBoundsSize.Width), childrenSummedBounds.Height+childBoundsSize.Height)
@@ -77,10 +83,10 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 
 	sData, sLayoutFn := v.stackCtx.preload(stackEnv)
 	{
-		// 如果 Stack 本身沒有設定大小
-		// 		-> 有彈性子視圖：使用無限大小
-		// 		-> 沒有彈性子視圖：使用子視圖大小總和
-		// 如果 Stack 本身有設定大小，則使用 Stack 的大小
+		// if the Stack itself has no size set
+		// 		-> has flexible subviews: use infinite size
+		// 		-> no flexible subviews: use the summed size of the subviews
+		// if the Stack itself has a size set, use the Stack's size
 		if sData.IsInfWidth {
 			sData.FrameSize.Width = childrenSummedBounds.Width
 			sData.IsInfWidth = flexCount.X > 0
@@ -108,7 +114,9 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 			}
 		}
 
-		{ // 計算彈性大小公式
+		_, _ = ensureWidthMinimum, ensureHeightMinimum
+
+		{ // calculate the flexible size formula
 			switch v.types {
 			case formulaVStack:
 				hFlexSize := sData.FrameSize.Height - childrenSummedBounds.Height
@@ -117,7 +125,7 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 				}
 
 				perFlexFrameSize = NewSize(flexFrameSize.Width, hFlexSize/max(flexCount.Y, 1))
-				// ensureWidthMinimum()
+				ensureWidthMinimum()
 			case formulaHStack:
 				wFlexSize := sData.FrameSize.Width - childrenSummedBounds.Width
 				if sData.IsInfWidth {
@@ -125,12 +133,15 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 				}
 
 				perFlexFrameSize = NewSize(wFlexSize/max(flexCount.X, 1), flexFrameSize.Height)
-				// ensureHeightMinimum()
+				ensureHeightMinimum()
 			case formulaZStack:
 				perFlexFrameSize = flexFrameSize
 				ensureWidthMinimum()
 				ensureHeightMinimum()
 			}
+
+			perFlexFrameSize.Width = max(perFlexFrameSize.Width, 0)
+			perFlexFrameSize.Height = max(perFlexFrameSize.Height, 0)
 		}
 
 		anchor := start.
@@ -145,7 +156,7 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 			alignFuncs = append(alignFuncs, alignChild)
 			aligners = append(aligners, v.newAligner(childBounds, alignChild))
 			childBoundsSize := childBounds.Size()
-			{ // 計算子視圖的 layout 最後位置
+			{ // calculate the final position of the child view's layout
 				switch v.types {
 				case formulaVStack:
 					anchor = NewPoint(anchor.X, childBounds.End.Y)
@@ -199,31 +210,12 @@ func (v *formulaStack) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
 }
 
 func (v *formulaStack) newAligner(childBounds CGRect, alignFunc alignFunc) func(stackFrame CGSize) {
-	a := v.stackCtx.alignment.Get()
-	if a == layout.AlignDefault {
-		return func(CGSize) {}
-	}
-
+	a := v.stackCtx.transitionAlign.Get()
 	return func(stackFrame CGSize) {
 		dw, dh := stackFrame.Width-childBounds.Dx(), stackFrame.Height-childBounds.Dy()
 		offset := CGPoint{}
-		alignContains(a, func(containLeading, containTop, containTrailing, containBottom bool) {
-			if containBottom {
-				offset.Y = dh
-			}
-
-			if containTrailing {
-				offset.X = dw
-			}
-
-			if containTop {
-				offset.Y = offset.Y / 2
-			}
-
-			if containLeading {
-				offset.X = offset.X / 2
-			}
-		})
+		offset.X = a.X * dw
+		offset.Y = a.Y * dh
 
 		switch v.types {
 		case formulaVStack:

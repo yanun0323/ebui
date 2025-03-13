@@ -9,8 +9,18 @@ import (
 )
 
 const (
-	_roundedScale        = 3.0
-	_roundedScaleInverse = 1.0 / _roundedScale
+	_roundedScale        float64 = 3.0
+	_roundedScaleInverse float64 = 1.0 / _roundedScale
+)
+
+/*
+	COLOR
+*/
+
+var (
+	white       = NewColor(255)
+	black       = NewColor(0)
+	transparent = NewColor(0, 0, 0, 0)
 )
 
 /*
@@ -23,13 +33,6 @@ var (
 	defaultFontResource = defaultFont()
 	fontTagWeight       = parseTag("wght") /* 100-900 */
 	fontTagItalic       = parseTag("ital") /* 0-1 */
-)
-
-var (
-	AccentColor = NewColor(0, 0, 255, 255)
-	white       = CGColor{255, 255, 255, 255}
-	black       = CGColor{0, 0, 0, 255}
-	transparent = CGColor{}
 )
 
 func defaultFont() *text.GoTextFaceSource {

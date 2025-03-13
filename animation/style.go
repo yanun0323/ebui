@@ -18,133 +18,96 @@ type Style interface {
 
 	// Duration returns the duration of the animation.
 	Duration() time.Duration
+
+	// Strength returns a new style with the given strength.
+	//
+	// The strength is a multiplier for the animation curve.
+	//
+	// The default strength is 1. More than 1 is stronger, less than 1 is weaker.
+	Strengthen(float64) Style
 }
 
-// None returns a none animation curve.
-func None() Style {
-	return &noneAnimationCurve{}
-}
-
-type noneAnimationCurve struct{}
-
-func (c *noneAnimationCurve) Value(duration float64) float64 {
-	return 1
-}
-
-func (c *noneAnimationCurve) Duration() time.Duration {
-	return 0
-}
-
-// Linear returns a linear animation curve.
-//
-// The duration is the duration of the animation.
-// If no duration is provided, the default duration is used.
-func Linear(duration ...time.Duration) Style {
-	d := _defaultAnimationDuration
-	if len(duration) != 0 {
-		d = duration[0]
+var (
+	// None returns a none animation curve.
+	None = func(duration ...time.Duration) Style {
+		return &stylePrototype{
+			formula:  func(float64, float64) float64 { return 1 },
+			duration: 0,
+		}
 	}
 
-	return &linearAnimationCurve{
-		duration: d,
-	}
-}
+	// Linear returns a linear animation curve.
+	Linear = NewStyleBuilder(func(t, _ float64) float64 { return t })
 
-type linearAnimationCurve struct {
+	// EaseInOut returns an ease-in-out cubic animation curve.
+	EaseInOut = NewStyleBuilder(func(t, s float64) float64 {
+		s += 2
+		if t < 0.5 {
+			return 4 * t * t * t
+		} else {
+			return 1 - math.Pow(-2*t+2, s)/2
+		}
+	})
+
+	// EaseIn returns an ease-in animation curve.
+	EaseIn = NewStyleBuilder(func(t, s float64) float64 {
+		s += 2
+		return math.Pow(t, s)
+	})
+
+	// EaseOut returns an ease-out animation curve.
+	EaseOut = NewStyleBuilder(func(t, s float64) float64 {
+		s += 2
+		return 1 - math.Pow(1-t, s)
+	})
+
+	// Spring returns a spring animation curve.
+	Spring = NewStyleBuilder(func(t, s float64) float64 {
+		var (
+			c1 = s * 1.5
+			c2 = c1 * 1.5
+		)
+
+		if t < 0.5 {
+			return (2 * t * t * ((c2+1)*2*t - c2)) / 2
+		} else {
+			return (2 * ((t-1)*(t-1)*((c2+1)*(t*2-2)+c2) + 1)) / 2
+		}
+	})
+)
+
+// stylePrototype represents a style that can be used to animate a value over time.
+type stylePrototype struct {
+	formula  func(t, strength float64) float64
 	duration time.Duration
+	strength float64
 }
 
-func (c *linearAnimationCurve) Value(duration float64) float64 {
-	return duration
+// NewStyleBuilder returns a new style builder.
+func NewStyleBuilder(formula func(t, strength float64) float64) func(duration ...time.Duration) Style {
+	return func(duration ...time.Duration) Style {
+		d := _defaultAnimationDuration
+		if len(duration) != 0 {
+			d = duration[0]
+		}
+
+		return &stylePrototype{
+			formula:  formula,
+			duration: d,
+			strength: 1,
+		}
+	}
 }
 
-func (c *linearAnimationCurve) Duration() time.Duration {
+func (c *stylePrototype) Value(t float64) float64 {
+	return c.formula(max(min(1, t), 0), c.strength)
+}
+
+func (c *stylePrototype) Duration() time.Duration {
 	return c.duration
 }
 
-// EaseInOut returns an ease-in-out animation curve.
-//
-// The duration is the duration of the animation.
-// If no duration is provided, the default duration is used.
-func EaseInOut(duration ...time.Duration) Style {
-	d := _defaultAnimationDuration
-	if len(duration) != 0 {
-		d = duration[0]
-	}
-
-	return &easeInOutAnimationCurve{
-		duration: d,
-	}
-}
-
-type easeInOutAnimationCurve struct {
-	duration time.Duration
-}
-
-func (c *easeInOutAnimationCurve) Value(duration float64) float64 {
-	if duration < 0.5 {
-		// 前半段使用 EaseIn (加速)
-		return math.Pow(duration*2, 2) / 2
-	} else {
-		// 後半段使用 EaseOut (減速)
-		return 1 - math.Pow(-2*duration+2, 2)/2
-	}
-}
-
-func (c *easeInOutAnimationCurve) Duration() time.Duration {
-	return c.duration
-}
-
-// EaseIn returns an ease-in animation curve.
-//
-// The duration is the duration of the animation.
-// If no duration is provided, the default duration is used.
-func EaseIn(duration ...time.Duration) Style {
-	d := _defaultAnimationDuration
-	if len(duration) != 0 {
-		d = duration[0]
-	}
-
-	return &easeInAnimationCurve{
-		duration: d,
-	}
-}
-
-type easeInAnimationCurve struct {
-	duration time.Duration
-}
-
-func (c *easeInAnimationCurve) Value(duration float64) float64 {
-	return math.Pow(duration, 2)
-}
-
-func (c *easeInAnimationCurve) Duration() time.Duration {
-	return c.duration
-}
-
-// EaseOut returns an ease-out animation curve.
-//
-// The duration is the duration of the animation.
-// If no duration is provided, the default duration is used.
-func EaseOut(duration ...time.Duration) Style {
-	d := _defaultAnimationDuration
-	if len(duration) != 0 {
-		d = duration[0]
-	}
-
-	return &easeOutAnimationCurve{
-		duration: d,
-	}
-}
-
-type easeOutAnimationCurve struct {
-	duration time.Duration
-}
-
-func (c *easeOutAnimationCurve) Value(duration float64) float64 {
-	return 1 - math.Pow(1-duration, 2)
-}
-
-func (c *easeOutAnimationCurve) Duration() time.Duration {
-	return c.duration
+func (c stylePrototype) Strengthen(strength float64) Style {
+	c.strength = strength
+	return &c
 }

@@ -1,7 +1,11 @@
 package ebui
 
+import "github.com/yanun0323/ebui/layout"
+
 func animateValue[T bindable](startValue, endValue T, delta float64) T {
 	switch any(startValue).(type) {
+	case layout.Align:
+		return endValue
 	case int:
 		sv := any(startValue).(int)
 		ev := any(endValue).(int)

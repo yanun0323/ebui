@@ -2,6 +2,7 @@ package ebui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/yanun0323/ebui/animation"
 	layout "github.com/yanun0323/ebui/layout"
 )
 
@@ -39,23 +40,23 @@ func Toggle(enabled *Binding[bool], label ...func() SomeView) SomeView {
 	if len(label) != 0 && label[0] != nil {
 		t.label = label[0]
 	} else {
-		t.defaultToggleOffset = Bind(CGPoint{}).Animated()
-		t.defaultToggleColor = Bind(defaultToggleOffColor).Animated()
-		t.defaultToggleBackgroundColor = Bind(defaultToggleOffBackgroundColor).Animated()
+		t.defaultToggleOffset = Bind(CGPoint{})
+		t.defaultToggleColor = Bind(defaultToggleOffColor)
+		t.defaultToggleBackgroundColor = Bind(defaultToggleOffBackgroundColor)
 		if t.enabled.Get() {
 			t.defaultToggleOffset.Set(defaultToggleOffset)
 			t.defaultToggleColor.Set(defaultToggleOnColor)
 			t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor)
 		}
-		enabled.AddListener(func(_, newVal bool) {
+		enabled.addListener(func(_, newVal bool, animStyle animation.Style, isAnimating bool) {
 			if newVal {
-				t.defaultToggleOffset.Set(defaultToggleOffset)
-				t.defaultToggleColor.Set(defaultToggleOnColor)
-				t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor)
+				t.defaultToggleOffset.Set(defaultToggleOffset, animStyle)
+				t.defaultToggleColor.Set(defaultToggleOnColor, animStyle)
+				t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor, animStyle)
 			} else {
-				t.defaultToggleOffset.Set(CGPoint{})
-				t.defaultToggleColor.Set(defaultToggleOffColor)
-				t.defaultToggleBackgroundColor.Set(defaultToggleOffBackgroundColor)
+				t.defaultToggleOffset.Set(CGPoint{}, animStyle)
+				t.defaultToggleColor.Set(defaultToggleOffColor, animStyle)
+				t.defaultToggleBackgroundColor.Set(defaultToggleOffBackgroundColor, animStyle)
 			}
 		})
 
@@ -67,7 +68,7 @@ func Toggle(enabled *Binding[bool], label ...func() SomeView) SomeView {
 	return t
 }
 
-func (b *toggleImpl) preload(parent *viewCtxEnv) (preloadData, layoutFunc) {
+func (b *toggleImpl) preload(parent *viewCtxEnv, _ ...formulaType) (preloadData, layoutFunc) {
 	if b.label != nil {
 		b.labelLoaded = b.label()
 	}

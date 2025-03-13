@@ -7,8 +7,7 @@ import (
 )
 
 func TestVStack(t *testing.T) {
-	// FIXME: Fix me
-	// suite.Run(t, new(TestVStackSuite))
+	suite.Run(t, new(TestVStackSuite))
 }
 
 type TestVStackSuite struct {
@@ -24,7 +23,7 @@ func newVStackForTest(children ...SomeView) *vstackImpl {
 }
 
 func (su *TestVStackSuite) TestVStack() {
-	{ // 子視圖全固定大小
+	{ // child view with fixed size
 		rect1 := newRectangleForTest()
 		rect2 := newRectangleForTest()
 		vstack := newVStackForTest(
@@ -56,7 +55,7 @@ func (su *TestVStackSuite) TestVStack() {
 		su.Equal(NewPoint(200, 300), frame2.End)
 	}
 
-	{ // 子視圖全固定大小 + VStack Padding
+	{ // child view with fixed size + VStack Padding
 		rect1 := newRectangleForTest()
 		rect2 := newRectangleForTest()
 		vstack := newVStackForTest(
@@ -76,8 +75,8 @@ func (su *TestVStackSuite) TestVStack() {
 		su.Equal(NewPoint(230, 330), result.End)
 
 		frameVstack := vstack.systemSetFrame()
-		su.Equal(NewPoint(0, 0), frameVstack.Start)
-		su.Equal(NewPoint(200, 300), frameVstack.End)
+		su.Equal(NewPoint(15, 15), frameVstack.Start)
+		su.Equal(NewPoint(215, 315), frameVstack.End)
 
 		frame1 := rect1.systemSetFrame()
 		su.Equal(NewPoint(15, 15), frame1.Start)
@@ -88,7 +87,7 @@ func (su *TestVStackSuite) TestVStack() {
 		su.Equal(NewPoint(215, 315), frame2.End)
 	}
 
-	{ // 子視圖有 X 彈性大小
+	{ // child view with X flex size
 		rect1 := newRectangleForTest()
 		rect2 := newRectangleForTest()
 		vstack := newVStackForTest(
@@ -120,7 +119,7 @@ func (su *TestVStackSuite) TestVStack() {
 		su.Equal(NewPoint(500, 300), frame2.End)
 	}
 
-	{ // 子視圖有 Y 彈性大小
+	{ // child view with Y flex size
 		rect1 := newRectangleForTest()
 		rect2 := newRectangleForTest()
 		vstack := newVStackForTest(
@@ -152,7 +151,7 @@ func (su *TestVStackSuite) TestVStack() {
 		su.Equal(NewPoint(200, 500), frame2.End)
 	}
 
-	{ // 子視圖有多個 Y 彈性大小 + VStack Padding
+	{ // child view with multiple Y flex size + VStack Padding
 		rect1 := newRectangleForTest()
 		rect2 := newRectangleForTest()
 		rect3 := newRectangleForTest()
@@ -174,11 +173,11 @@ func (su *TestVStackSuite) TestVStack() {
 
 		result, _ := layoutFn(NewPoint(0, 0), NewSize(500.0, 500.0))
 		su.Equal(CGPoint{}, result.Start)
-		su.Equal(NewPoint(320, 500), result.End)
+		su.Equal(NewPoint(320, 470), result.End)
 
 		vstackFrame := vstack.systemSetFrame()
 		su.Equal(NewPoint(10, 10), vstackFrame.Start)
-		su.Equal(NewPoint(310, 490), vstackFrame.End)
+		su.Equal(NewPoint(310, 460), vstackFrame.End)
 
 		frame1 := rect1.systemSetFrame()
 		su.Equal(NewPoint(10, 10), frame1.Start)

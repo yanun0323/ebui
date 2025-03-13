@@ -7,13 +7,13 @@ import (
 
 type animationID uintptr
 
-// animationExecutor 表示一個動畫執行器
+// animationExecutor represents an animation executor
 type animationExecutor struct {
-	onUpdate func(now int64) bool // 每幀更新時調用，返回值表示是否提前完成
-	onCancel func()               // 取消動畫時調用
+	onUpdate func(now int64) bool // called every frame, returns true if the animation is completed
+	onCancel func()               // called when the animation is canceled
 }
 
-// animationManager 管理所有動畫執行器
+// animationManager manages all animation executors
 type animationManager struct {
 	mu        sync.RWMutex
 	executors map[animationID]animationExecutor
@@ -23,7 +23,7 @@ var globalAnimationManager = &animationManager{
 	executors: make(map[animationID]animationExecutor),
 }
 
-// AddExecutor 添加一個動畫執行器
+// AddExecutor adds an animation executor
 func (am *animationManager) AddExecutor(id animationID, executor animationExecutor) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
@@ -31,16 +31,16 @@ func (am *animationManager) AddExecutor(id animationID, executor animationExecut
 	am.executors[id] = executor
 }
 
-// Update 更新所有動畫執行器
+// Update updates all animation executors
 func (am *animationManager) Update() {
 	am.mu.Lock()
 	defer am.mu.Unlock()
 
 	now := time.Now().UnixMilli()
-	// 執行所有執行器並標記完成的
-	completedIndices := make([]animationID, 0)
+	// execute all executors and mark completed
+	completedIndices := make([]animationID, 0, len(am.executors))
 	for id, executor := range am.executors {
-		// 執行動畫
+		// execute animation
 		completed := executor.onUpdate(now)
 		if completed {
 			completedIndices = append(completedIndices, id)
@@ -48,30 +48,30 @@ func (am *animationManager) Update() {
 	}
 
 	for _, id := range completedIndices {
-		executor, _ := am.removeExecutor(id)
-		executor.onCancel()
+		executor, ok := am.removeExecutor(id)
+		if ok {
+			executor.onCancel()
+		}
 	}
 
-	// 如果有動畫正在執行，標記為需要重繪
+	// if there is an animation running, mark as dirty
 	if len(am.executors) > 0 {
 		globalStateManager.markDirty()
 	}
 }
 
-// RemoveExecutor 移除一個動畫執行器
+// RemoveExecutor removes an animation executor
 func (am *animationManager) RemoveExecutor(id animationID) (animationExecutor, bool) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
-
 	return am.removeExecutor(id)
 }
 
 func (am *animationManager) removeExecutor(id animationID) (animationExecutor, bool) {
 	executor, ok := am.executors[id]
-	if !ok {
-		return animationExecutor{}, false
+	if ok {
+		delete(am.executors, id)
 	}
 
-	delete(am.executors, id)
-	return executor, true
+	return executor, ok
 }

@@ -63,7 +63,7 @@ func (su *ViewContextSuite) TestSetFrame() {
 }
 
 func (su *ViewContextSuite) TestPreload() {
-	{ // 沒有設定大小
+	{ // no size
 		ctx := newTestViewContextForTest()
 
 		data, layoutFn := ctx.preload(nil)
@@ -79,7 +79,7 @@ func (su *ViewContextSuite) TestPreload() {
 		su.Equal(NewRect(0, 0, 500, 500), ctx.systemSetFrame())
 	}
 
-	{ // 沒有設定大小，有設定 padding
+	{ // no size, with padding
 		ctx := newTestViewContextForTest()
 		zs := ctx.Padding(Bind(CGInset{10, 10, 10, 10})).(*zstackImpl)
 
@@ -98,7 +98,7 @@ func (su *ViewContextSuite) TestPreload() {
 		su.Equal(NewRect(10, 10, 490, 490), zs.systemSetFrame())
 	}
 
-	{ // 設定大小
+	{ // set size
 		ctx := newTestViewContextForTest()
 		ctx.Frame(Bind(NewSize(100.0, 100.0)))
 
@@ -115,7 +115,7 @@ func (su *ViewContextSuite) TestPreload() {
 		su.Equal(NewRect(0, 0, 100, 100), ctx.systemSetFrame())
 	}
 
-	{ // 設定大小，有設定 padding
+	{ // set size, with padding
 		ctx := newTestViewContextForTest()
 		ctx.Frame(Bind(NewSize(100.0, 100.0)))
 		ctx.Padding(Bind(CGInset{10, 10, 10, 10}))

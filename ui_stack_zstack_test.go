@@ -21,7 +21,7 @@ func (su *ZSTestZStackSuite) SetupSuite() {
 }
 
 func (su *ZSTestZStackSuite) TestZStack() {
-	{ // 子視圖不固定大小
+	{ // child view with no size
 		rect1 := newRectangleForTest()
 		z := newZStackImpl(rect1)
 
@@ -37,7 +37,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewPoint(100, 100), result.End)
 	}
 
-	{ // 子視圖固定大小
+	{ // child view with fixed size
 		rect1 := newRectangleForTest().Frame(Bind(NewSize(100, 100)))
 		z := newZStackImpl(rect1)
 
@@ -53,7 +53,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewPoint(100, 100), result.End)
 	}
 
-	{ // 子視圖不固定大小 + Padding
+	{ // child view with no size + Padding
 		rect1 := Rectangle().(*rectangleImpl)
 		z := ZStack(rect1).(*zstackImpl)
 		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10}))).(*zstackImpl)
@@ -82,7 +82,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewPoint(190, 190), zzFrame.End)
 	}
 
-	{ // 子視圖固定大小 + Padding
+	{ // child view with fixed size + Padding
 		rect1 := Rectangle().Frame(Bind(NewSize(100, 100))).(*rectangleImpl)
 		z := newZStackImpl(rect1)
 		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10}))).(*zstackImpl)
@@ -111,7 +111,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewPoint(110, 110), zzFrame.End)
 	}
 
-	{ // 子視圖不固定大小 + Padding + Border
+	{ // child view with no size + Padding + Border
 		rect1 := Rectangle().(*rectangleImpl)
 		z := newZStackImpl(rect1)
 		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10})).
@@ -141,7 +141,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewPoint(180, 180), zzFrame.End)
 	}
 
-	{ // 子視圖固定大小 + Padding + Border
+	{ // child view with fixed size + Padding + Border
 		rect1 := Rectangle().Frame(Bind(NewSize(100, 100))).(*rectangleImpl)
 		z := newZStackImpl(rect1)
 		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10})).

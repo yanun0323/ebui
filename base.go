@@ -2,6 +2,7 @@ package ebui
 
 import (
 	"image"
+	"unsafe"
 )
 
 type numberable interface {
@@ -10,12 +11,17 @@ type numberable interface {
 		~float32 | ~float64
 }
 
+// CGColor represents a color with red, green, blue and alpha components.
 type CGColor struct {
 	R, G, B, A uint8
 }
 
 func (c CGColor) RGBA() (r, g, b, a uint32) {
 	return uint32(c.R) * 256, uint32(c.G) * 256, uint32(c.B) * 256, uint32(c.A) * 256
+}
+
+func (c CGColor) Bytes() []byte {
+	return (*[4]byte)(unsafe.Pointer(&c))[:]
 }
 
 // NewColor uses a traditional 32-bit alpha-premultiplied color, having 8 bits for each of red, green, blue and alpha.
@@ -45,6 +51,10 @@ func NewColor[Number numberable](val ...Number) CGColor {
 type CGPoint struct {
 	X float64
 	Y float64
+}
+
+func (p CGPoint) Bytes() []byte {
+	return (*[16]byte)(unsafe.Pointer(&p))[:]
 }
 
 // NewPoint creates a CGPoint from any numberable type.
@@ -113,6 +123,10 @@ func (p CGPoint) Lt(other CGPoint) bool {
 type CGSize struct {
 	Width  float64
 	Height float64
+}
+
+func (s CGSize) Bytes() []byte {
+	return (*[16]byte)(unsafe.Pointer(&s))[:]
 }
 
 // NewSize creates a CGSize from any numberable type.
@@ -215,6 +229,10 @@ type CGRect struct {
 	End   CGPoint
 }
 
+func (r CGRect) Bytes() []byte {
+	return (*[32]byte)(unsafe.Pointer(&r))[:]
+}
+
 // NewRect creates a CGRect from any numberable type.
 //
 // # Usage:
@@ -301,6 +319,10 @@ type CGInset struct {
 	Right  float64
 	Bottom float64
 	Left   float64
+}
+
+func (i CGInset) Bytes() []byte {
+	return (*[32]byte)(unsafe.Pointer(&i))[:]
 }
 
 // NewInset creates an Inset from any numberable type.
