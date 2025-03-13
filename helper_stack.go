@@ -179,7 +179,7 @@ func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloa
 			}
 		}
 
-		finalFrameSize := summedBoundsSize
+		finalFrameSize := flexBoundsSize
 		finalFrame := sData.FrameSize
 		{
 			if sData.IsInfWidth {
