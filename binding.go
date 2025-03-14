@@ -2,6 +2,7 @@ package ebui
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -11,7 +12,10 @@ import (
 
 // Const creates a binding that always returns the same value.
 func Const[T bindable](value T) *Binding[T] {
-	return Bind(value)
+	return BindFunc(
+		func() T { return value },
+		func(T, ...animation.Style) {},
+	)
 }
 
 // Bind creates a binding that can be used to bind a value to a UI element.
@@ -23,61 +27,86 @@ func Bind[T bindable](initialValue ...T) *Binding[T] {
 
 	return BindFunc(
 		func() T { return value },
-		func(v T) { value = v },
+		func(v T, with ...animation.Style) { value = v },
 	)
 }
 
 // BindFunc creates a binding that can be used to bind a value to a UI element.
-func BindFunc[T bindable](get func() T, set func(T)) *Binding[T] {
+func BindFunc[T bindable](get func() T, set func(T, ...animation.Style)) *Binding[T] {
 	return &Binding[T]{
 		getter:    get,
 		setter:    set,
-		listeners: make([]func(T, T, animation.Style, bool), 0),
+		listeners: make([]func(T, T, ...animation.Style), 0),
 	}
 }
 
-// BindForward binds a source binding to a target binding.
-//   - The target binding will be updated with the value of the source binding.
-//   - The source binding will not be updated when the target binding is updated.
-func BindForward[T, F bindable](source *Binding[T], forward func(T) F) *Binding[F] {
+// BindOneWay creates a one-way binding from source to target.
+//
+// When proactive is true, target updates immediately on source changes.
+// Otherwise, target updates only when its value is accessed.
+func BindOneWay[T, F bindable](source *Binding[T], forward func(T) F) *Binding[F] {
+	return BindTwoWay(source, forward, nil)
+}
+
+func BindTwoWay[T, F bindable](source *Binding[T], forward func(T) F, backward func(F) T) *Binding[F] {
 	var (
 		sv T
 		fv F
 	)
-	return BindFunc(func() F {
-		s := source.Get()
-		if s == sv {
-			return fv
-		}
 
-		sv = s
-		fv = forward(s)
+	sv = source.Get()
+	fv = forward(sv)
+	b := BindFunc(func() F {
 		return fv
-	}, func(v F) {})
+	}, func(v F, with ...animation.Style) {
+		fv = v
+		if backward != nil {
+			ssv := backward(v)
+			if ssv != sv {
+				sv = ssv
+				source.Set(sv, with...)
+			}
+		}
+	})
+
+	source.AddListener(func(oldVal, newVal T, animStyle ...animation.Style) {
+		if sv != newVal {
+			sv = newVal
+			b.Set(forward(sv), animStyle...)
+		}
+	})
+
+	return b
 }
 
-// BindCombineForward binds two bindings and returns a new binding that combines the two bindings.
-//   - The new binding will be updated with the value of the two bindings.
-//   - The two bindings will not be updated when the new binding is updated.
-func BindCombineForward[T bindable](a, b *Binding[T], forward func(a, b T) T) *Binding[T] {
+// bindCombineOneWay creates a one-way binding from two sources to a target.
+//
+// When proactive is true, target updates immediately on source changes.
+// Otherwise, target updates only when its value is accessed.
+func bindCombineOneWay[T bindable](a, b *Binding[T], forward func(a, b T) T) *Binding[T] {
 	var (
 		av T
 		bv T
-		cv T
 	)
 
-	return BindFunc(func() T {
-		a := a.Get()
-		b := b.Get()
-		if a == av && b == bv {
-			return cv
+	av = a.Get()
+	bv = b.Get()
+	c := Bind(forward(av, bv))
+	a.AddListener(func(oldVal, newVal T, animStyle ...animation.Style) {
+		if newVal != av {
+			av = newVal
+			c.Set(forward(av, bv), animStyle...)
 		}
+	})
 
-		av = a
-		bv = b
-		cv = forward(av, bv)
-		return cv
-	}, func(v T) {})
+	b.AddListener(func(oldVal, newVal T, animStyle ...animation.Style) {
+		if newVal != bv {
+			bv = newVal
+			c.Set(forward(av, bv), animStyle...)
+		}
+	})
+
+	return c
 }
 
 /*
@@ -102,19 +131,22 @@ type Binding[T bindable] struct {
 	mu sync.RWMutex
 
 	getter    func() T
-	setter    func(T)
-	listeners []func(T, T, animation.Style, bool)
+	setter    func(T, ...animation.Style)
+	listeners []func(T, T, ...animation.Style)
+	notifying atomic.Bool
 
 	animStyle  animation.Style // set default animation
-	animResult *T
+	animResult atomic.Pointer[T]
 }
 
-// Get returns the current value of the binding.
+func (b *Binding[T]) id() animationID {
+	return animationID(unsafe.Pointer(b))
+}
+
+// Value returns the current value of the binding. Current value may be an intermediate value during animation.
 //
-// When ignoreAnim is true, it returns the final target value of the binding, ignoring any intermediate values during animation.
-//
-// Get is thread-safe.
-func (b *Binding[T]) Get(ignoreAnim ...bool) T {
+// Value is thread-safe.
+func (b *Binding[T]) Value() T {
 	if b == nil {
 		return *new(T)
 	}
@@ -122,7 +154,21 @@ func (b *Binding[T]) Get(ignoreAnim ...bool) T {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
-	return b.getValue(len(ignoreAnim) != 0 && ignoreAnim[0])
+	return b.getValue(false)
+}
+
+// Get returns the final value of the binding. Final value is the value after animation is completed.
+//
+// Get is thread-safe.
+func (b *Binding[T]) Get() T {
+	if b == nil {
+		return *new(T)
+	}
+
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	return b.getValue(true)
 }
 
 // Set sets the value of the binding.
@@ -135,32 +181,24 @@ func (b *Binding[T]) Set(newVal T, with ...animation.Style) {
 		return
 	}
 
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	b.set(newVal, with...)
-}
-
-// Update returns the current value of the binding without considering the animation value offset, and sets the new value.
-//
-// Update is thread-safe.
-func (b *Binding[T]) Update(fn func(oldVal T) (newVal T), with ...animation.Style) {
-	if b == nil {
+	if b.notifying.Load() {
 		return
 	}
 
-	b.mu.Lock()
-	defer b.mu.Unlock()
+	executor, ok := globalAnimationManager.RemoveExecutor(b.id())
+	if ok {
+		executor.onCancel()
+	}
 
-	b.set(fn(b.getValue(true)), with...)
+	b.set(newVal, false, with...)
 }
 
-// addListener adds a listener to the binding.
+// AddListener adds a listener to the binding.
 //
 // The listener will be called when the binding is updated.
 //
-// addListener is thread-safe.
-func (b *Binding[T]) addListener(listener func(oldVal, newVal T, animStyle animation.Style, isAnimating bool)) {
+// AddListener is thread-safe.
+func (b *Binding[T]) AddListener(listener func(oldVal, newVal T, animStyle ...animation.Style)) {
 	if b == nil {
 		return
 	}
@@ -169,94 +207,6 @@ func (b *Binding[T]) addListener(listener func(oldVal, newVal T, animStyle anima
 	defer b.mu.Unlock()
 
 	b.listeners = append(b.listeners, listener)
-}
-
-func (b *Binding[T]) getValue(ignoreAnim bool) T {
-	if ignoreAnim && b.animResult != nil {
-		return *b.animResult
-	}
-
-	return b.getter()
-}
-
-func (b *Binding[T]) set(newVal T, with ...animation.Style) {
-	oldVal := b.getValue(true)
-	if oldVal != newVal {
-		// check if there is an animation style
-		var animStyle animation.Style
-		if len(with) > 0 {
-			animStyle = with[0]
-		} else {
-			animStyle = globalContext.CurrentStyle()
-
-			if animStyle == nil {
-				animStyle = b.animStyle
-			}
-		}
-
-		if animStyle == nil {
-			animStyle = animation.None()
-		}
-
-		// if there is an animation style and the duration is greater than 0, create an animation
-		if animStyle != nil && animStyle.Duration() > 0 {
-			id := animationID(unsafe.Pointer(b))
-			executor, ok := globalAnimationManager.RemoveExecutor(id)
-			if ok {
-				executor.onCancel()
-			}
-
-			var (
-				startTime = time.Now().UnixMilli()
-				duration  = animStyle.Duration().Milliseconds()
-			)
-
-			globalAnimationManager.AddExecutor(
-				id,
-				animationExecutor{
-					onUpdate: func(now int64) bool {
-						elapsed := now - startTime
-						if elapsed >= duration {
-							return true
-						}
-
-						progress := float64(elapsed) / float64(duration)
-						progress = animStyle.Value(progress)
-						value := animateValue(oldVal, newVal, progress)
-						b.setValue(oldVal, value, animStyle, true)
-						return value == newVal
-					},
-					onCancel: func() {
-						b.setValue(oldVal, newVal, animStyle, false)
-						b.animResult = nil
-					},
-				},
-			)
-
-			b.animResult = &newVal
-
-			return
-		}
-
-		// when there is no animation, set the value directly
-		b.setValue(oldVal, newVal, animStyle, false)
-	}
-}
-
-func (b *Binding[T]) setValue(oldVal, newVal T, animStyle animation.Style, isAnimating bool) {
-	b.setter(newVal)
-	go b.notifyListeners(oldVal, newVal, animStyle, isAnimating)
-	globalStateManager.markDirty()
-}
-
-func (b *Binding[T]) notifyListeners(oldVal, newVal T, animStyle animation.Style, isAnimating bool) {
-	if b == nil {
-		return
-	}
-
-	for _, listener := range b.listeners {
-		listener(oldVal, newVal, animStyle, isAnimating)
-	}
 }
 
 // Animated sets the animated style as the default animated style for the binding.
@@ -275,4 +225,98 @@ func (b *Binding[T]) Animated(with ...animation.Style) *Binding[T] {
 	}
 
 	return b
+}
+
+func (b *Binding[T]) getValue(ignoreAnim bool) T {
+	if ignoreAnim {
+		if val := b.animResult.Load(); val != nil {
+			return *val
+		}
+	}
+
+	return b.getter()
+}
+
+func (b *Binding[T]) getAnimationStyle(with ...animation.Style) animation.Style {
+	if len(with) > 0 {
+		return with[0]
+	}
+
+	if s := globalContext.CurrentStyle(); s != nil {
+		return s
+	}
+
+	return b.animStyle
+}
+
+func (b *Binding[T]) set(newVal T, rmAnimResult bool, with ...animation.Style) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.setValue(newVal, with...)
+	if rmAnimResult {
+		b.animResult.Store(nil)
+	}
+}
+
+func (b *Binding[T]) setValue(newVal T, with ...animation.Style) {
+	var (
+		animStyle = b.getAnimationStyle(with...)
+		oldVal    = b.getValue(true)
+	)
+
+	animatableValue := animStyle != nil && animStyle.Duration() > 0 && animatable(newVal)
+	if animatableValue {
+		var (
+			startTime = time.Now().UnixMilli()
+			duration  = animStyle.Duration().Milliseconds()
+		)
+
+		globalAnimationManager.AddExecutor(
+			b.id(),
+			animationExecutor{
+				onUpdate: func(now int64) bool {
+					elapsed := now - startTime
+					if elapsed >= duration {
+						return true
+					}
+
+					progress := float64(elapsed) / float64(duration)
+					progress = animStyle.Value(progress)
+					value := animateValue(oldVal, newVal, progress)
+					b.set(value, false, nil)
+					return false
+				},
+				onCancel: func() {
+					b.set(newVal, true, nil)
+				},
+			},
+		)
+
+		b.animResult.Store(&newVal)
+
+		return
+	}
+
+	setNewVal := func(newVal T, animStyle animation.Style) {
+		if animStyle == nil {
+			animStyle = animation.None()
+			b.setter(newVal, with...)
+		} else {
+			b.setter(newVal, animStyle)
+		}
+
+		globalStateManager.markDirty()
+		go func() { // notifyListeners
+			b.notifying.Store(true)
+			defer b.notifying.Store(false)
+
+			for _, listener := range b.listeners {
+				listener(oldVal, newVal, animStyle)
+			}
+		}()
+	}
+
+	// when there is no animation, set the value directly
+	setNewVal(newVal, animStyle)
 }

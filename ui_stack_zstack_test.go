@@ -22,7 +22,7 @@ func (su *ZSTestZStackSuite) SetupSuite() {
 
 func (su *ZSTestZStackSuite) TestZStack() {
 	{ // child view with no size
-		rect1 := newRectangleForTest()
+		rect1 := Rectangle().(*rectangleImpl)
 		z := newZStackImpl(rect1)
 
 		data, layoutFn := z.preload(nil)
@@ -38,7 +38,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 	}
 
 	{ // child view with fixed size
-		rect1 := newRectangleForTest().Frame(Bind(NewSize(100, 100)))
+		rect1 := Rectangle().Frame(Bind(NewSize(100, 100)))
 		z := newZStackImpl(rect1)
 
 		data, layoutFn := z.preload(nil)

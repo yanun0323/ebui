@@ -23,7 +23,7 @@ func spacingBlock(spacing *Binding[float64]) SomeView {
 }
 
 func (v *spacingBlockImpl) preload(parent *viewCtxEnv, stackTypes ...formulaType) (preloadData, layoutFunc) {
-	spacing := v.spacing.Get()
+	spacing := v.spacing.Value()
 	types := getTypes(stackTypes...)
 	data := newPreloadData(NewSize(spacing), CGInset{}, CGInset{})
 	switch types {

@@ -75,13 +75,8 @@ func (v *ContentView) Body() SomeView {
 					delta = 2
 				}
 
-				v.count.Update(func(val int) int {
-					return val + delta
-				})
-
-				v.countText.Update(func(val string) string {
-					return fmt.Sprintf("Current Value: %d", v.count.Get())
-				})
+				v.count.Set(v.count.Get() + delta)
+				v.countText.Set(fmt.Sprintf("Current Value: %d", v.count.Value()))
 
 				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
 			}).
@@ -92,12 +87,9 @@ func (v *ContentView) Body() SomeView {
 				if v.enabled.Get() {
 					delta = 2
 				}
-				v.count.Update(func(val int) int {
-					return val - delta
-				})
-				v.countText.Update(func(val string) string {
-					return fmt.Sprintf("Current Value: %d", v.count.Get())
-				})
+				v.count.Set(v.count.Get() - delta)
+				v.countText.Set(fmt.Sprintf("Current Value: %d", v.count.Value()))
+
 				println(fmt.Sprintf("set text to: %s", v.countText.Get()))
 			}, func() SomeView {
 				return Text(Bind("Decrease")).

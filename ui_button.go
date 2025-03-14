@@ -66,7 +66,7 @@ func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 }
 
 func (b *buttonImpl) HandleTouchEvent(event touchEvent) {
-	if b.viewCtxEnv.disabled.Get() {
+	if b.viewCtxEnv.disabled.Value() {
 		b.isPressed = false
 		return
 	}

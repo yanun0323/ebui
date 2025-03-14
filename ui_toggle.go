@@ -43,20 +43,20 @@ func Toggle(enabled *Binding[bool], label ...func() SomeView) SomeView {
 		t.defaultToggleOffset = Bind(CGPoint{})
 		t.defaultToggleColor = Bind(defaultToggleOffColor)
 		t.defaultToggleBackgroundColor = Bind(defaultToggleOffBackgroundColor)
-		if t.enabled.Get() {
+		if t.enabled.Value() {
 			t.defaultToggleOffset.Set(defaultToggleOffset)
 			t.defaultToggleColor.Set(defaultToggleOnColor)
 			t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor)
 		}
-		enabled.addListener(func(_, newVal bool, animStyle animation.Style, isAnimating bool) {
+		enabled.AddListener(func(_, newVal bool, animStyle ...animation.Style) {
 			if newVal {
-				t.defaultToggleOffset.Set(defaultToggleOffset, animStyle)
-				t.defaultToggleColor.Set(defaultToggleOnColor, animStyle)
-				t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor, animStyle)
+				t.defaultToggleOffset.Set(defaultToggleOffset, animStyle...)
+				t.defaultToggleColor.Set(defaultToggleOnColor, animStyle...)
+				t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor, animStyle...)
 			} else {
-				t.defaultToggleOffset.Set(CGPoint{}, animStyle)
-				t.defaultToggleColor.Set(defaultToggleOffColor, animStyle)
-				t.defaultToggleBackgroundColor.Set(defaultToggleOffBackgroundColor, animStyle)
+				t.defaultToggleOffset.Set(CGPoint{}, animStyle...)
+				t.defaultToggleColor.Set(defaultToggleOffColor, animStyle...)
+				t.defaultToggleBackgroundColor.Set(defaultToggleOffBackgroundColor, animStyle...)
 			}
 		})
 
@@ -112,7 +112,7 @@ func (b *toggleImpl) defaultLabel() SomeView {
 }
 
 func (t *toggleImpl) HandleTouchEvent(event touchEvent) {
-	if t.viewCtxEnv.disabled.Get() {
+	if t.viewCtxEnv.disabled.Value() {
 		return
 	}
 
@@ -127,9 +127,7 @@ func (t *toggleImpl) HandleTouchEvent(event touchEvent) {
 		}
 
 		if event.Position.In(t.labelLoaded.systemSetBounds()) {
-			t.enabled.Update(func(val bool) bool {
-				return !val
-			})
+			t.enabled.Set(!t.enabled.Value())
 		}
 	}
 }

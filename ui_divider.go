@@ -22,7 +22,7 @@ func Divider(length ...*Binding[float64]) SomeView {
 func (v *dividerImpl) preload(env *viewCtxEnv, stackTypes ...formulaType) (preloadData, layoutFunc) {
 	types := getTypes(stackTypes...)
 
-	length := v.length.Get()
+	length := v.length.Value()
 	if v.frameSize == nil {
 		v.frameSize = Bind(CGSize{})
 	}

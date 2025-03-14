@@ -15,7 +15,7 @@ type formulaStack struct {
 }
 
 func (v *formulaStack) childrenWithSpacing() []SomeView {
-	spacing := v.stackCtx.spacing.Get()
+	spacing := v.stackCtx.spacing.Value()
 	if spacing == 0 {
 		return v.children
 	}
@@ -31,6 +31,10 @@ func (v *formulaStack) childrenWithSpacing() []SomeView {
 	return children
 }
 
+const (
+	_alignHeaderFooterCount = 1
+)
+
 func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloadData, layoutFunc) {
 	var (
 		children             = v.children
@@ -45,7 +49,10 @@ func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloa
 		t = types[0]
 	}
 
-	for _, child := range children {
+	spacing := v.stackCtx.spacing.Value()
+	isSpacingInf := isInf(spacing)
+
+	for i, child := range children {
 		childData, layoutFn := child.preload(stackEnv, t)
 
 		{
@@ -68,17 +75,29 @@ func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloa
 		{ // calculate the summed size of the subviews and the minimum allowed flexible bounds
 			switch v.types {
 			case formulaVStack:
+				if i != 0 {
+					if isSpacingInf {
+						flexCount.Y++
+					} else {
+						childrenSummedBounds.Height += spacing
+					}
+				}
 				childrenSummedBounds = NewSize(max(childrenSummedBounds.Width, childBoundsSize.Width), childrenSummedBounds.Height+childBoundsSize.Height)
 			case formulaHStack:
+				if i != 0 {
+					if isSpacingInf {
+						flexCount.X++
+					} else {
+						childrenSummedBounds.Width += spacing
+					}
+				}
 				childrenSummedBounds = NewSize(childrenSummedBounds.Width+childBoundsSize.Width, max(childrenSummedBounds.Height, childBoundsSize.Height))
 			case formulaZStack:
 				childrenSummedBounds = NewSize(max(childrenSummedBounds.Width, childBoundsSize.Width), max(childrenSummedBounds.Height, childBoundsSize.Height))
 			}
 		}
 
-		if layoutFn != nil {
-			childrenLayoutFns = append(childrenLayoutFns, layoutFn)
-		}
+		childrenLayoutFns = append(childrenLayoutFns, layoutFn)
 	}
 
 	sData, sLayoutFn := v.stackCtx.preload(stackEnv)
@@ -116,6 +135,13 @@ func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloa
 
 		_, _ = ensureWidthMinimum, ensureHeightMinimum
 
+		var (
+			flexCountX                  = max(flexCount.X, 1)
+			flexCountY                  = max(flexCount.Y, 1)
+			isAlignHeaderVStackRequired = flexCount.Y == 0
+			isAlignHeaderHStackRequired = flexCount.X == 0
+		)
+
 		{ // calculate the flexible size formula
 			switch v.types {
 			case formulaVStack:
@@ -124,7 +150,7 @@ func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloa
 					hFlexSize = max(flexFrameSize.Height-childrenSummedBounds.Height, 0)
 				}
 
-				perFlexFrameSize = NewSize(flexFrameSize.Width, hFlexSize/max(flexCount.Y, 1))
+				perFlexFrameSize = NewSize(flexFrameSize.Width, hFlexSize/flexCountY)
 				ensureWidthMinimum()
 			case formulaHStack:
 				wFlexSize := sData.FrameSize.Width - childrenSummedBounds.Width
@@ -132,7 +158,7 @@ func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloa
 					wFlexSize = max(flexFrameSize.Width-childrenSummedBounds.Width, 0)
 				}
 
-				perFlexFrameSize = NewSize(wFlexSize/max(flexCount.X, 1), flexFrameSize.Height)
+				perFlexFrameSize = NewSize(wFlexSize/flexCountX, flexFrameSize.Height)
 				ensureHeightMinimum()
 			case formulaZStack:
 				perFlexFrameSize = flexFrameSize
@@ -144,6 +170,15 @@ func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloa
 			perFlexFrameSize.Height = max(perFlexFrameSize.Height, 0)
 		}
 
+		if isSpacingInf {
+			switch v.types {
+			case formulaVStack:
+				spacing = perFlexFrameSize.Height
+			case formulaHStack:
+				spacing = perFlexFrameSize.Width
+			}
+		}
+
 		anchor := start.
 			Add(NewPoint(sData.Padding.Left, sData.Padding.Top)).
 			Add(NewPoint(sData.Border.Left, sData.Border.Top))
@@ -151,7 +186,39 @@ func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloa
 
 		alignFuncs := make([]func(CGPoint), 0, len(childrenLayoutFns))
 		aligners := make([]func(CGSize), 0, len(childrenLayoutFns))
-		for _, childLayoutFn := range childrenLayoutFns {
+
+		{ // align header
+			a := v.stackCtx.transitionAlign.Value()
+			switch v.types {
+			case formulaVStack:
+				if isAlignHeaderVStackRequired {
+					delta := a.Y * perFlexFrameSize.Height
+					anchor.Y += delta
+					summedBoundsSize.Height += delta
+				}
+			case formulaHStack:
+				if isAlignHeaderHStackRequired {
+					delta := a.X * perFlexFrameSize.Width
+					anchor.X += delta
+					summedBoundsSize.Width += delta
+				}
+			}
+		}
+
+		for i, childLayoutFn := range childrenLayoutFns {
+			if childLayoutFn == nil {
+				continue
+			}
+
+			if i != 0 {
+				switch v.types {
+				case formulaVStack:
+					anchor.Y += spacing
+				case formulaHStack:
+					anchor.X += spacing
+				}
+			}
+
 			childBounds, alignChild := childLayoutFn(anchor, perFlexFrameSize)
 			alignFuncs = append(alignFuncs, alignChild)
 			aligners = append(aligners, v.newAligner(childBounds, alignChild))
@@ -179,29 +246,14 @@ func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloa
 			}
 		}
 
-		finalFrameSize := flexBoundsSize
-		finalFrame := sData.FrameSize
-		{
-			if sData.IsInfWidth {
-				finalFrame.Width = finalFrameSize.Width
-			}
-
-			if sData.IsInfHeight {
-				finalFrame.Height = finalFrameSize.Height
-			}
-		}
-
-		finalBounds := finalFrame.Expand(sData.Padding).Expand(sData.Border)
-
-		resBounds, resAlignFunc := sLayoutFn(start, finalBounds)
-
-		resFrame := v.stackCtx.systemSetFrame()
+		sBounds, sAlignFunc := v.layoutStack(sData, start, summedBoundsSize, sLayoutFn)
+		sFrameSize := sBounds.Size().Shrink(sData.Padding).Shrink(sData.Border)
 		for _, aligner := range aligners {
-			aligner(resFrame.Size())
+			aligner(sFrameSize)
 		}
 
-		return resBounds, func(offset CGPoint) {
-			resAlignFunc(offset)
+		return sBounds, func(offset CGPoint) {
+			sAlignFunc(offset)
 			for _, af := range alignFuncs {
 				af(offset)
 			}
@@ -209,8 +261,26 @@ func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloa
 	}
 }
 
+func (v *formulaStack) layoutStack(data preloadData, start CGPoint, summedBoundsSize CGSize, layoutFn layoutFunc) (bounds CGRect, alignFunc alignFunc) {
+	finalFrameSize := summedBoundsSize
+	finalFrame := data.FrameSize
+	{
+		if data.IsInfWidth {
+			finalFrame.Width = finalFrameSize.Width
+		}
+
+		if data.IsInfHeight {
+			finalFrame.Height = finalFrameSize.Height
+		}
+	}
+
+	finalBounds := finalFrame.Expand(data.Padding).Expand(data.Border)
+
+	return layoutFn(start, finalBounds)
+}
+
 func (v *formulaStack) newAligner(childBounds CGRect, alignFunc alignFunc) func(stackFrame CGSize) {
-	a := v.stackCtx.transitionAlign.Get()
+	a := v.stackCtx.transitionAlign.Value()
 	return func(stackFrame CGSize) {
 		dw, dh := stackFrame.Width-childBounds.Dx(), stackFrame.Height-childBounds.Dy()
 		offset := CGPoint{}

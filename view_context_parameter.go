@@ -33,12 +33,12 @@ func newParam() *viewCtxParam {
 }
 
 func (p *viewCtxParam) userSetFrameSize() CGSize {
-	return p.frameSize.Get()
+	return p.frameSize.Value()
 }
 
 // systemSetFrame returns the internal bounds
 func (p *viewCtxParam) systemSetFrame() CGRect {
-	offset := p.offset.Get()
+	offset := p.offset.Value()
 	return p._systemSetFrame.Move(offset)
 }
 
@@ -56,11 +56,11 @@ func (p *viewCtxParam) systemSetBounds() CGRect {
 }
 
 func (p *viewCtxParam) padding() CGInset {
-	return p.inset.Get()
+	return p.inset.Value()
 }
 
 func (p *viewCtxParam) border() CGInset {
-	return p.borderInset.Get()
+	return p.borderInset.Value()
 }
 
 func (p *viewCtxParam) debugPrint(prefix string, format string, a ...any) {
@@ -106,14 +106,14 @@ func serialize(a any) string {
 func (p *viewCtxParam) Bytes() []byte {
 	b := bytes.Buffer{}
 	b.Write(p._systemSetFrame.Bytes())
-	b.Write(p.backgroundColor.Get().Bytes())
-	b.Write(p.inset.Get().Bytes())
-	b.Write(helper.BytesFloat64(p.roundCorner.Get()))
-	b.Write(p.borderInset.Get().Bytes())
-	b.Write(p.borderColor.Get().Bytes())
-	b.Write(helper.BytesBool(p.scaleToFit.Get()))
-	b.Write(helper.BytesBool(p.keepAspectRatio.Get()))
-	b.Write(helper.BytesFloat64(p.spacing.Get()))
+	b.Write(p.backgroundColor.Value().Bytes())
+	b.Write(p.inset.Value().Bytes())
+	b.Write(helper.BytesFloat64(p.roundCorner.Value()))
+	b.Write(p.borderInset.Value().Bytes())
+	b.Write(p.borderColor.Value().Bytes())
+	b.Write(helper.BytesBool(p.scaleToFit.Value()))
+	b.Write(helper.BytesBool(p.keepAspectRatio.Value()))
+	b.Write(helper.BytesFloat64(p.spacing.Value()))
 
 	return b.Bytes()
 }

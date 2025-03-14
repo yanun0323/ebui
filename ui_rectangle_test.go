@@ -14,14 +14,8 @@ type RectangleSuite struct {
 	suite.Suite
 }
 
-func newRectangleForTest() *rectangleImpl {
-	rect := &rectangleImpl{}
-	rect.viewCtx = newViewContext(rect)
-	return rect
-}
-
 func (su *RectangleSuite) Test() {
-	rect := newRectangleForTest()
+	rect := Rectangle().(*rectangleImpl)
 	rect.Frame(Bind(NewSize(100, 100)))
 
 	s := rect.viewCtx.userSetFrameSize()

@@ -75,18 +75,18 @@ func (e *viewCtxEnv) Bytes(withFont bool) []byte {
 	b := bytes.Buffer{}
 
 	if withFont {
-		b.Write(e.fontSize.Get().Bytes())
-		b.Write(e.fontWeight.Get().Bytes())
-		b.Write(helper.BytesFloat64(e.fontLineHeight.Get()))
-		b.Write(helper.BytesFloat64(e.fontKerning.Get()))
-		b.Write(e.fontAlignment.Get().Bytes())
-		b.Write(helper.BytesBool(e.fontItalic.Get()))
+		b.Write(e.fontSize.Value().Bytes())
+		b.Write(e.fontWeight.Value().Bytes())
+		b.Write(helper.BytesFloat64(e.fontLineHeight.Value()))
+		b.Write(helper.BytesFloat64(e.fontKerning.Value()))
+		b.Write(e.fontAlignment.Value().Bytes())
+		b.Write(helper.BytesBool(e.fontItalic.Value()))
 	}
 
-	b.Write(e.alignment.Get().Hash())
+	b.Write(e.alignment.Value().Hash())
 
-	b.Write(helper.BytesFloat64(e.transition.Get()))
-	b.Write(e.transitionAlign.Get().Bytes())
+	b.Write(helper.BytesFloat64(e.transition.Value()))
+	b.Write(e.transitionAlign.Value().Bytes())
 
 	return b.Bytes()
 }

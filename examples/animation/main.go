@@ -20,10 +20,10 @@ func NewContentView() View {
 
 func (v *ContentView) Body() SomeView {
 	// 創建一些綁定以進行動畫操作
-	count := Bind(0.0)
+	count := Bind(0.0).Animated()
 	opacity := Bind(1.0)
 	scale := Bind(1.0)
-	enabled := Bind(false)
+	enabled := Bind(false).Animated()
 
 	// Stack內的所有視圖
 	return HStack(
@@ -33,20 +33,16 @@ func (v *ContentView) Body() SomeView {
 			VStack(
 				Button("+100(Linear)", func() {
 					// 直接在Set時傳入動畫參數
-					count.Update(func(val float64) float64 {
-						return val + 100
-					}, animation.Linear(time.Second*3))
+					count.Set(count.Get()+100, animation.Linear(time.Second))
 				}).Padding(Bind(NewInset(5))),
 
 				Button("-100(EaseInOut)", func() {
-					count.Update(func(val float64) float64 {
-						return val - 100
-					}, animation.EaseInOut(time.Millisecond*500))
+					count.Set(count.Get() - 100)
 				}).Padding(Bind(NewInset(5))),
 			),
-			Text(BindFunc(func() string {
-				return fmt.Sprintf("計數: %.1f", count.Get())
-			}, nil)).FontSize(Bind(font.Body)).Padding(Bind(NewInset(5))),
+			Text(BindOneWay(count, func(c float64) string {
+				return fmt.Sprintf("計數: %.2f", c)
+			})).FontSize(Bind(font.Body)).Padding(Bind(NewInset(5))),
 		).Padding(Bind(NewInset(5))).Debug(),
 
 		// 範例2: 使用WithAnimation上下文 - SwiftUI風格
@@ -80,12 +76,12 @@ func (v *ContentView) Body() SomeView {
 			Text("背景動畫").FontSize(Bind(font.Body)),
 			Rectangle().
 				Frame(Bind(NewSize(100, 100))).
-				BackgroundColor(BindFunc(func() CGColor {
-					if enabled.Get() {
+				BackgroundColor(BindOneWay(enabled, func(enabled bool) CGColor {
+					if enabled {
 						return NewColor(255, 0, 0)
 					}
 					return NewColor(0, 0, 255)
-				}, func(CGColor) {})).
+				})).
 				Padding(Bind(NewInset(5))),
 			HStack(
 				Text("Toggle"),

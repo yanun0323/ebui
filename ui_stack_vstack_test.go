@@ -14,19 +14,11 @@ type TestVStackSuite struct {
 	suite.Suite
 }
 
-func newVStackForTest(children ...SomeView) *vstackImpl {
-	vstack := &vstackImpl{
-		children: children,
-	}
-	vstack.viewCtx = newViewContext(vstack)
-	return vstack
-}
-
 func (su *TestVStackSuite) TestVStack() {
 	{ // child view with fixed size
-		rect1 := newRectangleForTest()
-		rect2 := newRectangleForTest()
-		vstack := newVStackForTest(
+		rect1 := Rectangle().(*rectangleImpl)
+		rect2 := Rectangle().(*rectangleImpl)
+		vstack := VStack(
 			rect1.Frame(Bind(NewSize(100, 100))),
 			rect2.Frame(Bind(NewSize(200, 200))),
 		)
@@ -56,9 +48,9 @@ func (su *TestVStackSuite) TestVStack() {
 	}
 
 	{ // child view with fixed size + VStack Padding
-		rect1 := newRectangleForTest()
-		rect2 := newRectangleForTest()
-		vstack := newVStackForTest(
+		rect1 := Rectangle().(*rectangleImpl)
+		rect2 := Rectangle().(*rectangleImpl)
+		vstack := VStack(
 			rect1.Frame(Bind(NewSize(100, 100))),
 			rect2.Frame(Bind(NewSize(200, 200))),
 		).Padding(Bind(CGInset{15, 15, 15, 15}))
@@ -88,9 +80,9 @@ func (su *TestVStackSuite) TestVStack() {
 	}
 
 	{ // child view with X flex size
-		rect1 := newRectangleForTest()
-		rect2 := newRectangleForTest()
-		vstack := newVStackForTest(
+		rect1 := Rectangle().(*rectangleImpl)
+		rect2 := Rectangle().(*rectangleImpl)
+		vstack := VStack(
 			rect1.Frame(Bind(NewSize(100, 100))),
 			rect2.Frame(Bind(NewSize(Inf, 200))),
 		)
@@ -120,9 +112,9 @@ func (su *TestVStackSuite) TestVStack() {
 	}
 
 	{ // child view with Y flex size
-		rect1 := newRectangleForTest()
-		rect2 := newRectangleForTest()
-		vstack := newVStackForTest(
+		rect1 := Rectangle().(*rectangleImpl)
+		rect2 := Rectangle().(*rectangleImpl)
+		vstack := VStack(
 			rect1.Frame(Bind(NewSize(100, 100))),
 			rect2.Frame(Bind(NewSize(200.0, Inf))),
 		)
@@ -152,10 +144,10 @@ func (su *TestVStackSuite) TestVStack() {
 	}
 
 	{ // child view with multiple Y flex size + VStack Padding
-		rect1 := newRectangleForTest()
-		rect2 := newRectangleForTest()
-		rect3 := newRectangleForTest()
-		vstack := newVStackForTest(
+		rect1 := Rectangle().(*rectangleImpl)
+		rect2 := Rectangle().(*rectangleImpl)
+		rect3 := Rectangle().(*rectangleImpl)
+		vstack := VStack(
 			rect1.Frame(Bind(NewSize(300, 100))),
 			rect2.Frame(Bind(NewSize(100, Inf))),
 			rect3.Frame(Bind(NewSize(100, Inf))).Padding(Bind(CGInset{15, 15, 15, 15})),
@@ -193,10 +185,10 @@ func (su *TestVStackSuite) TestVStack() {
 	}
 
 	{
-		rect1 := newRectangleForTest()
-		rect2 := newRectangleForTest()
-		rect3 := newRectangleForTest()
-		vstack := newVStackForTest(
+		rect1 := Rectangle().(*rectangleImpl)
+		rect2 := Rectangle().(*rectangleImpl)
+		rect3 := Rectangle().(*rectangleImpl)
+		vstack := VStack(
 			rect1,
 			rect2.Frame(Bind(NewSize(100, 100))),
 			rect3,

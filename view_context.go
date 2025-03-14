@@ -124,7 +124,7 @@ func (c *viewCtx) drawOption(rect CGRect, hook ...func(*ebiten.DrawImageOptions)
 	}
 
 	if c.opacity != nil {
-		opt.ColorScale.ScaleAlpha(float32(c.opacity.Get()))
+		opt.ColorScale.ScaleAlpha(float32(c.opacity.Value()))
 	}
 	return opt
 }
@@ -136,15 +136,15 @@ func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptio
 		return
 	}
 
-	bgColor := c.backgroundColor.Get()
-	borderLength := c.borderInset.Get()
+	bgColor := c.backgroundColor.Value()
+	borderLength := c.borderInset.Value()
 	borderColor := black
 	if c.borderColor != nil {
-		borderColor = c.borderColor.Get()
+		borderColor = c.borderColor.Value()
 	}
 
 	opt := c.drawOption(drawBounds, hook...)
-	if radius := c.roundCorner.Get(); radius > 0 {
+	if radius := c.roundCorner.Value(); radius > 0 {
 		c.drawRoundedAndBorderRect(screen, drawBounds, radius, bgColor, borderLength, borderColor, opt)
 	} else {
 		c.drawBorderRect(screen, drawBounds, bgColor, borderLength, borderColor, opt)
@@ -311,13 +311,9 @@ func (c *viewCtx) Align(alignment *Binding[layout.Align]) SomeView {
 		c.transitionAlign = Bind(CGPoint{})
 	}
 
-	c.transitionAlign.Set(alignToCGPoint(alignment.Get()), nil)
-	alignment.addListener(func(oldVal, newVal layout.Align, animStyle animation.Style, isAnimating bool) {
-		println("align changed", "old", serialize(oldVal), "new", serialize(newVal), "isAnimating", serialize(isAnimating))
-		if isAnimating {
-			return
-		}
-		c.transitionAlign.Set(alignToCGPoint(newVal), animStyle)
+	c.transitionAlign.Set(alignToCGPoint(alignment.Value()), nil)
+	alignment.AddListener(func(oldVal, newVal layout.Align, animStyle ...animation.Style) {
+		c.transitionAlign.Set(alignToCGPoint(newVal), animStyle...)
 	})
 
 	return c._owner

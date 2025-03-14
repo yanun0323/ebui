@@ -51,7 +51,7 @@ func (app *application) SetWindowResizingMode(mode windowResizingMode) {
 
 func (app *application) SetResourceFolder(folder string) {
 	resourceDir.Set(folder)
-	println("set resource folder:", folder)
+	logf("set resource folder: %s", folder)
 }
 
 func (app *application) Debug() {

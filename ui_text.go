@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
-	"time"
 	"unicode/utf8"
 
 	"github.com/cespare/xxhash/v2"
@@ -48,7 +47,7 @@ func (textImpl) faceKey(size font.Size, weight font.Weight, italic bool) string 
 }
 
 func (t *textImpl) face(s ...font.Size) text.Face {
-	size := t.fontSize.Get()
+	size := t.fontSize.Value()
 	if len(s) != 0 {
 		size = s[0]
 	}
@@ -59,12 +58,12 @@ func (t *textImpl) face(s ...font.Size) text.Face {
 
 	weight := font.Normal
 	if t.fontWeight != nil {
-		weight = t.fontWeight.Get()
+		weight = t.fontWeight.Value()
 	}
 
 	italic := false
 	if t.fontItalic != nil {
-		italic = t.fontItalic.Get()
+		italic = t.fontItalic.Value()
 	}
 
 	key := t.faceKey(size, weight, italic)
@@ -91,7 +90,7 @@ func (t *textImpl) face(s ...font.Size) text.Face {
 
 func (t *textImpl) userSetFrameSize() CGSize {
 	ctxUserSetFrameSize := t.viewCtx.userSetFrameSize()
-	w, h := t.measure(t.content.Get())
+	w, h := t.measure(t.content.Value())
 
 	if ctxUserSetFrameSize.IsInfWidth() {
 		ctxUserSetFrameSize.Width = w
@@ -108,7 +107,7 @@ func (t *textImpl) measure(content string) (w, h float64) {
 	if len(content) == 0 {
 		content = " "
 	}
-	kerning := t.fontKerning.Get()
+	kerning := t.fontKerning.Value()
 	w, h = text.Measure(content, t.face(), kerning)
 	w += float64(utf8.RuneCountInString(content)-1) * kerning
 	return w, h
@@ -136,7 +135,7 @@ func (t *textImpl) preload(parent *viewCtxEnv, _ ...formulaType) (preloadData, l
 func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
 	t.viewCtx.draw(screen, hook...)
 
-	content := t.content.Get()
+	content := t.content.Value()
 	if content == "" {
 		return
 	}
@@ -147,8 +146,6 @@ func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpti
 		return
 	}
 
-	println(time.Now().UnixMilli(), "text redraw", content)
-
 	bounds := t.systemSetBounds()
 	if !bounds.drawable() {
 		return
@@ -157,10 +154,10 @@ func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpti
 	textBase := ebiten.NewImage(int(bounds.Dx()), int(bounds.Dy()))
 
 	face := t.face()
-	foregroundColor := t.foregroundColor.Get()
-	kerning := t.fontKerning.Get()
+	foregroundColor := t.foregroundColor.Value()
+	kerning := t.fontKerning.Value()
 	for i, gl := range text.AppendGlyphs(nil, content, face, &text.LayoutOptions{
-		LineSpacing: t.fontLineHeight.Get(),
+		LineSpacing: t.fontLineHeight.Value(),
 	}) {
 		if gl.Image == nil {
 			continue
@@ -182,6 +179,6 @@ func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpti
 func (t *textImpl) Hash() string {
 	h := xxhash.New()
 	h.Write(t.viewCtx.Bytes(true))
-	h.Write(helper.BytesString(t.content.Get()))
+	h.Write(helper.BytesString(t.content.Value()))
 	return strconv.FormatUint(h.Sum64(), 16)
 }

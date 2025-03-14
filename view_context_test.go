@@ -7,10 +7,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func newTestViewContextForTest() *viewCtx {
-	return newRectangleForTest().viewCtx
-}
-
 func TestViewContext(t *testing.T) {
 	suite.Run(t, new(ViewContextSuite))
 }
@@ -26,7 +22,7 @@ func (su *ViewContextSuite) Inf(f float64) {
 
 func (su *ViewContextSuite) TestSetFrame() {
 	{
-		ctx := newTestViewContextForTest()
+		ctx := Rectangle().(*rectangleImpl)
 		s := ctx.userSetFrameSize()
 		su.True(s.IsInfWidth(), "%2.f", s.Width)
 		su.True(s.IsInfHeight(), "%2.f", s.Height)
@@ -36,7 +32,7 @@ func (su *ViewContextSuite) TestSetFrame() {
 		su.Equal(CGPoint{}, r.End)
 	}
 	{
-		ctx := newTestViewContextForTest()
+		ctx := Rectangle().(*rectangleImpl)
 		ctx.Frame(Bind(NewSize(Inf, 100.0)))
 
 		s := ctx.userSetFrameSize()
@@ -49,7 +45,7 @@ func (su *ViewContextSuite) TestSetFrame() {
 	}
 
 	{
-		ctx := newTestViewContextForTest()
+		ctx := Rectangle().(*rectangleImpl)
 		ctx.Frame(Bind(NewSize(100.0, 100.0)))
 
 		s := ctx.userSetFrameSize()
@@ -64,7 +60,7 @@ func (su *ViewContextSuite) TestSetFrame() {
 
 func (su *ViewContextSuite) TestPreload() {
 	{ // no size
-		ctx := newTestViewContextForTest()
+		ctx := Rectangle().(*rectangleImpl)
 
 		data, layoutFn := ctx.preload(nil)
 		su.True(data.FrameSize.IsInfWidth())
@@ -80,7 +76,7 @@ func (su *ViewContextSuite) TestPreload() {
 	}
 
 	{ // no size, with padding
-		ctx := newTestViewContextForTest()
+		ctx := Rectangle().(*rectangleImpl)
 		zs := ctx.Padding(Bind(CGInset{10, 10, 10, 10})).(*zstackImpl)
 
 		data, layoutFn := zs.preload(nil)
@@ -99,7 +95,7 @@ func (su *ViewContextSuite) TestPreload() {
 	}
 
 	{ // set size
-		ctx := newTestViewContextForTest()
+		ctx := Rectangle().(*rectangleImpl)
 		ctx.Frame(Bind(NewSize(100.0, 100.0)))
 
 		data, layoutFn := ctx.preload(nil)
@@ -116,7 +112,7 @@ func (su *ViewContextSuite) TestPreload() {
 	}
 
 	{ // set size, with padding
-		ctx := newTestViewContextForTest()
+		ctx := Rectangle().(*rectangleImpl)
 		ctx.Frame(Bind(NewSize(100.0, 100.0)))
 		ctx.Padding(Bind(CGInset{10, 10, 10, 10}))
 

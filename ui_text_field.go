@@ -55,10 +55,9 @@ func TextField[T string | *Binding[string]](content *Binding[string], placeholde
 }
 
 func (t *textFieldImpl) setFocused(focused bool) {
-	logf("setFocused: %v", focused)
 	t.isFocused = focused
 	if focused {
-		t.focusedColor.Set(AccentColor.Get())
+		t.focusedColor.Set(AccentColor.Value())
 	} else {
 		t.focusedColor.Set(textFieldUnfocusedBorderColor)
 	}
@@ -68,7 +67,7 @@ func (t *textFieldImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImag
 	t.zstackImpl.draw(screen, hook...)
 
 	if t.isFocused && time.Now().Unix()%4%2 == 0 {
-		_, h := t.text.measure(t.content.Get())
+		_, h := t.text.measure(t.content.Value())
 		rect := t.systemSetBounds()
 		opt := t.zstackImpl.drawOption(rect, hook...)
 		opt.GeoM.Translate(3, 3)
@@ -100,9 +99,7 @@ func (t *textFieldImpl) HandleKeyEvent(event keyEvent) {
 	if event.Phase != keyPhaseJustReleased {
 		switch event.Key {
 		case ebiten.KeyBackspace:
-			t.content.Update(func(val string) string {
-				return removeLastChar(val)
-			})
+			t.content.Set(removeLastChar(t.content.Value()))
 			t.cursorPos--
 		}
 	}
@@ -110,12 +107,10 @@ func (t *textFieldImpl) HandleKeyEvent(event keyEvent) {
 
 func (t *textFieldImpl) HandleInputEvent(event inputEvent) {
 	if t.isFocused {
-		content := t.content.Get()
+		content := t.content.Value()
 		if t.cursorPos == utf8.RuneCountInString(content) {
 			t.cursorPos += 1
 		}
-		t.content.Update(func(val string) string {
-			return val + string(event.Char)
-		})
+		t.content.Set(content + string(event.Char))
 	}
 }

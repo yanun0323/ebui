@@ -6,15 +6,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func newButtonForTest(action func(), label func() SomeView) *buttonImpl {
-	btn := &buttonImpl{
-		action: action,
-		label:  label,
-	}
-	btn.viewCtx = newViewContext(btn)
-	return btn
-}
-
 func TestButton(t *testing.T) {
 	suite.Run(t, new(ButtonSuite))
 }
@@ -26,10 +17,10 @@ type ButtonSuite struct {
 func (su *ButtonSuite) TestButton() {
 
 	{ // button with no size, button label with size
-		rect := newRectangleForTest().
+		rect := Rectangle().
 			Padding(Bind(NewInset(10, 10, 10, 10))).
 			Frame(Bind(NewSize(200, 100)))
-		btn := newButtonForTest(func() {}, func() SomeView {
+		btn := Button("", func() {}, func() SomeView {
 			return rect
 		})
 		btn.Padding(Bind(NewInset(20, 20, 20, 20)))

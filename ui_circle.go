@@ -33,7 +33,7 @@ func (c *circleImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 		return
 	}
 
-	bgColor := c.backgroundColor.Get()
+	bgColor := c.backgroundColor.Value()
 	if !drawFrame.drawable() {
 		return
 	}

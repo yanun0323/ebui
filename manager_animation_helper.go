@@ -1,8 +1,14 @@
 package ebui
 
-import "github.com/yanun0323/ebui/layout"
+import (
+	"github.com/yanun0323/ebui/layout"
+)
 
 func animateValue[T bindable](startValue, endValue T, delta float64) T {
+	if delta >= 0.999 {
+		return endValue
+	}
+
 	switch any(startValue).(type) {
 	case layout.Align:
 		return endValue
@@ -110,4 +116,15 @@ func animateValue[T bindable](startValue, endValue T, delta float64) T {
 	}
 
 	return endValue
+}
+
+func animatable[T bindable](val T) bool {
+	switch any(val).(type) {
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
+		return true
+	case CGPoint, CGSize, CGRect, CGInset, CGColor:
+		return true
+	default:
+		return false
+	}
 }

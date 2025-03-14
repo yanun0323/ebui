@@ -25,7 +25,7 @@ type ContentView struct{}
 
 func (v *ContentView) Body() SomeView {
 	return ZStack(
-		view.LayoutView(),
+		view.LayoutView2(),
 	).
 		Padding(Bind(NewInset(30))).
 		Frame(Bind(NewSize(1000, 600))).

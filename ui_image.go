@@ -23,11 +23,11 @@ func Image[T string | *ebiten.Image](img *Binding[T]) SomeView {
 		v.viewCtx = newViewContext(v)
 		return v
 	case *Binding[string]:
-		path := BindCombineForward(resourceDir, content, func(dir, filename string) string {
+		path := bindCombineOneWay(resourceDir, content, func(dir, filename string) string {
 			return getImageFilename(dir, filename)
 		})
 
-		return Image(BindForward(path, getImage))
+		return Image(BindOneWay(path, getImage))
 	}
 
 	return nil
@@ -35,7 +35,7 @@ func Image[T string | *ebiten.Image](img *Binding[T]) SomeView {
 
 func (v *imageImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
 	v.viewCtx.draw(screen, hook...)
-	img := v.image.Get()
+	img := v.image.Value()
 	if img == nil {
 		return
 	}
@@ -61,11 +61,11 @@ func (v *imageImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpt
 
 func (v *imageImpl) getScale(frameSize, imgSize CGSize) CGPoint {
 	scale := NewPoint(1, 1)
-	if !v.viewCtx.scaleToFit.Get() {
+	if !v.viewCtx.scaleToFit.Value() {
 		return scale
 	}
 
-	keepAspectRatio := v.viewCtx.keepAspectRatio.Get()
+	keepAspectRatio := v.viewCtx.keepAspectRatio.Value()
 	if !keepAspectRatio {
 		return NewPoint(frameSize.Width/imgSize.Width, frameSize.Height/imgSize.Height)
 	}
@@ -92,12 +92,12 @@ func getImageFilename(dir, filename string) string {
 func getImage(path string) *ebiten.Image {
 	f, err := os.Open(path)
 	if err != nil {
-		println("error:", err.Error())
+		logf("error: %+v", err)
 		return nil
 	}
 	defer f.Close()
 
-	println("get image:", path)
+	logf("get image: %s", path)
 
 	img, _, err := image.Decode(f)
 	if err != nil {

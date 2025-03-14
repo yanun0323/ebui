@@ -20,6 +20,7 @@ func (su *BindingSuite) Test() {
 	res := 100000.0
 	b := Bind(0.0)
 	b.Set(res, animation.Linear(10*time.Second))
-	su.NotNil(b.animResult)
-	su.Equal(res, *b.animResult)
+	animRes := b.animResult.Load()
+	su.NotNil(animRes)
+	su.Equal(res, *animRes)
 }
