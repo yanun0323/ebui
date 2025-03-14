@@ -56,9 +56,7 @@ func (c *viewCtx) Hash(withFont bool) string {
 
 func (c *viewCtx) wrap(modify ...func(*viewCtx)) SomeView {
 	// create a new zstackImpl instance
-	zs := &zstackImpl{
-		children: []SomeView{c._owner},
-	}
+	zs := ZStack(c._owner).(*stackImpl)
 
 	zs.viewCtx = newViewContext(zs)
 	zs.viewCtx.viewCtxEnv = c.viewCtxEnv
@@ -301,22 +299,23 @@ func (c *viewCtx) Disabled(disabled ...*Binding[bool]) SomeView {
 }
 
 func (c *viewCtx) Align(alignment *Binding[layout.Align]) SomeView {
-	c.alignment = alignment
+	return c.wrap(func(c *viewCtx) {
+		c.alignment = alignment
 
-	if alignment == nil {
-		return c._owner
-	}
+		if alignment == nil {
+			return
+		}
 
-	if c.transitionAlign == nil {
-		c.transitionAlign = Bind(CGPoint{})
-	}
+		if c.transitionAlign == nil {
+			c.transitionAlign = Bind(CGPoint{})
+		}
 
-	c.transitionAlign.Set(alignToCGPoint(alignment.Value()), nil)
-	alignment.AddListener(func(oldVal, newVal layout.Align, animStyle ...animation.Style) {
-		c.transitionAlign.Set(alignToCGPoint(newVal), animStyle...)
+		c.transitionAlign.Set(alignToCGPoint(alignment.Value()), nil)
+		alignment.AddListener(func(oldVal, newVal layout.Align, animStyle ...animation.Style) {
+			c.transitionAlign.Set(alignToCGPoint(newVal), animStyle...)
+		})
 	})
 
-	return c._owner
 }
 
 func (c *viewCtx) Debug() SomeView {

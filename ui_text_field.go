@@ -17,7 +17,7 @@ var (
 )
 
 type textFieldImpl struct {
-	*zstackImpl
+	*stackImpl
 	text *textImpl
 
 	isFocused    bool
@@ -39,9 +39,9 @@ func TextField[T string | *Binding[string]](content *Binding[string], placeholde
 	}
 	text := Text(content).(*textImpl)
 	focusedColor := Bind(textFieldUnfocusedBorderColor)
-	zs := ZStack(text).BackgroundColor(Bind(textFieldBackgroundColor)).Border(Const(NewInset(1, 1, 1, 1)), focusedColor).(*zstackImpl)
+	zs := ZStack(text).BackgroundColor(Bind(textFieldBackgroundColor)).Border(Const(NewInset(1, 1, 1, 1)), focusedColor).(*stackImpl)
 	tf := &textFieldImpl{
-		zstackImpl:   zs,
+		stackImpl:    zs,
 		text:         text,
 		isFocused:    false,
 		focusedColor: focusedColor,
@@ -64,12 +64,12 @@ func (t *textFieldImpl) setFocused(focused bool) {
 }
 
 func (t *textFieldImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
-	t.zstackImpl.draw(screen, hook...)
+	t.stackImpl.draw(screen, hook...)
 
 	if t.isFocused && time.Now().Unix()%4%2 == 0 {
 		_, h := t.text.measure(t.content.Value())
 		rect := t.systemSetBounds()
-		opt := t.zstackImpl.drawOption(rect, hook...)
+		opt := t.stackImpl.drawOption(rect, hook...)
 		opt.GeoM.Translate(3, 3)
 
 		stroke := ebiten.NewImage(1, int(h)-6)
@@ -77,6 +77,8 @@ func (t *textFieldImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImag
 		screen.DrawImage(stroke, opt)
 	}
 }
+
+func (t *textFieldImpl) HandleWheelEvent(event wheelEvent) {}
 
 func (t *textFieldImpl) HandleTouchEvent(event touchEvent) {
 	switch event.Phase {

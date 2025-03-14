@@ -111,6 +111,8 @@ func (b *toggleImpl) defaultLabel() SomeView {
 		Align(Bind(layout.AlignLeading | layout.AlignTop))
 }
 
+func (t *toggleImpl) HandleWheelEvent(event wheelEvent) {}
+
 func (t *toggleImpl) HandleTouchEvent(event touchEvent) {
 	if t.viewCtxEnv.disabled.Value() {
 		return

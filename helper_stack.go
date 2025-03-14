@@ -9,31 +9,11 @@ const (
 )
 
 type formulaStack struct {
-	types    formulaType
-	stackCtx *viewCtx
-	children []SomeView
+	types                           formulaType
+	stackCtx                        *viewCtx
+	children                        []SomeView
+	ignorePreloadingChildSummedSize bool
 }
-
-func (v *formulaStack) childrenWithSpacing() []SomeView {
-	spacing := v.stackCtx.spacing.Value()
-	if spacing == 0 {
-		return v.children
-	}
-
-	children := make([]SomeView, len(v.children)*2-1)
-	for i, child := range v.children {
-		children[i*2] = child
-		if i != len(v.children)-1 {
-			children[i*2+1] = spacingBlock(v.stackCtx.spacing)
-		}
-	}
-
-	return children
-}
-
-const (
-	_alignHeaderFooterCount = 1
-)
 
 func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloadData, layoutFunc) {
 	var (
@@ -106,14 +86,16 @@ func (v *formulaStack) preload(parent *viewCtxEnv, types ...formulaType) (preloa
 		// 		-> has flexible subviews: use infinite size
 		// 		-> no flexible subviews: use the summed size of the subviews
 		// if the Stack itself has a size set, use the Stack's size
-		if sData.IsInfWidth {
-			sData.FrameSize.Width = childrenSummedBounds.Width
-			sData.IsInfWidth = flexCount.X > 0
-		}
+		if !v.ignorePreloadingChildSummedSize {
+			if sData.IsInfWidth {
+				sData.FrameSize.Width = childrenSummedBounds.Width
+				sData.IsInfWidth = flexCount.X > 0
+			}
 
-		if sData.IsInfHeight {
-			sData.FrameSize.Height = childrenSummedBounds.Height
-			sData.IsInfHeight = flexCount.Y > 0
+			if sData.IsInfHeight {
+				sData.FrameSize.Height = childrenSummedBounds.Height
+				sData.IsInfHeight = flexCount.Y > 0
+			}
 		}
 	}
 

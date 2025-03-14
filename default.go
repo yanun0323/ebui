@@ -12,6 +12,7 @@ var (
 	DefaultBorderColor = Bind(defaultAccentColor)
 	DefaultRoundCorner = Bind(8.0)
 	DefaultSpacing     = Bind(15.0)
+	DefaultScrollSpeed = Bind(5.0)
 )
 
 var (

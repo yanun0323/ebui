@@ -7,9 +7,14 @@ import (
 )
 
 type eventHandler interface {
+	HandleWheelEvent(event wheelEvent)
 	HandleTouchEvent(event touchEvent)
 	HandleKeyEvent(event keyEvent)
 	HandleInputEvent(event inputEvent)
+}
+
+type wheelEvent struct {
+	Delta CGPoint
 }
 
 // touchEvent presents the touch event of the user
@@ -67,6 +72,12 @@ type eventManager struct {
 	keyStatusUpdatedAt map[ebiten.Key]int64 /* millisecond */
 	handlers           []eventHandler
 	isTracking         bool
+}
+
+func (em *eventManager) DispatchWheelEvent(event wheelEvent) {
+	for _, handler := range em.handlers {
+		handler.HandleWheelEvent(event)
+	}
 }
 
 func (em *eventManager) DispatchTouchEvent(event touchEvent) {

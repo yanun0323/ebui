@@ -77,7 +77,7 @@ func (su *ViewContextSuite) TestPreload() {
 
 	{ // no size, with padding
 		ctx := Rectangle().(*rectangleImpl)
-		zs := ctx.Padding(Bind(CGInset{10, 10, 10, 10})).(*zstackImpl)
+		zs := ctx.Padding(Bind(CGInset{10, 10, 10, 10})).(*stackImpl)
 
 		data, layoutFn := zs.preload(nil)
 		su.Equal(NewSize(0, 0), data.FrameSize)

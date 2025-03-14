@@ -55,15 +55,19 @@ func (b *buttonImpl) preload(parent *viewCtxEnv, _ ...formulaType) (preloadData,
 }
 
 func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
-	hook = append(hook, func(opt *ebiten.DrawImageOptions) {
+	hooks := make([]func(*ebiten.DrawImageOptions), 0, len(hook)+1)
+	hooks = append(hooks, hook...)
+	hooks = append(hooks, func(opt *ebiten.DrawImageOptions) {
 		if b.isPressed {
 			opt.ColorScale.ScaleAlpha(0.5)
 		}
 	})
 
-	b.viewCtx.draw(screen, hook...)
-	b.labelLoaded.draw(screen, hook...)
+	b.viewCtx.draw(screen, hooks...)
+	b.labelLoaded.draw(screen, hooks...)
 }
+
+func (b *buttonImpl) HandleWheelEvent(event wheelEvent) {}
 
 func (b *buttonImpl) HandleTouchEvent(event touchEvent) {
 	if b.viewCtxEnv.disabled.Value() {

@@ -30,7 +30,17 @@ func EbitenUpdate(contentView SomeView) {
 
 	mLayout := m.ElapsedAndReset()
 
-	// 3. handle input events
+	// 3. handle wheel events
+	x, y := ebiten.Wheel()
+	if x != 0 || y != 0 {
+		logf("scrolling, x: %.2f, y: %.2f", x, y)
+		speed := DefaultScrollSpeed.Value()
+		globalEventManager.DispatchWheelEvent(wheelEvent{
+			Delta: NewPoint(x*speed, y*speed),
+		})
+	}
+
+	// 4. handle touch events
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		pos := NewPoint(float64(x), float64(y))
@@ -56,7 +66,7 @@ func EbitenUpdate(contentView SomeView) {
 
 	mMouse := m.ElapsedAndReset()
 
-	// 4. handle keyboard events
+	// 5. handle keyboard events
 	altPressing := ebiten.IsKeyPressed(ebiten.KeyAltLeft) || ebiten.IsKeyPressed(ebiten.KeyAltRight) || ebiten.IsKeyPressed(ebiten.KeyAlt)
 	shiftPressing := ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight) || ebiten.IsKeyPressed(ebiten.KeyShift)
 	controlPressing := ebiten.IsKeyPressed(ebiten.KeyControlLeft) || ebiten.IsKeyPressed(ebiten.KeyControlRight) || ebiten.IsKeyPressed(ebiten.KeyControl)
@@ -100,7 +110,7 @@ func EbitenUpdate(contentView SomeView) {
 
 	mKeyboard := m.ElapsedAndReset()
 
-	// 5. handle input events
+	// 6. handle input events
 	input := ebiten.AppendInputChars(nil)
 	for _, char := range input {
 		globalEventManager.DispatchInputEvent(inputEvent{

@@ -120,6 +120,7 @@ func bindCombineOneWay[T bindable](a, b *Binding[T], forward func(a, b T) T) *Bi
 */
 
 // bindable is a type that can be bound to a UI element.
+// type bindable comparable
 type bindable interface {
 	numberable | ~string | ~bool | CGPoint | CGSize | CGRect | CGInset | CGColor | *ebiten.Image
 }

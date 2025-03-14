@@ -23,7 +23,7 @@ func (su *ZSTestZStackSuite) SetupSuite() {
 func (su *ZSTestZStackSuite) TestZStack() {
 	{ // child view with no size
 		rect1 := Rectangle().(*rectangleImpl)
-		z := newZStackImpl(rect1)
+		z := ZStack(rect1).(*stackImpl)
 
 		data, layoutFn := z.preload(nil)
 		su.Equal(NewSize(0, 0), data.FrameSize)
@@ -39,7 +39,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 
 	{ // child view with fixed size
 		rect1 := Rectangle().Frame(Bind(NewSize(100, 100)))
-		z := newZStackImpl(rect1)
+		z := ZStack(rect1).(*stackImpl)
 
 		data, layoutFn := z.preload(nil)
 		su.Equal(NewSize(100, 100), data.FrameSize)
@@ -55,8 +55,8 @@ func (su *ZSTestZStackSuite) TestZStack() {
 
 	{ // child view with no size + Padding
 		rect1 := Rectangle().(*rectangleImpl)
-		z := ZStack(rect1).(*zstackImpl)
-		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10}))).(*zstackImpl)
+		z := ZStack(rect1).(*stackImpl)
+		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10}))).(*stackImpl)
 
 		data, layoutFn := zz.preload(nil)
 		su.Equal(NewSize(0, 0), data.FrameSize)
@@ -84,8 +84,8 @@ func (su *ZSTestZStackSuite) TestZStack() {
 
 	{ // child view with fixed size + Padding
 		rect1 := Rectangle().Frame(Bind(NewSize(100, 100))).(*rectangleImpl)
-		z := newZStackImpl(rect1)
-		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10}))).(*zstackImpl)
+		z := ZStack(rect1).(*stackImpl)
+		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10}))).(*stackImpl)
 
 		data, layoutFn := zz.preload(nil)
 		su.Equal(NewSize(100, 100), data.FrameSize)
@@ -113,9 +113,9 @@ func (su *ZSTestZStackSuite) TestZStack() {
 
 	{ // child view with no size + Padding + Border
 		rect1 := Rectangle().(*rectangleImpl)
-		z := newZStackImpl(rect1)
+		z := ZStack(rect1).(*stackImpl)
 		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10})).
-			Border(Bind(CGInset{10, 10, 10, 10}), Bind(white))).(*zstackImpl)
+			Border(Bind(CGInset{10, 10, 10, 10}), Bind(white))).(*stackImpl)
 
 		data, layoutFn := zz.preload(nil)
 		su.Equal(NewSize(0, 0), data.FrameSize)
@@ -143,9 +143,9 @@ func (su *ZSTestZStackSuite) TestZStack() {
 
 	{ // child view with fixed size + Padding + Border
 		rect1 := Rectangle().Frame(Bind(NewSize(100, 100))).(*rectangleImpl)
-		z := newZStackImpl(rect1)
+		z := ZStack(rect1).(*stackImpl)
 		zz := (z.Padding(Bind(CGInset{10, 10, 10, 10})).
-			Border(Bind(CGInset{10, 10, 10, 10}), Bind(white))).(*zstackImpl)
+			Border(Bind(CGInset{10, 10, 10, 10}), Bind(white))).(*stackImpl)
 
 		data, layoutFn := zz.preload(nil)
 		su.Equal(NewSize(100, 100), data.FrameSize)
@@ -174,11 +174,11 @@ func (su *ZSTestZStackSuite) TestZStack() {
 	{
 		rect1 := Rectangle().Frame(Bind(NewSize(100, 500))).
 			Padding(Bind(CGInset{10, 10, 10, 10})).
-			Border(Bind(CGInset{10, 10, 10, 10}), Bind(white)).(*zstackImpl)
+			Border(Bind(CGInset{10, 10, 10, 10}), Bind(white)).(*stackImpl)
 		rect2 := Rectangle().Frame(Bind(NewSize(200, 100))).
 			Padding(Bind(CGInset{50, 50, 50, 50})).
-			Border(Bind(CGInset{50, 50, 50, 50}), Bind(white)).(*zstackImpl)
-		z := ZStack(rect1, rect2).(*zstackImpl)
+			Border(Bind(CGInset{50, 50, 50, 50}), Bind(white)).(*stackImpl)
+		z := ZStack(rect1, rect2).(*stackImpl)
 
 		data, layoutFn := z.preload(nil)
 		su.Equal(NewSize(400, 540), data.FrameSize)
@@ -216,7 +216,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 
 		z1 := rect.Padding(Bind(CGInset{10, 10, 10, 10})).
 			BackgroundColor(Bind(green)).
-			Border(Bind(CGInset{5, 5, 5, 5}), Bind(yellow)).(*zstackImpl)
+			Border(Bind(CGInset{5, 5, 5, 5}), Bind(yellow)).(*stackImpl)
 
 		rData, _ := rect.preload(nil)
 		su.Equal(NewSize(100, 100), rData.FrameSize)
@@ -232,7 +232,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewInset(10, 10, 10, 10), z1Data.Padding)
 		su.Equal(NewInset(5, 5, 5, 5), z1Data.Border)
 
-		root := ZStack(rect, z1).(*zstackImpl)
+		root := ZStack(rect, z1).(*stackImpl)
 
 		data, layoutFn := root.preload(nil)
 		su.Equal(NewSize(150, 150), data.FrameSize)
