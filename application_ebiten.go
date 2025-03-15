@@ -18,6 +18,11 @@ var (
 func EbitenUpdate(contentView SomeView) {
 	m := helper.NewMetric()
 
+	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
+	for _, id := range touchIDs {
+		logf("touch id: %d", id)
+	}
+
 	// 1. update animations
 	globalAnimationManager.Update()
 
@@ -32,27 +37,24 @@ func EbitenUpdate(contentView SomeView) {
 
 	// 3. handle wheel events
 	x, y := ebiten.Wheel()
-	if x != 0 || y != 0 {
-		logf("scrolling, x: %.2f, y: %.2f", x, y)
-		speed := DefaultScrollSpeed.Value()
-		globalEventManager.DispatchWheelEvent(wheelEvent{
-			Delta: NewPoint(x*speed, y*speed),
-		})
-	}
+	speed := DefaultScrollSpeed.Value()
+	globalEventManager.DispatchWheelEvent(wheelEvent{
+		Delta: NewPoint(x*speed, y*speed),
+	})
 
 	// 4. handle touch events
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		pos := NewPoint(float64(x), float64(y))
 
-		if !globalEventManager.isTracking {
+		if globalEventManager.isTracking {
 			globalEventManager.DispatchTouchEvent(touchEvent{
-				Phase:    touchPhaseBegan,
+				Phase:    touchPhaseMoved,
 				Position: pos,
 			})
 		} else {
 			globalEventManager.DispatchTouchEvent(touchEvent{
-				Phase:    touchPhaseMoved,
+				Phase:    touchPhaseBegan,
 				Position: pos,
 			})
 		}

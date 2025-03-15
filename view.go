@@ -24,7 +24,7 @@ type SomeView interface {
 	View
 
 	// preload sets the environment variables and returns the layout information of the view
-	preload(parent *viewCtxEnv, stackTypes ...formulaType) (preloadData, layoutFunc)
+	preload(parent *viewCtxEnv, stackTypes ...stackType) (preloadData, layoutFunc)
 
 	// drawOption returns the draw options of the view
 	drawOption(rect CGRect, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions
@@ -36,6 +36,9 @@ type SomeView interface {
 
 	// setEnv sets the environment variables of the view
 	setEnv(env *viewCtxEnv)
+
+	// bytes returns the bytes of the view
+	bytes() []byte
 
 	// count returns the count of the view
 	count() int
@@ -148,6 +151,9 @@ type SomeView interface {
 
 	// Spacing sets the spacing of the view
 	Spacing(spacing ...*Binding[float64]) SomeView
+
+	// ScrollViewDirection sets the direction of the view
+	ScrollViewDirection(direction *Binding[layout.Direction]) SomeView
 }
 
 type alignFunc func(offset CGPoint)

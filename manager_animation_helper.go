@@ -10,7 +10,7 @@ func animateValue[T bindable](startValue, endValue T, delta float64) T {
 	}
 
 	switch any(startValue).(type) {
-	case layout.Align:
+	case layout.Align, layout.Direction:
 		return endValue
 	case int:
 		sv := any(startValue).(int)

@@ -70,7 +70,7 @@ func BindTwoWay[T, F bindable](source *Binding[T], forward func(T) F, backward f
 	})
 
 	source.AddListener(func(oldVal, newVal T, animStyle ...animation.Style) {
-		if sv != newVal {
+		if newVal != sv {
 			sv = newVal
 			b.Set(forward(sv), animStyle...)
 		}
@@ -269,7 +269,7 @@ func (b *Binding[T]) setValue(newVal T, with ...animation.Style) {
 	animatableValue := animStyle != nil && animStyle.Duration() > 0 && animatable(newVal)
 	if animatableValue {
 		var (
-			startTime = time.Now().UnixMilli()
+			startTime = time.Now().Add(animStyle.GetDelay()).UnixMilli()
 			duration  = animStyle.Duration().Milliseconds()
 		)
 

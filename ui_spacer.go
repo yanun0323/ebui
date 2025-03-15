@@ -15,22 +15,22 @@ func Spacer() SomeView {
 	return sp
 }
 
-func (sp *spacerImpl) preload(parent *viewCtxEnv, stackTypes ...formulaType) (preloadData, layoutFunc) {
+func (sp *spacerImpl) preload(parent *viewCtxEnv, stackTypes ...stackType) (preloadData, layoutFunc) {
 	types := getTypes(stackTypes...)
 
 	sz := NewSize(Inf)
 	switch types {
-	case formulaVStack:
+	case stackTypeVStack:
 		sz.Width = 0
-	case formulaHStack:
+	case stackTypeHStack:
 		sz.Height = 0
 	}
 
 	return newPreloadData(sz, CGInset{}, CGInset{}), func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc) {
 		switch types {
-		case formulaVStack:
+		case stackTypeVStack:
 			return CGRect{start, NewPoint(start.X, start.Y+flexBoundsSize.Height)}, func(CGPoint) {}
-		case formulaHStack:
+		case stackTypeHStack:
 			return CGRect{start, NewPoint(start.X+flexBoundsSize.Width, start.Y)}, func(CGPoint) {}
 		default:
 			return CGRect{start, start}, func(CGPoint) {}

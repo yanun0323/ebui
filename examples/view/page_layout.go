@@ -6,19 +6,19 @@ import (
 	"github.com/yanun0323/ebui/layout"
 )
 
-var _ View = (*layoutView2)(nil)
+var _ View = (*pageLayoutView)(nil)
 
-func LayoutView2() View {
-	return &layoutView2{
+func PageLayoutView() View {
+	return &pageLayoutView{
 		alignment: Bind(layout.AlignDefault).Animated(),
 	}
 }
 
-type layoutView2 struct {
+type pageLayoutView struct {
 	alignment *Binding[layout.Align]
 }
 
-func (v *layoutView2) Body() SomeView {
+func (v *pageLayoutView) Body() SomeView {
 	blockSizeS := Bind(NewSize(40))
 	blockSizeM := Bind(NewSize(60))
 	blockSizeL := Bind(NewSize(80))
@@ -111,7 +111,7 @@ func (v *layoutView2) Body() SomeView {
 	).Spacing(Bind(30.0)).Center().Align(Const(layout.AlignCenter)).FontSize(Const(font.Headline))
 }
 
-func (v *layoutView2) stackWrapper(vv SomeView) SomeView {
+func (v *pageLayoutView) stackWrapper(vv SomeView) SomeView {
 	return vv.
 		Frame(Bind(NewSize(300))).
 		Border(Bind(NewInset(1))).

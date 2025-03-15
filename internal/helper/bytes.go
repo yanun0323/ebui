@@ -4,39 +4,39 @@ import (
 	"unsafe"
 )
 
-func BytesInt(i int) []byte {
+func BytesInt[T ~int](i T) []byte {
 	return (*[8]byte)(unsafe.Pointer(&i))[:]
 }
 
-func BytesInt8(i int8) []byte {
+func BytesInt8[T ~int8](i T) []byte {
 	return (*[1]byte)(unsafe.Pointer(&i))[:]
 }
 
-func BytesInt16(i int16) []byte {
+func BytesInt16[T ~int16](i T) []byte {
 	return (*[2]byte)(unsafe.Pointer(&i))[:]
 }
 
-func BytesInt32(i int32) []byte {
+func BytesInt32[T ~int32](i T) []byte {
 	return (*[4]byte)(unsafe.Pointer(&i))[:]
 }
 
-func BytesInt64(i int64) []byte {
+func BytesInt64[T ~int64](i T) []byte {
 	return (*[8]byte)(unsafe.Pointer(&i))[:]
 }
 
-func BytesFloat32(f float32) []byte {
+func BytesFloat32[T ~float32](f T) []byte {
 	return (*[4]byte)(unsafe.Pointer(&f))[:]
 }
 
-func BytesFloat64(f float64) []byte {
+func BytesFloat64[T ~float64](f T) []byte {
 	return (*[8]byte)(unsafe.Pointer(&f))[:]
 }
 
-func BytesString(s string) []byte {
-	return unsafe.Slice(unsafe.StringData(s), len(s))
+func BytesString[T ~string](s T) []byte {
+	return unsafe.Slice(unsafe.StringData(string(s)), len(s))
 }
 
-func BytesBool(b bool) []byte {
+func BytesBool[T ~bool](b T) []byte {
 	if b {
 		return []byte{1}
 	}

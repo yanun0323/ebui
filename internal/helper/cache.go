@@ -18,11 +18,15 @@ func (c *HashCache[T]) IsNextHashCached() bool {
 	return c.nextHash == c.valueHash
 }
 
+func (c *HashCache[T]) IsNextCacheOutdated() bool {
+	return c.nextHash != c.valueHash
+}
+
 func (c *HashCache[T]) Update(value T) {
 	c.valueHash = c.nextHash
 	c.value = value
 }
 
-func (c *HashCache[T]) Get() T {
+func (c *HashCache[T]) Load() T {
 	return c.value
 }

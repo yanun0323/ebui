@@ -17,6 +17,15 @@ type wheelEvent struct {
 	Delta CGPoint
 }
 
+type wheelPhase int
+
+const (
+	wheelPhaseNone wheelPhase = iota
+	wheelPhaseBegan
+	wheelPhaseMoved
+	wheelPhaseEnded
+)
+
 // touchEvent presents the touch event of the user
 type touchEvent struct {
 	Phase    touchPhase
@@ -72,9 +81,20 @@ type eventManager struct {
 	keyStatusUpdatedAt map[ebiten.Key]int64 /* millisecond */
 	handlers           []eventHandler
 	isTracking         bool
+	lastWheelEvent     wheelEvent
 }
 
 func (em *eventManager) DispatchWheelEvent(event wheelEvent) {
+	defer func() {
+		em.lastWheelEvent = event
+	}()
+
+	if event.Delta.IsZero() {
+		if !em.lastWheelEvent.Delta.IsZero() {
+			return
+		}
+	}
+
 	for _, handler := range em.handlers {
 		handler.HandleWheelEvent(event)
 	}

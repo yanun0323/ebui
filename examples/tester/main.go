@@ -33,11 +33,10 @@ func (v *ContentView) Body() SomeView {
 	}
 
 	return ScrollView(
-		layout.DirectionVertical,
 		VStack(
 			enum(10)...,
 		).Spacing(),
-	)
+	).Frame(Bind(NewSize(500, 500))) //.Debug()
 }
 
 func main() {
@@ -52,5 +51,4 @@ func main() {
 	if err := app.Run("Counter Demo"); err != nil {
 		log.Fatal(err)
 	}
-
 }

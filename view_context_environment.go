@@ -24,6 +24,10 @@ type viewCtxEnv struct {
 	alignment       *Binding[layout.Align]
 	transition      *Binding[float64] /* for all animation progress */
 	transitionAlign *Binding[CGPoint] /* for all animation offset */
+
+	// ScrollView
+
+	scrollViewDirection *Binding[layout.Direction]
 }
 
 func newEnv() *viewCtxEnv {
@@ -49,6 +53,7 @@ func (e *viewCtxEnv) inheritFrom(parent *viewCtxEnv) *viewCtxEnv {
 	e.alignment = getNewIfOldNil(parent.alignment, e.alignment)
 	e.transition = getNewIfOldNil(parent.transition, e.transition)
 	e.transitionAlign = getNewIfOldNil(parent.transitionAlign, e.transitionAlign)
+	e.scrollViewDirection = getNewIfOldNil(parent.scrollViewDirection, e.scrollViewDirection)
 
 	return e
 }
@@ -87,6 +92,6 @@ func (e *viewCtxEnv) Bytes(withFont bool) []byte {
 
 	b.Write(helper.BytesFloat64(e.transition.Value()))
 	b.Write(e.transitionAlign.Value().Bytes())
-
+	b.Write(helper.BytesInt8(e.scrollViewDirection.Value()))
 	return b.Bytes()
 }

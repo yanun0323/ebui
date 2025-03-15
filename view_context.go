@@ -47,6 +47,10 @@ func (c *viewCtx) Bytes(withFont bool) []byte {
 	return b.Bytes()
 }
 
+func (c *viewCtx) bytes() []byte {
+	return c.Bytes(false)
+}
+
 func (c *viewCtx) Hash(withFont bool) string {
 	h := xxhash.New()
 	h.Write(c.viewCtxEnv.Bytes(withFont))
@@ -82,7 +86,7 @@ func (c *viewCtx) align(offset CGPoint) {
 	c._systemSetFrame = c._systemSetFrame.Move(offset)
 }
 
-func (c *viewCtx) preload(parent *viewCtxEnv, _ ...formulaType) (preloadData, layoutFunc) {
+func (c *viewCtx) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layoutFunc) {
 	c.viewCtxEnv.inheritFrom(parent)
 	padding := c.padding()
 	border := c.border()
@@ -347,5 +351,10 @@ func (c *viewCtx) Spacing(spacing ...*Binding[float64]) SomeView {
 		c.spacing = DefaultSpacing
 	}
 
+	return c._owner
+}
+
+func (c *viewCtx) ScrollViewDirection(direction *Binding[layout.Direction]) SomeView {
+	c.scrollViewDirection = direction
 	return c._owner
 }

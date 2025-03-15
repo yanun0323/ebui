@@ -20,7 +20,7 @@ const (
 var (
 	white       = NewColor(255)
 	black       = NewColor(0)
-	transparent = NewColor(0, 0, 0, 0)
+	transparent = CGColor{}
 )
 
 /*

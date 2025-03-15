@@ -25,6 +25,12 @@ type Style interface {
 	//
 	// The default strength is 1. More than 1 is stronger, less than 1 is weaker.
 	Strengthen(float64) Style
+
+	// Delay returns a new style with the given delay.
+	Delay(time.Duration) Style
+
+	// GetDelay returns the delay of the style.
+	GetDelay() time.Duration
 }
 
 var (
@@ -81,6 +87,7 @@ type stylePrototype struct {
 	formula  func(t, strength float64) float64
 	duration time.Duration
 	strength float64
+	delay    time.Duration
 }
 
 // NewStyleBuilder returns a new style builder.
@@ -110,4 +117,13 @@ func (c *stylePrototype) Duration() time.Duration {
 func (c stylePrototype) Strengthen(strength float64) Style {
 	c.strength = strength
 	return &c
+}
+
+func (c *stylePrototype) Delay(delay time.Duration) Style {
+	c.delay = delay
+	return c
+}
+
+func (c *stylePrototype) GetDelay() time.Duration {
+	return c.delay
 }

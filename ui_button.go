@@ -39,14 +39,14 @@ func Button(key string, action func(), label ...func() SomeView) SomeView {
 	return btn
 }
 
-func (b *buttonImpl) preload(parent *viewCtxEnv, _ ...formulaType) (preloadData, layoutFunc) {
+func (b *buttonImpl) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layoutFunc) {
 	b.labelLoaded = b.label()
 	if b.labelLoaded == nil {
 		panic("empty view from button label")
 	}
 
-	formulaStack := &formulaStack{
-		types:    formulaZStack,
+	formulaStack := &stackPreloader{
+		types:    stackTypeZStack,
 		stackCtx: b.viewCtx,
 		children: []SomeView{b.labelLoaded},
 	}

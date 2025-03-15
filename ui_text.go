@@ -113,7 +113,7 @@ func (t *textImpl) measure(content string) (w, h float64) {
 	return w, h
 }
 
-func (t *textImpl) preload(parent *viewCtxEnv, _ ...formulaType) (preloadData, layoutFunc) {
+func (t *textImpl) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layoutFunc) {
 	data, layoutFn := t.viewCtx.preload(parent)
 	return data, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc) {
 		flexFrameSize := flexBoundsSize.Shrink(data.Padding).Shrink(data.Border)
@@ -142,7 +142,7 @@ func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpti
 
 	op := t.viewCtx.drawOption(t.systemSetBounds(), hook...)
 	if t.cache.IsNextHashCached() {
-		screen.DrawImage(t.cache.Get(), op)
+		screen.DrawImage(t.cache.Load(), op)
 		return
 	}
 

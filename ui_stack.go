@@ -5,18 +5,18 @@ import (
 )
 
 func VStack(views ...View) SomeView {
-	return stack(formulaVStack, false, views...)
+	return stack(stackTypeVStack, false, views...)
 }
 
 func HStack(views ...View) SomeView {
-	return stack(formulaHStack, false, views...)
+	return stack(stackTypeHStack, false, views...)
 }
 
 func ZStack(views ...View) SomeView {
-	return stack(formulaZStack, false, views...)
+	return stack(stackTypeZStack, false, views...)
 }
 
-func stack(types formulaType, flexibleStack bool, views ...View) SomeView {
+func stack(types stackType, flexibleStack bool, views ...View) SomeView {
 	s := &stackImpl{
 		types:         types,
 		flexibleStack: flexibleStack,
@@ -29,7 +29,7 @@ func stack(types formulaType, flexibleStack bool, views ...View) SomeView {
 type stackImpl struct {
 	*viewCtx
 
-	types         formulaType
+	types         stackType
 	flexibleStack bool
 	children      []SomeView
 }
@@ -42,12 +42,12 @@ func (s *stackImpl) count() int {
 	return count
 }
 
-func (s *stackImpl) preload(parent *viewCtxEnv, types ...formulaType) (preloadData, layoutFunc) {
-	stackFormula := &formulaStack{
-		types:                           s.types,
-		stackCtx:                        s.viewCtx,
-		children:                        s.children,
-		ignorePreloadingChildSummedSize: s.flexibleStack,
+func (s *stackImpl) preload(parent *viewCtxEnv, types ...stackType) (preloadData, layoutFunc) {
+	stackFormula := &stackPreloader{
+		types:                 s.types,
+		stackCtx:              s.viewCtx,
+		children:              s.children,
+		preloadStackOnlyFrame: s.flexibleStack,
 	}
 
 	return stackFormula.preload(parent, types...)

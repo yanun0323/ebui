@@ -11,19 +11,6 @@ type numberable interface {
 		~float32 | ~float64
 }
 
-// CGColor represents a color with red, green, blue and alpha components.
-type CGColor struct {
-	R, G, B, A uint8
-}
-
-func (c CGColor) RGBA() (r, g, b, a uint32) {
-	return uint32(c.R) * 256, uint32(c.G) * 256, uint32(c.B) * 256, uint32(c.A) * 256
-}
-
-func (c CGColor) Bytes() []byte {
-	return (*[4]byte)(unsafe.Pointer(&c))[:]
-}
-
 // NewColor uses a traditional 32-bit alpha-premultiplied color, having 8 bits for each of red, green, blue and alpha.
 //
 // An alpha-premultiplied color component C has been scaled by alpha (A), so has valid values 0 <= C <= A.
@@ -47,14 +34,21 @@ func NewColor[Number numberable](val ...Number) CGColor {
 	}
 }
 
-// CGPoint represents a coordinate in 2D space.
-type CGPoint struct {
-	X float64
-	Y float64
+// CGColor represents a color with red, green, blue and alpha components.
+type CGColor struct {
+	R, G, B, A uint8
 }
 
-func (p CGPoint) Bytes() []byte {
-	return (*[16]byte)(unsafe.Pointer(&p))[:]
+func (c CGColor) RGBA() (r, g, b, a uint32) {
+	return uint32(c.R) * 256, uint32(c.G) * 256, uint32(c.B) * 256, uint32(c.A) * 256
+}
+
+func (c CGColor) Bytes() []byte {
+	return (*[4]byte)(unsafe.Pointer(&c))[:]
+}
+
+func (c CGColor) IsZero() bool {
+	return c == transparent
 }
 
 // NewPoint creates a CGPoint from any numberable type.
@@ -73,6 +67,22 @@ func NewPoint[Number numberable](val ...Number) CGPoint {
 	default:
 		return CGPoint{}
 	}
+}
+
+// CGPoint represents a coordinate in 2D space.
+type CGPoint struct {
+	X float64
+	Y float64
+}
+
+func (p CGPoint) Bytes() []byte {
+	return (*[16]byte)(unsafe.Pointer(&p))[:]
+}
+
+var zeroPoint CGPoint
+
+func (p CGPoint) IsZero() bool {
+	return p == zeroPoint
 }
 
 func (p CGPoint) Add(other CGPoint) CGPoint {
@@ -119,16 +129,6 @@ func (p CGPoint) Lt(other CGPoint) bool {
 	return p.X < other.X && p.Y < other.Y
 }
 
-// CGSize represents a size including width and height in 2D space.
-type CGSize struct {
-	Width  float64
-	Height float64
-}
-
-func (s CGSize) Bytes() []byte {
-	return (*[16]byte)(unsafe.Pointer(&s))[:]
-}
-
 // NewSize creates a CGSize from any numberable type.
 //
 // # Usage:
@@ -145,6 +145,22 @@ func NewSize[Number numberable](val ...Number) CGSize {
 	default:
 		return CGSize{}
 	}
+}
+
+// CGSize represents a size including width and height in 2D space.
+type CGSize struct {
+	Width  float64
+	Height float64
+}
+
+func (s CGSize) Bytes() []byte {
+	return (*[16]byte)(unsafe.Pointer(&s))[:]
+}
+
+var zeroSize CGSize
+
+func (s CGSize) IsZero() bool {
+	return s == zeroSize
 }
 
 func (s CGSize) Empty() bool {
@@ -223,16 +239,6 @@ func (s CGSize) Shrink(inset CGInset) CGSize {
 	return CGSize{Width: s.Width - inset.Left - inset.Right, Height: s.Height - inset.Top - inset.Bottom}
 }
 
-// CGRect represents a rectangle including a start point and an end point in 2D space.
-type CGRect struct {
-	Start CGPoint
-	End   CGPoint
-}
-
-func (r CGRect) Bytes() []byte {
-	return (*[32]byte)(unsafe.Pointer(&r))[:]
-}
-
 // NewRect creates a CGRect from any numberable type.
 //
 // # Usage:
@@ -261,6 +267,26 @@ func NewRect[Number numberable](val ...Number) CGRect {
 	default:
 		return CGRect{}
 	}
+}
+
+// CGRect represents a rectangle including a start point and an end point in 2D space.
+type CGRect struct {
+	Start CGPoint
+	End   CGPoint
+}
+
+func (r CGRect) Bytes() []byte {
+	return (*[32]byte)(unsafe.Pointer(&r))[:]
+}
+
+var zeroRect CGRect
+
+func (r CGRect) IsZero() bool {
+	return r == zeroRect
+}
+
+func (r CGRect) Contains(p CGPoint) bool {
+	return p.X >= r.Start.X && p.X <= r.End.X && p.Y >= r.Start.Y && p.Y <= r.End.Y
 }
 
 func (r CGRect) Move(offset CGPoint) CGRect {
@@ -313,18 +339,6 @@ func (r CGRect) Expand(inset CGInset) CGRect {
 	return NewRect(r.Start.X, r.Start.Y, r.End.X+inset.Left+inset.Right, r.End.Y+inset.Top+inset.Bottom)
 }
 
-// CGInset represents a padding including top, right, bottom and left in 2D space.
-type CGInset struct {
-	Top    float64
-	Right  float64
-	Bottom float64
-	Left   float64
-}
-
-func (i CGInset) Bytes() []byte {
-	return (*[32]byte)(unsafe.Pointer(&i))[:]
-}
-
 // NewInset creates an Inset from any numberable type.
 //
 // # Usage:
@@ -346,8 +360,22 @@ func NewInset[Number numberable](inset ...Number) CGInset {
 	}
 }
 
+// CGInset represents a padding including top, right, bottom and left in 2D space.
+type CGInset struct {
+	Top    float64
+	Right  float64
+	Bottom float64
+	Left   float64
+}
+
+func (i CGInset) Bytes() []byte {
+	return (*[32]byte)(unsafe.Pointer(&i))[:]
+}
+
+var zeroInset CGInset
+
 func (i CGInset) IsZero() bool {
-	return i == CGInset{}
+	return i == zeroInset
 }
 
 func (i CGInset) Add(other CGInset) CGInset {

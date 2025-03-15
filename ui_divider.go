@@ -19,7 +19,7 @@ func Divider(length ...*Binding[float64]) SomeView {
 	return v
 }
 
-func (v *dividerImpl) preload(env *viewCtxEnv, stackTypes ...formulaType) (preloadData, layoutFunc) {
+func (v *dividerImpl) preload(env *viewCtxEnv, stackTypes ...stackType) (preloadData, layoutFunc) {
 	types := getTypes(stackTypes...)
 
 	length := v.length.Value()
@@ -28,9 +28,9 @@ func (v *dividerImpl) preload(env *viewCtxEnv, stackTypes ...formulaType) (prelo
 	}
 
 	switch types {
-	case formulaHStack:
+	case stackTypeHStack:
 		v.frameSize.Set(NewSize(length, Inf))
-	case formulaVStack:
+	case stackTypeVStack:
 		v.frameSize.Set(NewSize(Inf, length))
 	default:
 		v.frameSize.Set(CGSize{})

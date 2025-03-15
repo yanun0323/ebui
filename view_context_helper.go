@@ -10,7 +10,7 @@ import (
 func (c *viewCtx) drawRoundedAndBorderRect(screen *ebiten.Image, bounds CGRect, radius float64, bgColor CGColor, border CGInset, borderColor CGColor, bOpt *ebiten.DrawImageOptions) {
 	var img *ebiten.Image
 	if c._cache.IsNextHashCached() {
-		img = c._cache.Get()
+		img = c._cache.Load()
 	} else {
 		w := int(bounds.Dx() * _roundedScale)
 		h := int(bounds.Dy() * _roundedScale)
@@ -28,7 +28,7 @@ func (c *viewCtx) drawRoundedAndBorderRect(screen *ebiten.Image, bounds CGRect, 
 				return
 			}
 
-			if isBorder {
+			if isBorder && b > 0 && borderColor != transparent {
 				img.Set(x, y, borderColor)
 				return
 			}
@@ -50,7 +50,7 @@ func (c *viewCtx) drawRoundedAndBorderRect(screen *ebiten.Image, bounds CGRect, 
 func (c *viewCtx) drawBorderRect(screen *ebiten.Image, bounds CGRect, bgColor CGColor, border CGInset, borderColor CGColor, bOpt *ebiten.DrawImageOptions) {
 	var img *ebiten.Image
 	if c._cache.IsNextHashCached() {
-		img = c._cache.Get()
+		img = c._cache.Load()
 	} else {
 		w := int(bounds.Dx())
 		h := int(bounds.Dy())

@@ -68,7 +68,7 @@ func Toggle(enabled *Binding[bool], label ...func() SomeView) SomeView {
 	return t
 }
 
-func (b *toggleImpl) preload(parent *viewCtxEnv, _ ...formulaType) (preloadData, layoutFunc) {
+func (b *toggleImpl) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layoutFunc) {
 	if b.label != nil {
 		b.labelLoaded = b.label()
 	}
@@ -76,8 +76,8 @@ func (b *toggleImpl) preload(parent *viewCtxEnv, _ ...formulaType) (preloadData,
 		panic("empty view from button label")
 	}
 
-	formulaStack := &formulaStack{
-		types:    formulaZStack,
+	formulaStack := &stackPreloader{
+		types:    stackTypeZStack,
 		stackCtx: b.viewCtx,
 		children: []SomeView{b.labelLoaded},
 	}
