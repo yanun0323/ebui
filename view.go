@@ -158,12 +158,12 @@ type SomeView interface {
 
 type alignFunc func(offset CGPoint)
 
-// layoutFunc: used to set the position and size of the View, and return the actual occupied space
+// layoutFunc: used to set the position and size of the child View, and return the actual occupied space
 //
-//	start: the starting coordinate of this View
-//	flexBoundsSize: the external bounds of this View
+//	start: the starting coordinate of this child View
+//	childBoundsSize: the external bounds of this child View
 //	bounds: the actual occupied space (include padding, border ...)
-type layoutFunc func(start CGPoint, flexBoundsSize CGSize) (bounds CGRect, alignFunc alignFunc)
+type layoutFunc func(start CGPoint, childBoundsSize CGSize) (bounds CGRect, alignFunc alignFunc)
 
 func newPreloadData(frameSize CGSize, padding, border CGInset) preloadData {
 	return preloadData{

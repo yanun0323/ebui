@@ -28,6 +28,27 @@ const (
 	AlignBottomTrailing Align = AlignBottom | AlignTrailing // AlignBottomTrailing aligns the item to the bottom trailing edge of the container
 )
 
+func (a Align) Vector() (float64, float64) {
+	x, y := 0.0, 0.0
+	if a.Contain(AlignBottom) {
+		y = 1
+	}
+
+	if a.Contain(AlignTrailing) {
+		x = 1
+	}
+
+	if a.Contain(AlignTop) {
+		y /= 2
+	}
+
+	if a.Contain(AlignLeading) {
+		x /= 2
+	}
+
+	return x, y
+}
+
 func (a Align) Contain(other Align) bool {
 	if a == AlignDefault {
 		return AlignTopLeading&other == other

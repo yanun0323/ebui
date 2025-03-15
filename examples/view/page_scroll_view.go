@@ -34,12 +34,12 @@ func (v *pageScrollView) Body() SomeView {
 		ScrollView(
 			VStack(
 				enum(10)...,
-			).Spacing().Align(Bind(layout.AlignTrailing)),
-		).ScrollViewDirection(Const(layout.DirectionVertical)),
+			).Spacing(),
+		).Align(Bind(layout.AlignTrailing)).ScrollViewDirection(Const(layout.DirectionVertical)),
 		ScrollView(
 			HStack(
 				enum(10)...,
-			).Spacing().Align(Bind(layout.AlignCenter)),
-		).ScrollViewDirection(Const(layout.DirectionHorizontal)),
+			).Spacing(),
+		).Align(Bind(layout.AlignCenter)).ScrollViewDirection(Const(layout.DirectionHorizontal)),
 	).Spacing()
 }

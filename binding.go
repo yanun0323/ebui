@@ -266,6 +266,10 @@ func (b *Binding[T]) setValue(newVal T, with ...animation.Style) {
 		oldVal    = b.getValue(true)
 	)
 
+	if oldVal == newVal {
+		return
+	}
+
 	animatableValue := animStyle != nil && animStyle.Duration() > 0 && animatable(newVal)
 	if animatableValue {
 		var (

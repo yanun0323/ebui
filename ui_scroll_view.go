@@ -3,7 +3,6 @@ package ebui
 import (
 	"image/color"
 	"strconv"
-	"sync/atomic"
 	"time"
 
 	"github.com/cespare/xxhash/v2"
@@ -11,6 +10,11 @@ import (
 	"github.com/yanun0323/ebui/animation"
 	"github.com/yanun0323/ebui/internal/helper"
 	layout "github.com/yanun0323/ebui/layout"
+)
+
+const (
+	_scrollIndicatorLength  = 15.0
+	_scrollIndicatorPadding = 6.0
 )
 
 func ScrollView(content View) SomeView {
@@ -31,35 +35,27 @@ type scrollViewImpl struct {
 	content          SomeView
 	contentOffset    *Binding[CGPoint]
 	indicatorOpacity *Binding[float64]
-	hovered          atomic.Bool
 
 	indicateCache *helper.HashCache[[2]*ebiten.Image] // [base, main]
 }
 
-func (s *scrollViewImpl) isScrollable(sFrameSize CGSize, cBoundsSize CGSize, d layout.Direction) bool {
-	switch d {
-	case layout.DirectionVertical:
-		if sFrameSize.Height >= cBoundsSize.Height {
-			return false
-		}
-	case layout.DirectionHorizontal:
-		if sFrameSize.Width >= cBoundsSize.Width {
-			return false
-		}
+func (s *scrollViewImpl) clampScrollDelta(sFrameSize CGSize, cBoundsSize CGSize, delta CGPoint) CGPoint {
+	if sFrameSize.Height >= cBoundsSize.Height {
+		delta.Y = 0
 	}
 
-	return true
+	if sFrameSize.Width >= cBoundsSize.Width {
+		delta.X = 0
+	}
+
+	return delta
 }
 
-func (s *scrollViewImpl) setScrollOffset(delta CGPoint) {
-	if !s.hovered.Load() {
-		return
-	}
-
-	d := s.scrollViewDirection.Get()
+func (s *scrollViewImpl) setScrollOffset(delta CGPoint, d layout.Direction) {
 	sFrameSize := s.systemSetFrame().Size()
 	cBoundsSize := s.content.systemSetBounds().Size()
-	if !s.isScrollable(sFrameSize, cBoundsSize, d) {
+	delta = s.clampScrollDelta(sFrameSize, cBoundsSize, delta)
+	if delta.IsZero() {
 		return
 	}
 
@@ -97,16 +93,30 @@ func (s *scrollViewImpl) Hash() string {
 }
 
 func (s *scrollViewImpl) preload(parent *viewCtxEnv, types ...stackType) (preloadData, layoutFunc) {
-	stackFormula := &stackPreloader{
-		types:                 newStackTypeFromDirection(s.scrollViewDirection.Get()),
-		stackCtx:              s.viewCtx,
-		children:              []SomeView{s.content},
-		preloadStackOnlyFrame: true,
+	_, cLayout := s.content.preload(parent, types...)
+	sData, sLayout := s.viewCtx.preload(parent, types...)
+
+	return sData, func(start CGPoint, childBoundsSize CGSize) (CGRect, alignFunc) {
+		childFrameSize := childBoundsSize.Shrink(sData.Padding).Shrink(sData.Border)
+		sBounds, sAlignFunc := sLayout(start, childFrameSize)
+		sFrameSize := sBounds.Size().Shrink(sData.Padding).Shrink(sData.Border)
+		cBounds, cAlignFunc := cLayout(start, sFrameSize)
+
+		sBoundsSize := sBounds.Size()
+		cBoundsSize := cBounds.Size()
+
+		vec := NewPoint(s.alignment.Get().Vector())
+		offset := NewPoint(
+			max(sBoundsSize.Width-cBoundsSize.Width, 0)*vec.X,
+			max(sBoundsSize.Height-cBoundsSize.Height, 0)*vec.Y,
+		)
+		cAlignFunc(offset)
+
+		return sBounds, func(offset CGPoint) {
+			sAlignFunc(offset)
+			cAlignFunc(offset)
+		}
 	}
-
-	s.indicateCache.SetNextHash(s.Hash())
-
-	return stackFormula.preload(parent, types...)
 }
 
 func (s *scrollViewImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
@@ -120,6 +130,10 @@ func (s *scrollViewImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawIma
 		opt.GeoM.Translate(offset.X, offset.Y)
 		opt.GeoM.Translate(-bounds.Start.X, -bounds.Start.Y)
 	})
+
+	if !bounds.drawable() {
+		return
+	}
 
 	base := ebiten.NewImage(int(bounds.Dx()), int(bounds.Dy()))
 
@@ -140,10 +154,8 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 		baseSize CGSize
 		mainSize CGSize
 
-		length           = 15.0
-		baseColor        = NewColor(16, 16, 16, 64)
-		mainColor        = NewColor(64, 64, 64, 64)
-		indicatorPadding = 6.0
+		baseColor = NewColor(16, 16, 16, 64)
+		mainColor = NewColor(64, 64, 64, 64)
 
 		d                           = s.scrollViewDirection.Get()
 		offset                      = s.contentOffset.Value()
@@ -158,30 +170,28 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 	{
 		switch d {
 		case layout.DirectionVertical:
-			baseSize = NewSize(length, sBoundsHeight)
-			opt.GeoM.Translate(sBoundsWidth-length, 0)
+			baseSize = NewSize(_scrollIndicatorLength, sBoundsHeight)
+			opt.GeoM.Translate(sBoundsWidth-_scrollIndicatorLength, 0)
 			opt.ColorScale.ScaleAlpha(float32(s.indicatorOpacity.Value()))
 
 			ratio := sBoundsHeight / cBoundsSize.Height
-			mainSize = NewSize(length-indicatorPadding, ratio*sBoundsHeight)
-			optOffset = NewPoint(indicatorPadding/2, -offset.Y*ratio)
+			mainSize = NewSize(_scrollIndicatorLength-_scrollIndicatorPadding, ratio*sBoundsHeight)
+			optOffset = NewPoint(_scrollIndicatorPadding/2, -offset.Y*ratio)
 			radius = mainSize.Width / 2
 		case layout.DirectionHorizontal:
-			baseSize = NewSize(sBoundsWidth, length)
-			opt.GeoM.Translate(0, sBoundsHeight-length)
+			baseSize = NewSize(sBoundsWidth, _scrollIndicatorLength)
+			opt.GeoM.Translate(0, sBoundsHeight-_scrollIndicatorLength)
 			opt.ColorScale.ScaleAlpha(float32(s.indicatorOpacity.Value()))
 
 			ratio := sBoundsWidth / cBoundsSize.Width
-			mainSize = NewSize(ratio*sBoundsWidth, length-indicatorPadding)
-			optOffset = NewPoint(-offset.X*ratio, indicatorPadding/2)
+			mainSize = NewSize(ratio*sBoundsWidth, _scrollIndicatorLength-_scrollIndicatorPadding)
+			optOffset = NewPoint(-offset.X*ratio, _scrollIndicatorPadding/2)
 			radius = mainSize.Height / 2
 		}
 	}
 
-	var img [2]*ebiten.Image
-	if s.indicateCache.IsNextHashCached() {
-		img = s.indicateCache.Load()
-	} else {
+	img := s.indicateCache.Load()
+	if s.indicateCache.IsNextCacheOutdated() || img[0] == nil || img[1] == nil {
 		img[0] = ebiten.NewImage(int(baseSize.Width), int(baseSize.Height))
 		img[0].Fill(baseColor)
 
@@ -213,14 +223,38 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 }
 
 func (s *scrollViewImpl) HandleWheelEvent(event wheelEvent) {
-	s.setScrollOffset(event.Delta)
-	hovered := onHover(s.systemSetBounds())
-	if s.hovered.Swap(hovered) != hovered {
-		opacity := 0.0
-		if hovered {
-			opacity = 1.0
+	anim := animation.EaseInOut(300 * time.Millisecond)
+	if !onHover(s.systemSetBounds()) {
+		if opacity := s.indicatorOpacity.Get(); opacity != 0.0 {
+			s.indicatorOpacity.Set(0.0, anim)
 		}
-		s.indicatorOpacity.Set(opacity, animation.EaseInOut(300*time.Millisecond))
+
+		return
+	}
+
+	d := s.scrollViewDirection.Get()
+	if !event.Delta.IsZero() {
+		s.setScrollOffset(event.Delta, d)
+	}
+
+	scrolling := false
+	switch d {
+	case layout.DirectionVertical:
+		scrolling = event.Delta.Y != 0
+	case layout.DirectionHorizontal:
+		scrolling = event.Delta.X != 0
+	}
+
+	if scrolling {
+		opacity := s.indicatorOpacity.Get()
+		if opacity != 1.0 {
+			s.indicatorOpacity.Set(1.0, anim)
+		}
+	} else {
+		opacity := s.indicatorOpacity.Get()
+		if opacity != 0.0 {
+			s.indicatorOpacity.Set(0.0, anim)
+		}
 	}
 }
 

@@ -314,9 +314,9 @@ func (c *viewCtx) Align(alignment *Binding[layout.Align]) SomeView {
 			c.transitionAlign = Bind(CGPoint{})
 		}
 
-		c.transitionAlign.Set(alignToCGPoint(alignment.Value()), nil)
+		c.transitionAlign.Set(NewPoint(alignment.Value().Vector()), nil)
 		alignment.AddListener(func(oldVal, newVal layout.Align, animStyle ...animation.Style) {
-			c.transitionAlign.Set(alignToCGPoint(newVal), animStyle...)
+			c.transitionAlign.Set(NewPoint(newVal.Vector()), animStyle...)
 		})
 	})
 

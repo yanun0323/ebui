@@ -159,6 +159,10 @@ func (s CGSize) Bytes() []byte {
 
 var zeroSize CGSize
 
+func (s CGSize) drawable() bool {
+	return s.Width > 0 && s.Height > 0 && !isInf(s.Width) && !isInf(s.Height)
+}
+
 func (s CGSize) IsZero() bool {
 	return s == zeroSize
 }
