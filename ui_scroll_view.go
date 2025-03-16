@@ -17,6 +17,11 @@ const (
 	_scrollIndicatorPadding = 6.0
 )
 
+// ScrollView is a view that can scroll its content.
+//
+// Use ScrollViewDirection to specify the direction of the scroll view.
+//
+// Default direction is vertical.
 func ScrollView(content View) SomeView {
 	sv := &scrollViewImpl{
 		contentOffset:    Bind(CGPoint{}),
