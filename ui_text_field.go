@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/yanun0323/ebui/input"
 )
 
 // TODO: Implement the TextField
@@ -78,36 +79,36 @@ func (t *textFieldImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImag
 	}
 }
 
-func (t *textFieldImpl) HandleWheelEvent(event wheelEvent) {}
+func (t *textFieldImpl) HandleWheelEvent(input.ScrollEvent) {}
 
-func (t *textFieldImpl) HandleTouchEvent(event touchEvent) {
+func (t *textFieldImpl) HandleTouchEvent(event input.TouchEvent) {
 	switch event.Phase {
-	case touchPhaseBegan:
-		if event.Position.In(t.systemSetBounds()) {
+	case input.TouchPhaseBegan:
+		if t.systemSetBounds().Contains(event.Position) {
 			t.setFocused(true)
 		} else {
 			t.setFocused(false)
 		}
-	case touchPhaseMoved:
-	case touchPhaseEnded, touchPhaseCancelled:
+	case input.TouchPhaseMoved:
+	case input.TouchPhaseEnded, input.TouchPhaseCancelled:
 	}
 }
 
-func (t *textFieldImpl) HandleKeyEvent(event keyEvent) {
+func (t *textFieldImpl) HandleKeyEvent(event input.KeyEvent) {
 	if !t.isFocused {
 		return
 	}
 
-	if event.Phase != keyPhaseJustReleased {
+	if event.Phase != input.KeyPhaseJustReleased {
 		switch event.Key {
-		case ebiten.KeyBackspace:
+		case input.KeyBackspace:
 			t.content.Set(removeLastChar(t.content.Value()))
 			t.cursorPos--
 		}
 	}
 }
 
-func (t *textFieldImpl) HandleInputEvent(event inputEvent) {
+func (t *textFieldImpl) HandleInputEvent(event input.TypeEvent) {
 	if t.isFocused {
 		content := t.content.Value()
 		if t.cursorPos == utf8.RuneCountInString(content) {

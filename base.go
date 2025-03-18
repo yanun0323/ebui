@@ -3,6 +3,8 @@ package ebui
 import (
 	"image"
 	"unsafe"
+
+	"github.com/yanun0323/ebui/input"
 )
 
 type numberable interface {
@@ -289,7 +291,11 @@ func (r CGRect) IsZero() bool {
 	return r == zeroRect
 }
 
-func (r CGRect) Contains(p CGPoint) bool {
+func (r CGRect) Contains(p input.Vector) bool {
+	return p.X >= r.Start.X && p.X <= r.End.X && p.Y >= r.Start.Y && p.Y <= r.End.Y
+}
+
+func (r CGRect) Contain(p CGPoint) bool {
 	return p.X >= r.Start.X && p.X <= r.End.X && p.Y >= r.Start.Y && p.Y <= r.End.Y
 }
 

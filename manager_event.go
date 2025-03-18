@@ -3,94 +3,41 @@ package ebui
 import (
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/yanun0323/ebui/input"
 )
 
 type eventHandler interface {
-	HandleWheelEvent(event wheelEvent)
-	HandleTouchEvent(event touchEvent)
-	HandleKeyEvent(event keyEvent)
-	HandleInputEvent(event inputEvent)
-}
-
-type wheelEvent struct {
-	Delta CGPoint
-}
-
-type wheelPhase int
-
-const (
-	wheelPhaseNone wheelPhase = iota
-	wheelPhaseBegan
-	wheelPhaseMoved
-	wheelPhaseEnded
-)
-
-// touchEvent presents the touch event of the user
-type touchEvent struct {
-	Phase    touchPhase
-	Position CGPoint
-}
-
-type touchPhase int
-
-const (
-	touchPhaseNone touchPhase = iota
-	touchPhaseBegan
-	touchPhaseMoved
-	touchPhaseEnded
-	touchPhaseCancelled
-)
-
-// keyEvent presents the key event of the user
-type keyEvent struct {
-	Key   ebiten.Key
-	Phase keyPhase
-
-	Shift   bool
-	Control bool
-	Alt     bool // Option
-	Meta    bool // Windows or Command
-}
-
-type keyPhase int
-
-const (
-	keyPhaseJustPressed keyPhase = iota
-	keyPhasePressing
-	keyPhaseJustReleased
-)
-
-// inputEvent presents the input event of the user
-type inputEvent struct {
-	Char rune
+	HandleWheelEvent(input.ScrollEvent)
+	HandleTouchEvent(input.TouchEvent)
+	HandleKeyEvent(input.KeyEvent)
+	HandleInputEvent(input.TypeEvent)
 }
 
 var globalEventManager = &eventManager{
 	keyPressThreshold:  500,
 	keyPressInterval:   50,
-	keyStatusUpdatedAt: make(map[ebiten.Key]int64),
+	keyStatusUpdatedAt: make(map[input.Key]int64),
 	handlers:           make([]eventHandler, 0),
 	isTracking:         false,
 }
 
 // eventManager responsible for handling events
 type eventManager struct {
-	keyPressThreshold  int64                /* millisecond */
-	keyPressInterval   int64                /* millisecond */
-	keyStatusUpdatedAt map[ebiten.Key]int64 /* millisecond */
+	keyPressThreshold  int64               /* millisecond */
+	keyPressInterval   int64               /* millisecond */
+	keyStatusUpdatedAt map[input.Key]int64 /* millisecond */
 	handlers           []eventHandler
 	isTracking         bool
-	lastWheelEvent     wheelEvent
+	lastScrollEvent    input.ScrollEvent
 }
 
-func (em *eventManager) DispatchWheelEvent(event wheelEvent) {
+func (em *eventManager) DispatchWheelEvent(event input.ScrollEvent) {
 	defer func() {
-		em.lastWheelEvent = event
+		em.lastScrollEvent = event
 	}()
 
 	if event.Delta.IsZero() {
-		if !em.lastWheelEvent.Delta.IsZero() {
+		if !em.lastScrollEvent.Delta.IsZero() {
 			return
 		}
 	}
@@ -100,10 +47,10 @@ func (em *eventManager) DispatchWheelEvent(event wheelEvent) {
 	}
 }
 
-func (em *eventManager) DispatchTouchEvent(event touchEvent) {
-	if event.Phase == touchPhaseBegan {
+func (em *eventManager) DispatchTouchEvent(event input.TouchEvent) {
+	if event.Phase == input.TouchPhaseBegan {
 		em.isTracking = true
-	} else if event.Phase == touchPhaseEnded || event.Phase == touchPhaseCancelled {
+	} else if event.Phase == input.TouchPhaseEnded || event.Phase == input.TouchPhaseCancelled {
 		em.isTracking = false
 	}
 
@@ -112,12 +59,12 @@ func (em *eventManager) DispatchTouchEvent(event touchEvent) {
 	}
 }
 
-func (em *eventManager) DispatchKeyEvent(event keyEvent) {
+func (em *eventManager) DispatchKeyEvent(event input.KeyEvent) {
 	now := time.Now().UnixMilli()
 	switch event.Phase {
-	case keyPhaseJustPressed:
+	case input.KeyPhaseJustPressed:
 		em.keyStatusUpdatedAt[event.Key] = now + em.keyPressThreshold
-	case keyPhasePressing:
+	case input.KeyPhasePressing:
 		t, ok := em.keyStatusUpdatedAt[event.Key]
 		if ok {
 			if now <= t {
@@ -132,7 +79,7 @@ func (em *eventManager) DispatchKeyEvent(event keyEvent) {
 	}
 }
 
-func (em *eventManager) DispatchInputEvent(event inputEvent) {
+func (em *eventManager) DispatchInputEvent(event input.TypeEvent) {
 	for _, handler := range em.handlers {
 		handler.HandleInputEvent(event)
 	}

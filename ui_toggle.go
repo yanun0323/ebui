@@ -3,6 +3,7 @@ package ebui
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/animation"
+	"github.com/yanun0323/ebui/input"
 	layout "github.com/yanun0323/ebui/layout"
 )
 
@@ -111,29 +112,29 @@ func (b *toggleImpl) defaultLabel() SomeView {
 		Align(Bind(layout.AlignLeading | layout.AlignTop))
 }
 
-func (t *toggleImpl) HandleWheelEvent(event wheelEvent) {}
+func (t *toggleImpl) HandleWheelEvent(input.ScrollEvent) {}
 
-func (t *toggleImpl) HandleTouchEvent(event touchEvent) {
+func (t *toggleImpl) HandleTouchEvent(event input.TouchEvent) {
 	if t.viewCtxEnv.disabled.Value() {
 		return
 	}
 
 	switch event.Phase {
-	case touchPhaseBegan:
-		if event.Position.In(t.labelLoaded.systemSetBounds()) {
+	case input.TouchPhaseBegan:
+		if t.labelLoaded.systemSetBounds().Contains(event.Position) {
 			t.isPressed = true
 		}
-	case touchPhaseEnded, touchPhaseCancelled:
+	case input.TouchPhaseEnded, input.TouchPhaseCancelled:
 		if t.isPressed {
 			t.isPressed = false
 		}
 
-		if event.Position.In(t.labelLoaded.systemSetBounds()) {
+		if t.labelLoaded.systemSetBounds().Contains(event.Position) {
 			t.enabled.Set(!t.enabled.Value())
 		}
 	}
 }
 
-func (t *toggleImpl) HandleKeyEvent(event keyEvent) {}
+func (t *toggleImpl) HandleKeyEvent(input.KeyEvent) {}
 
-func (t *toggleImpl) HandleInputEvent(event inputEvent) {}
+func (t *toggleImpl) HandleInputEvent(input.TypeEvent) {}

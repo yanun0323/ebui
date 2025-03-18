@@ -8,6 +8,7 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/animation"
+	"github.com/yanun0323/ebui/input"
 	"github.com/yanun0323/ebui/internal/helper"
 	layout "github.com/yanun0323/ebui/layout"
 )
@@ -227,7 +228,7 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 	screen.DrawImage(img[1], op)
 }
 
-func (s *scrollViewImpl) HandleWheelEvent(event wheelEvent) {
+func (s *scrollViewImpl) HandleWheelEvent(event input.ScrollEvent) {
 	anim := animation.EaseInOut(300 * time.Millisecond)
 	if !onHover(s.systemSetBounds()) {
 		if opacity := s.indicatorOpacity.Get(); opacity != 0.0 {
@@ -239,7 +240,7 @@ func (s *scrollViewImpl) HandleWheelEvent(event wheelEvent) {
 
 	d := s.scrollViewDirection.Get()
 	if !event.Delta.IsZero() {
-		s.setScrollOffset(event.Delta, d)
+		s.setScrollOffset(NewPoint(event.Delta.X, event.Delta.Y), d)
 	}
 
 	scrolling := false
@@ -263,12 +264,8 @@ func (s *scrollViewImpl) HandleWheelEvent(event wheelEvent) {
 	}
 }
 
-func (s *scrollViewImpl) HandleTouchEvent(event touchEvent) {
+func (s *scrollViewImpl) HandleTouchEvent(input.TouchEvent) {}
 
-}
+func (s *scrollViewImpl) HandleKeyEvent(input.KeyEvent) {}
 
-func (s *scrollViewImpl) HandleKeyEvent(event keyEvent) {
-}
-
-func (s *scrollViewImpl) HandleInputEvent(event inputEvent) {
-}
+func (s *scrollViewImpl) HandleInputEvent(input.TypeEvent) {}

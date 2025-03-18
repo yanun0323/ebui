@@ -5,12 +5,25 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/yanun0323/ebui/input"
 	"github.com/yanun0323/ebui/internal/helper"
 )
 
 var (
 	popupViews []SomeView
 )
+
+// CursorPosition returns a position of a mouse cursor relative to the game screen (window). The cursor position is
+// 'logical' position and this considers the scale of the screen.
+//
+// CursorPosition returns (0, 0) before the main loop on desktops and browsers.
+//
+// CursorPosition always returns (0, 0) on mobile native applications.
+//
+// CursorPosition is concurrent-safe.
+func CursorPosition() (x, y int) {
+	return ebiten.CursorPosition()
+}
 
 // EbitenUpdate updates the application state
 //
@@ -36,33 +49,36 @@ func EbitenUpdate(contentView SomeView) {
 	mLayout := m.ElapsedAndReset()
 
 	// 3. handle wheel events
-	x, y := ebiten.Wheel()
+	dx, dy := ebiten.Wheel()
 	speed := DefaultScrollSpeed.Value()
-	globalEventManager.DispatchWheelEvent(wheelEvent{
-		Delta: NewPoint(x*speed, y*speed),
+	globalEventManager.DispatchWheelEvent(input.ScrollEvent{
+		Delta: newVector(dx*speed, dy*speed),
 	})
 
 	// 4. handle touch events
+
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
-		pos := NewPoint(float64(x), float64(y))
+		pos := newVector(x, y)
 
 		if globalEventManager.isTracking {
-			globalEventManager.DispatchTouchEvent(touchEvent{
-				Phase:    touchPhaseMoved,
+			globalEventManager.DispatchTouchEvent(input.TouchEvent{
+				Phase:    input.TouchPhaseMoved,
 				Position: pos,
 			})
 		} else {
-			globalEventManager.DispatchTouchEvent(touchEvent{
-				Phase:    touchPhaseBegan,
+			globalEventManager.DispatchTouchEvent(input.TouchEvent{
+				Phase:    input.TouchPhaseBegan,
 				Position: pos,
 			})
 		}
 	} else if globalEventManager.isTracking {
 		x, y := ebiten.CursorPosition()
-		globalEventManager.DispatchTouchEvent(touchEvent{
-			Phase:    touchPhaseEnded,
-			Position: NewPoint(float64(x), float64(y)),
+		pos := newVector(x, y)
+
+		globalEventManager.DispatchTouchEvent(input.TouchEvent{
+			Phase:    input.TouchPhaseEnded,
+			Position: pos,
 		})
 	}
 
@@ -76,9 +92,9 @@ func EbitenUpdate(contentView SomeView) {
 
 	keys := inpututil.AppendJustPressedKeys(nil)
 	for _, key := range keys {
-		globalEventManager.DispatchKeyEvent(keyEvent{
-			Key:     key,
-			Phase:   keyPhaseJustPressed,
+		globalEventManager.DispatchKeyEvent(input.KeyEvent{
+			Key:     input.Key(key),
+			Phase:   input.KeyPhaseJustPressed,
 			Shift:   shiftPressing,
 			Control: controlPressing,
 			Alt:     altPressing,
@@ -88,9 +104,9 @@ func EbitenUpdate(contentView SomeView) {
 
 	keys = inpututil.AppendPressedKeys(nil)
 	for _, key := range keys {
-		globalEventManager.DispatchKeyEvent(keyEvent{
-			Key:     key,
-			Phase:   keyPhasePressing,
+		globalEventManager.DispatchKeyEvent(input.KeyEvent{
+			Key:     input.Key(key),
+			Phase:   input.KeyPhasePressing,
 			Shift:   shiftPressing,
 			Control: controlPressing,
 			Alt:     altPressing,
@@ -100,9 +116,9 @@ func EbitenUpdate(contentView SomeView) {
 
 	keys = inpututil.AppendJustReleasedKeys(nil)
 	for _, key := range keys {
-		globalEventManager.DispatchKeyEvent(keyEvent{
-			Key:     key,
-			Phase:   keyPhaseJustReleased,
+		globalEventManager.DispatchKeyEvent(input.KeyEvent{
+			Key:     input.Key(key),
+			Phase:   input.KeyPhaseJustReleased,
 			Shift:   shiftPressing,
 			Control: controlPressing,
 			Alt:     altPressing,
@@ -113,9 +129,9 @@ func EbitenUpdate(contentView SomeView) {
 	mKeyboard := m.ElapsedAndReset()
 
 	// 6. handle input events
-	input := ebiten.AppendInputChars(nil)
-	for _, char := range input {
-		globalEventManager.DispatchInputEvent(inputEvent{
+	inputs := ebiten.AppendInputChars(nil)
+	for _, char := range inputs {
+		globalEventManager.DispatchInputEvent(input.TypeEvent{
 			Char: char,
 		})
 	}

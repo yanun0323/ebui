@@ -24,6 +24,7 @@ type viewCtxParam struct {
 	keepAspectRatio *Binding[bool]
 	offset          *Binding[CGPoint] /* only use for systemSetFrame */
 	spacing         *Binding[float64]
+	onGesture       *value[func(gestureEvent)]
 }
 
 func newParam() *viewCtxParam {

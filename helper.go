@@ -4,6 +4,7 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/yanun0323/ebui/input"
 )
 
 func removeLastChar(s string) string {
@@ -24,9 +25,14 @@ func getTypes(types ...stackType) stackType {
 
 func onHover(bounds CGRect) bool {
 	x, y := ebiten.CursorPosition()
-	return bounds.Contains(NewPoint(x, y))
+	return bounds.Contain(NewPoint(x, y))
 }
 
+func newVector[T numberable](x, y T) input.Vector {
+	return input.Vector{X: float64(x), Y: float64(y)}
+}
+
+// value is a helper struct for atomic value
 type value[T any] struct {
 	val atomic.Value
 }
@@ -57,4 +63,8 @@ func (v *value[T]) Swap(val T) T {
 	}
 
 	return *new(T)
+}
+
+func (v *value[T]) IsNil() bool {
+	return v.val.Load() == nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/animation"
 	"github.com/yanun0323/ebui/font"
+	"github.com/yanun0323/ebui/input"
 	"github.com/yanun0323/ebui/internal/helper"
 	"github.com/yanun0323/ebui/layout"
 )
@@ -162,6 +163,44 @@ func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptio
 	 ##    ##     ##   ##          ##         ##         ##     ##   ##         ##   ###      ##
 	####   ##     ##   ##          ########   ########   ##     ##   ########   ##    ##      ##
 */
+
+var _ eventHandler = (*viewCtx)(nil)
+
+func (c *viewCtx) HandleWheelEvent(event input.ScrollEvent) {
+
+}
+
+func (c *viewCtx) HandleTouchEvent(event input.TouchEvent) {
+
+}
+
+func (c *viewCtx) HandleKeyEvent(event input.KeyEvent) {
+
+}
+
+func (c *viewCtx) HandleInputEvent(event input.TypeEvent) {}
+
+/*
+	######## ##     ## ######## ##    ## ########
+	##       ##     ## ##       ###   ##    ##
+	##       ##     ## ##       ####  ##    ##
+	######   ##     ## ######   ## ## ##    ##
+	##        ##   ##  ##       ##  ####    ##
+	##         ## ##   ##       ##   ###    ##
+	########    ###    ######## ##    ##    ##
+*/
+
+/*
+	 ######   #######  ##     ## ######## ##     ## #### ######## ##      ##
+	##    ## ##     ## ###   ### ##       ##     ##  ##  ##       ##  ##  ##
+	##       ##     ## #### #### ##       ##     ##  ##  ##       ##  ##  ##
+	 ######  ##     ## ## ### ## ######   ##     ##  ##  ######   ##  ##  ##
+	      ## ##     ## ##     ## ##        ##   ##   ##  ##       ##  ##  ##
+	##    ## ##     ## ##     ## ##         ## ##    ##  ##       ##  ##  ##
+	 ######   #######  ##     ## ########    ###    #### ########  ###  ###
+*/
+
+var _ SomeView = (*viewCtx)(nil)
 
 func (c *viewCtx) Body() SomeView {
 	return c._owner

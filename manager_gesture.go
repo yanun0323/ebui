@@ -3,6 +3,8 @@ package ebui
 import (
 	"math"
 	"time"
+
+	"github.com/yanun0323/ebui/input"
 )
 
 // TODO: Implement gesture recognizer manager
@@ -29,11 +31,11 @@ const (
 type gestureEvent struct {
 	Type      gestureType
 	State     gestureState
-	Location  CGPoint
-	Delta     CGPoint
+	Location  input.Vector
+	Delta     input.Vector
 	Scale     float64 // for pinch gesture
 	Rotation  float64 // for rotation gesture
-	Velocity  CGPoint
+	Velocity  input.Vector
 	Timestamp time.Time
 }
 
@@ -42,10 +44,10 @@ type gestureRecognizer struct {
 
 	// internal state
 	startTime   time.Time
-	startPos    CGPoint
-	lastPos     CGPoint
+	startPos    input.Vector
+	lastPos     input.Vector
 	lastTime    time.Time
-	touchPoints []CGPoint
+	touchPoints []input.Vector
 	isTracking  bool
 }
 
@@ -55,47 +57,44 @@ func newGestureRecognizer(handler func(gestureEvent)) *gestureRecognizer {
 	}
 }
 
-func (gr *gestureRecognizer) HandleTouchEvent(event touchEvent) bool {
+func (gr *gestureRecognizer) HandleTouchEvent(event input.TouchEvent) bool {
 	switch event.Phase {
-	case touchPhaseBegan:
+	case input.TouchPhaseBegan:
 		gr.startTracking(event)
 
-	case touchPhaseMoved:
+	case input.TouchPhaseMoved:
 		if gr.isTracking {
 			gr.updateTracking(event)
 		}
 
-	case touchPhaseEnded:
+	case input.TouchPhaseEnded:
 		if gr.isTracking {
 			gr.endTracking(event)
 		}
 
-	case touchPhaseCancelled:
+	case input.TouchPhaseCancelled:
 		gr.cancelTracking()
 	}
 
 	return gr.isTracking
 }
 
-func (gr *gestureRecognizer) startTracking(event touchEvent) {
+func (gr *gestureRecognizer) startTracking(event input.TouchEvent) {
 	gr.isTracking = true
 	gr.startTime = time.Now()
 	gr.startPos = event.Position
 	gr.lastPos = event.Position
 	gr.lastTime = gr.startTime
-	gr.touchPoints = []CGPoint{event.Position}
+	gr.touchPoints = []input.Vector{event.Position}
 }
 
-func (gr *gestureRecognizer) updateTracking(event touchEvent) {
+func (gr *gestureRecognizer) updateTracking(event input.TouchEvent) {
 	now := time.Now()
-	delta := event.Position.Sub(gr.lastPos)
+	delta := newVector(event.Position.X-gr.lastPos.X, event.Position.Y-gr.lastPos.Y)
 
 	// calculate velocity
 	duration := now.Sub(gr.lastTime).Seconds()
-	velocity := CGPoint{
-		X: delta.X / duration,
-		Y: delta.Y / duration,
-	}
+	velocity := newVector(delta.X/duration, delta.Y/duration)
 
 	gr.onGesture(gestureEvent{
 		Type:      gestureSwipe,
@@ -111,7 +110,7 @@ func (gr *gestureRecognizer) updateTracking(event touchEvent) {
 	gr.touchPoints = append(gr.touchPoints, event.Position)
 }
 
-func (gr *gestureRecognizer) endTracking(event touchEvent) {
+func (gr *gestureRecognizer) endTracking(event input.TouchEvent) {
 	duration := time.Since(gr.startTime)
 
 	// detect tap

@@ -2,6 +2,7 @@ package ebui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/yanun0323/ebui/input"
 )
 
 var (
@@ -67,24 +68,24 @@ func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 	b.labelLoaded.draw(screen, hooks...)
 }
 
-func (b *buttonImpl) HandleWheelEvent(event wheelEvent) {}
+func (b *buttonImpl) HandleWheelEvent(input.ScrollEvent) {}
 
-func (b *buttonImpl) HandleTouchEvent(event touchEvent) {
+func (b *buttonImpl) HandleTouchEvent(event input.TouchEvent) {
 	if b.viewCtxEnv.disabled.Value() {
 		b.isPressed = false
 		return
 	}
 
 	switch event.Phase {
-	case touchPhaseBegan:
-		if event.Position.In(b.labelLoaded.systemSetBounds()) {
+	case input.TouchPhaseBegan:
+		if b.labelLoaded.systemSetBounds().Contains(event.Position) {
 			b.isPressed = true
 		}
-	case touchPhaseMoved:
-	case touchPhaseEnded, touchPhaseCancelled:
+	case input.TouchPhaseMoved:
+	case input.TouchPhaseEnded, input.TouchPhaseCancelled:
 		if b.isPressed {
 			b.isPressed = false
-			if event.Position.In(b.labelLoaded.systemSetBounds()) {
+			if b.labelLoaded.systemSetBounds().Contains(event.Position) {
 				if b.action != nil {
 					b.action()
 				}
@@ -93,6 +94,6 @@ func (b *buttonImpl) HandleTouchEvent(event touchEvent) {
 	}
 }
 
-func (b *buttonImpl) HandleKeyEvent(event keyEvent) {}
+func (b *buttonImpl) HandleKeyEvent(input.KeyEvent) {}
 
-func (b *buttonImpl) HandleInputEvent(event inputEvent) {}
+func (b *buttonImpl) HandleInputEvent(input.TypeEvent) {}
