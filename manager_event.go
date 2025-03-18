@@ -7,10 +7,14 @@ import (
 )
 
 type eventHandler interface {
-	HandleWheelEvent(input.ScrollEvent)
-	HandleTouchEvent(input.TouchEvent)
-	HandleKeyEvent(input.KeyEvent)
-	HandleInputEvent(input.TypeEvent)
+	onScrollEvent(input.ScrollEvent)
+	onMouseEvent(input.MouseEvent)
+	onKeyEvent(input.KeyEvent)
+	onTypeEvent(input.TypeEvent)
+	onGestureEvent(input.GestureEvent)
+	onTouchEvent(input.TouchEvent)
+
+	processable() bool
 }
 
 var globalEventManager = &eventManager{
@@ -31,6 +35,29 @@ type eventManager struct {
 	lastScrollEvent    input.ScrollEvent
 }
 
+func (em *eventManager) Update() {
+	removable := make(map[int]bool, len(em.handlers))
+	for i, handler := range em.handlers {
+		if !handler.processable() {
+			removable[i] = true
+		}
+	}
+
+	if len(removable) == 0 {
+		return
+	}
+
+	handlers := make([]eventHandler, 0, len(em.handlers)-len(removable))
+	for i, handler := range em.handlers {
+		if !removable[i] {
+			handlers = append(handlers, handler)
+		}
+	}
+
+	println("remain handlers: ", len(handlers))
+	em.handlers = handlers
+}
+
 func (em *eventManager) DispatchWheelEvent(event input.ScrollEvent) {
 	defer func() {
 		em.lastScrollEvent = event
@@ -43,19 +70,19 @@ func (em *eventManager) DispatchWheelEvent(event input.ScrollEvent) {
 	}
 
 	for _, handler := range em.handlers {
-		handler.HandleWheelEvent(event)
+		handler.onScrollEvent(event)
 	}
 }
 
-func (em *eventManager) DispatchTouchEvent(event input.TouchEvent) {
-	if event.Phase == input.TouchPhaseBegan {
+func (em *eventManager) DispatchTouchEvent(event input.MouseEvent) {
+	if event.Phase == input.MousePhaseBegan {
 		em.isTracking = true
-	} else if event.Phase == input.TouchPhaseEnded || event.Phase == input.TouchPhaseCancelled {
+	} else if event.Phase == input.MousePhaseEnded || event.Phase == input.MousePhaseCancelled {
 		em.isTracking = false
 	}
 
 	for _, handler := range em.handlers {
-		handler.HandleTouchEvent(event)
+		handler.onMouseEvent(event)
 	}
 }
 
@@ -75,13 +102,13 @@ func (em *eventManager) DispatchKeyEvent(event input.KeyEvent) {
 	}
 
 	for _, handler := range em.handlers {
-		handler.HandleKeyEvent(event)
+		handler.onKeyEvent(event)
 	}
 }
 
 func (em *eventManager) DispatchInputEvent(event input.TypeEvent) {
 	for _, handler := range em.handlers {
-		handler.HandleInputEvent(event)
+		handler.onTypeEvent(event)
 	}
 }
 

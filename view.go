@@ -22,6 +22,7 @@ type ViewModifier interface {
 // SomeView represents the instance of View
 type SomeView interface {
 	View
+	eventHandler
 
 	// preload sets the environment variables and returns the layout information of the view
 	preload(parent *viewCtxEnv, stackTypes ...stackType) (preloadData, layoutFunc)

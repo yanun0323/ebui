@@ -112,19 +112,19 @@ func (b *toggleImpl) defaultLabel() SomeView {
 		Align(Bind(layout.AlignLeading | layout.AlignTop))
 }
 
-func (t *toggleImpl) HandleWheelEvent(input.ScrollEvent) {}
+func (t *toggleImpl) onMouseEvent(event input.MouseEvent) {
+	defer t.viewCtx.onMouseEvent(event)
 
-func (t *toggleImpl) HandleTouchEvent(event input.TouchEvent) {
 	if t.viewCtxEnv.disabled.Value() {
 		return
 	}
 
 	switch event.Phase {
-	case input.TouchPhaseBegan:
+	case input.MousePhaseBegan:
 		if t.labelLoaded.systemSetBounds().Contains(event.Position) {
 			t.isPressed = true
 		}
-	case input.TouchPhaseEnded, input.TouchPhaseCancelled:
+	case input.MousePhaseEnded, input.MousePhaseCancelled:
 		if t.isPressed {
 			t.isPressed = false
 		}
@@ -135,6 +135,6 @@ func (t *toggleImpl) HandleTouchEvent(event input.TouchEvent) {
 	}
 }
 
-func (t *toggleImpl) HandleKeyEvent(input.KeyEvent) {}
-
-func (t *toggleImpl) HandleInputEvent(input.TypeEvent) {}
+func (t *toggleImpl) processable() bool {
+	return true
+}

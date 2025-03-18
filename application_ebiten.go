@@ -48,27 +48,30 @@ func EbitenUpdate(contentView SomeView) {
 
 	mLayout := m.ElapsedAndReset()
 
-	// 3. handle wheel events
+	// 3. update event manager
+	globalEventManager.Update()
+
+	// 4. handle wheel events
 	dx, dy := ebiten.Wheel()
 	speed := DefaultScrollSpeed.Value()
 	globalEventManager.DispatchWheelEvent(input.ScrollEvent{
 		Delta: newVector(dx*speed, dy*speed),
 	})
 
-	// 4. handle touch events
+	// 5. handle touch events
 
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		pos := newVector(x, y)
 
 		if globalEventManager.isTracking {
-			globalEventManager.DispatchTouchEvent(input.TouchEvent{
-				Phase:    input.TouchPhaseMoved,
+			globalEventManager.DispatchTouchEvent(input.MouseEvent{
+				Phase:    input.MousePhaseMoved,
 				Position: pos,
 			})
 		} else {
-			globalEventManager.DispatchTouchEvent(input.TouchEvent{
-				Phase:    input.TouchPhaseBegan,
+			globalEventManager.DispatchTouchEvent(input.MouseEvent{
+				Phase:    input.MousePhaseBegan,
 				Position: pos,
 			})
 		}
@@ -76,15 +79,15 @@ func EbitenUpdate(contentView SomeView) {
 		x, y := ebiten.CursorPosition()
 		pos := newVector(x, y)
 
-		globalEventManager.DispatchTouchEvent(input.TouchEvent{
-			Phase:    input.TouchPhaseEnded,
+		globalEventManager.DispatchTouchEvent(input.MouseEvent{
+			Phase:    input.MousePhaseEnded,
 			Position: pos,
 		})
 	}
 
 	mMouse := m.ElapsedAndReset()
 
-	// 5. handle keyboard events
+	// 6. handle keyboard events
 	altPressing := ebiten.IsKeyPressed(ebiten.KeyAltLeft) || ebiten.IsKeyPressed(ebiten.KeyAltRight) || ebiten.IsKeyPressed(ebiten.KeyAlt)
 	shiftPressing := ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight) || ebiten.IsKeyPressed(ebiten.KeyShift)
 	controlPressing := ebiten.IsKeyPressed(ebiten.KeyControlLeft) || ebiten.IsKeyPressed(ebiten.KeyControlRight) || ebiten.IsKeyPressed(ebiten.KeyControl)
@@ -128,7 +131,7 @@ func EbitenUpdate(contentView SomeView) {
 
 	mKeyboard := m.ElapsedAndReset()
 
-	// 6. handle input events
+	// 7. handle input events
 	inputs := ebiten.AppendInputChars(nil)
 	for _, char := range inputs {
 		globalEventManager.DispatchInputEvent(input.TypeEvent{

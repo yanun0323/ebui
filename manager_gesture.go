@@ -57,29 +57,29 @@ func newGestureRecognizer(handler func(gestureEvent)) *gestureRecognizer {
 	}
 }
 
-func (gr *gestureRecognizer) HandleTouchEvent(event input.TouchEvent) bool {
+func (gr *gestureRecognizer) HandleTouchEvent(event input.MouseEvent) bool {
 	switch event.Phase {
-	case input.TouchPhaseBegan:
+	case input.MousePhaseBegan:
 		gr.startTracking(event)
 
-	case input.TouchPhaseMoved:
+	case input.MousePhaseMoved:
 		if gr.isTracking {
 			gr.updateTracking(event)
 		}
 
-	case input.TouchPhaseEnded:
+	case input.MousePhaseEnded:
 		if gr.isTracking {
 			gr.endTracking(event)
 		}
 
-	case input.TouchPhaseCancelled:
+	case input.MousePhaseCancelled:
 		gr.cancelTracking()
 	}
 
 	return gr.isTracking
 }
 
-func (gr *gestureRecognizer) startTracking(event input.TouchEvent) {
+func (gr *gestureRecognizer) startTracking(event input.MouseEvent) {
 	gr.isTracking = true
 	gr.startTime = time.Now()
 	gr.startPos = event.Position
@@ -88,7 +88,7 @@ func (gr *gestureRecognizer) startTracking(event input.TouchEvent) {
 	gr.touchPoints = []input.Vector{event.Position}
 }
 
-func (gr *gestureRecognizer) updateTracking(event input.TouchEvent) {
+func (gr *gestureRecognizer) updateTracking(event input.MouseEvent) {
 	now := time.Now()
 	delta := newVector(event.Position.X-gr.lastPos.X, event.Position.Y-gr.lastPos.Y)
 
@@ -110,7 +110,7 @@ func (gr *gestureRecognizer) updateTracking(event input.TouchEvent) {
 	gr.touchPoints = append(gr.touchPoints, event.Position)
 }
 
-func (gr *gestureRecognizer) endTracking(event input.TouchEvent) {
+func (gr *gestureRecognizer) endTracking(event input.MouseEvent) {
 	duration := time.Since(gr.startTime)
 
 	// detect tap

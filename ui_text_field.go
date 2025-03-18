@@ -79,22 +79,24 @@ func (t *textFieldImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImag
 	}
 }
 
-func (t *textFieldImpl) HandleWheelEvent(input.ScrollEvent) {}
+func (t *textFieldImpl) onMouseEvent(event input.MouseEvent) {
+	defer t.viewCtx.onMouseEvent(event)
 
-func (t *textFieldImpl) HandleTouchEvent(event input.TouchEvent) {
 	switch event.Phase {
-	case input.TouchPhaseBegan:
+	case input.MousePhaseBegan:
 		if t.systemSetBounds().Contains(event.Position) {
 			t.setFocused(true)
 		} else {
 			t.setFocused(false)
 		}
-	case input.TouchPhaseMoved:
-	case input.TouchPhaseEnded, input.TouchPhaseCancelled:
+	case input.MousePhaseMoved:
+	case input.MousePhaseEnded, input.MousePhaseCancelled:
 	}
 }
 
-func (t *textFieldImpl) HandleKeyEvent(event input.KeyEvent) {
+func (t *textFieldImpl) onKeyEvent(event input.KeyEvent) {
+	defer t.viewCtx.onKeyEvent(event)
+
 	if !t.isFocused {
 		return
 	}
@@ -108,7 +110,9 @@ func (t *textFieldImpl) HandleKeyEvent(event input.KeyEvent) {
 	}
 }
 
-func (t *textFieldImpl) HandleInputEvent(event input.TypeEvent) {
+func (t *textFieldImpl) onTypeEvent(event input.TypeEvent) {
+	defer t.viewCtx.onTypeEvent(event)
+
 	if t.isFocused {
 		content := t.content.Value()
 		if t.cursorPos == utf8.RuneCountInString(content) {
@@ -116,4 +120,8 @@ func (t *textFieldImpl) HandleInputEvent(event input.TypeEvent) {
 		}
 		t.content.Set(content + string(event.Char))
 	}
+}
+
+func (t *textFieldImpl) processable() bool {
+	return true
 }

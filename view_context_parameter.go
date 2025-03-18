@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/yanun0323/ebui/input"
 	"github.com/yanun0323/ebui/internal/helper"
 )
 
@@ -24,7 +25,13 @@ type viewCtxParam struct {
 	keepAspectRatio *Binding[bool]
 	offset          *Binding[CGPoint] /* only use for systemSetFrame */
 	spacing         *Binding[float64]
-	onGesture       *value[func(gestureEvent)]
+
+	scrollEventHandlers  *value[[]func(input.ScrollEvent)]
+	mouseEventHandlers   *value[[]func(input.MouseEvent)]
+	keyEventHandlers     *value[[]func(input.KeyEvent)]
+	typeEventHandlers    *value[[]func(input.TypeEvent)]
+	touchEventHandlers   *value[[]func(input.TouchEvent)]
+	gestureEventHandlers *value[[]func(input.GestureEvent)]
 }
 
 func newParam() *viewCtxParam {

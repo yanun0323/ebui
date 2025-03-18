@@ -228,7 +228,9 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 	screen.DrawImage(img[1], op)
 }
 
-func (s *scrollViewImpl) HandleWheelEvent(event input.ScrollEvent) {
+func (s *scrollViewImpl) onScrollEvent(event input.ScrollEvent) {
+	defer s.viewCtx.onScrollEvent(event)
+
 	anim := animation.EaseInOut(300 * time.Millisecond)
 	if !onHover(s.systemSetBounds()) {
 		if opacity := s.indicatorOpacity.Get(); opacity != 0.0 {
@@ -264,8 +266,6 @@ func (s *scrollViewImpl) HandleWheelEvent(event input.ScrollEvent) {
 	}
 }
 
-func (s *scrollViewImpl) HandleTouchEvent(input.TouchEvent) {}
-
-func (s *scrollViewImpl) HandleKeyEvent(input.KeyEvent) {}
-
-func (s *scrollViewImpl) HandleInputEvent(input.TypeEvent) {}
+func (s *scrollViewImpl) processable() bool {
+	return true
+}

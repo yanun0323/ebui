@@ -32,6 +32,8 @@ type viewCtx struct {
 
 // initialize ViewContext
 func newViewContext(owner SomeView) *viewCtx {
+	globalEventManager.RegisterHandler(owner)
+
 	return &viewCtx{
 		viewCtxEnv:   newEnv(),
 		viewCtxParam: newParam(),
@@ -155,32 +157,6 @@ func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptio
 }
 
 /*
-	####   ##     ##   ########    ##         ########   ##     ##   ########   ##    ##   ########
-	 ##    ###   ###   ##     ##   ##         ##         ###   ###   ##         ###   ##      ##
-	 ##    #### ####   ##     ##   ##         ##         #### ####   ##         ####  ##      ##
-	 ##    ## ### ##   ########    ##         ######     ## ### ##   ######     ## ## ##      ##
-	 ##    ##     ##   ##          ##         ##         ##     ##   ##         ##  ####      ##
-	 ##    ##     ##   ##          ##         ##         ##     ##   ##         ##   ###      ##
-	####   ##     ##   ##          ########   ########   ##     ##   ########   ##    ##      ##
-*/
-
-var _ eventHandler = (*viewCtx)(nil)
-
-func (c *viewCtx) HandleWheelEvent(event input.ScrollEvent) {
-
-}
-
-func (c *viewCtx) HandleTouchEvent(event input.TouchEvent) {
-
-}
-
-func (c *viewCtx) HandleKeyEvent(event input.KeyEvent) {
-
-}
-
-func (c *viewCtx) HandleInputEvent(event input.TypeEvent) {}
-
-/*
 	######## ##     ## ######## ##    ## ########
 	##       ##     ## ##       ###   ##    ##
 	##       ##     ## ##       ####  ##    ##
@@ -189,6 +165,53 @@ func (c *viewCtx) HandleInputEvent(event input.TypeEvent) {}
 	##         ## ##   ##       ##   ###    ##
 	########    ###    ######## ##    ##    ##
 */
+
+var _ eventHandler = (*viewCtx)(nil)
+
+func (c *viewCtx) onScrollEvent(event input.ScrollEvent) {
+	for _, handler := range c.scrollEventHandlers.Load() {
+		handler(event)
+	}
+}
+
+func (c *viewCtx) onMouseEvent(event input.MouseEvent) {
+	for _, handler := range c.mouseEventHandlers.Load() {
+		handler(event)
+	}
+}
+
+func (c *viewCtx) onKeyEvent(event input.KeyEvent) {
+	for _, handler := range c.keyEventHandlers.Load() {
+		handler(event)
+	}
+}
+
+func (c *viewCtx) onTypeEvent(event input.TypeEvent) {
+	for _, handler := range c.typeEventHandlers.Load() {
+		handler(event)
+	}
+}
+
+func (c *viewCtx) onGestureEvent(event input.GestureEvent) {
+	for _, handler := range c.gestureEventHandlers.Load() {
+		handler(event)
+	}
+}
+
+func (c *viewCtx) onTouchEvent(event input.TouchEvent) {
+	for _, handler := range c.touchEventHandlers.Load() {
+		handler(event)
+	}
+}
+
+func (c *viewCtx) processable() bool {
+	return len(c.scrollEventHandlers.Load()) != 0 ||
+		len(c.mouseEventHandlers.Load()) != 0 ||
+		len(c.keyEventHandlers.Load()) != 0 ||
+		len(c.typeEventHandlers.Load()) != 0 ||
+		len(c.gestureEventHandlers.Load()) != 0 ||
+		len(c.touchEventHandlers.Load()) != 0
+}
 
 /*
 	 ######   #######  ##     ## ######## ##     ## #### ######## ##      ##
@@ -396,4 +419,20 @@ func (c *viewCtx) Spacing(spacing ...*Binding[float64]) SomeView {
 func (c *viewCtx) ScrollViewDirection(direction *Binding[layout.Direction]) SomeView {
 	c.scrollViewDirection = direction
 	return c._owner
+}
+
+func (c *viewCtx) OnScroll(phase input.ScrollPhase, delta input.Vector) {
+
+}
+
+func (c *viewCtx) OnMouse(phase input.MousePhase, offset input.Vector) {
+
+}
+
+func (c *viewCtx) OnKey(key input.Key, phase input.KeyPhase) {
+
+}
+
+func (c *viewCtx) OnInput(char rune) {
+
 }

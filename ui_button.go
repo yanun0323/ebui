@@ -68,21 +68,20 @@ func (b *buttonImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 	b.labelLoaded.draw(screen, hooks...)
 }
 
-func (b *buttonImpl) HandleWheelEvent(input.ScrollEvent) {}
-
-func (b *buttonImpl) HandleTouchEvent(event input.TouchEvent) {
+func (b *buttonImpl) onMouseEvent(event input.MouseEvent) {
+	defer b.viewCtx.onMouseEvent(event)
 	if b.viewCtxEnv.disabled.Value() {
 		b.isPressed = false
 		return
 	}
 
 	switch event.Phase {
-	case input.TouchPhaseBegan:
+	case input.MousePhaseBegan:
 		if b.labelLoaded.systemSetBounds().Contains(event.Position) {
 			b.isPressed = true
 		}
-	case input.TouchPhaseMoved:
-	case input.TouchPhaseEnded, input.TouchPhaseCancelled:
+	case input.MousePhaseMoved:
+	case input.MousePhaseEnded, input.MousePhaseCancelled:
 		if b.isPressed {
 			b.isPressed = false
 			if b.labelLoaded.systemSetBounds().Contains(event.Position) {
@@ -94,6 +93,6 @@ func (b *buttonImpl) HandleTouchEvent(event input.TouchEvent) {
 	}
 }
 
-func (b *buttonImpl) HandleKeyEvent(input.KeyEvent) {}
-
-func (b *buttonImpl) HandleInputEvent(input.TypeEvent) {}
+func (b *buttonImpl) processable() bool {
+	return true
+}

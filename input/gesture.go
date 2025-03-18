@@ -1,5 +1,5 @@
 package input
 
-type TouchEvent struct {
+type GestureEvent struct {
 	// TODO: Implement me
 }
