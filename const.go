@@ -21,6 +21,7 @@ var (
 	white       = NewColor(255)
 	black       = NewColor(0)
 	transparent = CGColor{}
+	ivory       = NewColor(240, 248, 255) // NewColor(239, 239, 239) // NewColor(240, 248, 255)
 )
 
 /*

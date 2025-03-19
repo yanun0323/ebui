@@ -261,6 +261,16 @@ func (c *viewCtx) BackgroundColor(color *Binding[CGColor]) SomeView {
 	return c._owner
 }
 
+func (c *viewCtx) Fill(color *Binding[CGColor]) SomeView {
+	return c.BackgroundColor(color)
+}
+
+func (c *viewCtx) Font(size *Binding[font.Size], weight *Binding[font.Weight]) SomeView {
+	c.fontSize = size
+	c.fontWeight = weight
+	return c._owner
+}
+
 func (c *viewCtx) FontSize(size *Binding[font.Size]) SomeView {
 	c.fontSize = size
 	return c._owner
@@ -421,18 +431,121 @@ func (c *viewCtx) ScrollViewDirection(direction *Binding[layout.Direction]) Some
 	return c._owner
 }
 
-func (c *viewCtx) OnScroll(phase input.ScrollPhase, delta input.Vector) {
+func (c *viewCtx) OnScroll(fn func(input.ScrollEvent)) {
+	var handlers []func(input.ScrollEvent)
+	if c.scrollEventHandlers == nil {
+		handlers = make([]func(input.ScrollEvent), 0, 1)
+	} else {
+		loaded := c.scrollEventHandlers.Load()
+		handlers = make([]func(input.ScrollEvent), 0, len(loaded)+1)
+		handlers = append(handlers, loaded...)
+	}
+
+	handlers = append(handlers, func(event input.ScrollEvent) {
+		fn(event)
+	})
+
+	c.scrollEventHandlers.Store(handlers)
 
 }
 
-func (c *viewCtx) OnMouse(phase input.MousePhase, offset input.Vector) {
+func (c *viewCtx) OnMouse(fn func(phase input.MousePhase, offset input.Vector)) {
+	var handlers []func(input.MouseEvent)
+	if c.mouseEventHandlers == nil {
+		handlers = make([]func(input.MouseEvent), 0, 1)
+	} else {
+		loaded := c.mouseEventHandlers.Load()
+		handlers = make([]func(input.MouseEvent), 0, len(loaded)+1)
+		handlers = append(handlers, loaded...)
+	}
 
+	handlers = append(handlers, func(event input.MouseEvent) {
+		bounds := c.systemSetBounds()
+		if bounds.Contains(event.Position) {
+			fn(event.Phase, newVector(
+				event.Position.X-bounds.Start.X,
+				event.Position.Y-bounds.Start.Y,
+			))
+		}
+	})
+
+	c.mouseEventHandlers.Store(handlers)
 }
 
-func (c *viewCtx) OnKey(key input.Key, phase input.KeyPhase) {
+func (c *viewCtx) OnKey(fn func(input.KeyEvent)) {
+	var handlers []func(input.KeyEvent)
+	if c.keyEventHandlers == nil {
+		handlers = make([]func(input.KeyEvent), 0, 1)
+	} else {
+		loaded := c.keyEventHandlers.Load()
+		handlers = make([]func(input.KeyEvent), 0, len(loaded)+1)
+		handlers = append(handlers, loaded...)
+	}
 
+	handlers = append(handlers, func(event input.KeyEvent) {
+		fn(event)
+	})
+
+	c.keyEventHandlers.Store(handlers)
 }
 
-func (c *viewCtx) OnInput(char rune) {
+func (c *viewCtx) OnType(fn func(input.TypeEvent)) {
+	var handlers []func(input.TypeEvent)
+	if c.typeEventHandlers == nil {
+		handlers = make([]func(input.TypeEvent), 0, 1)
+	} else {
+		loaded := c.typeEventHandlers.Load()
+		handlers = make([]func(input.TypeEvent), 0, len(loaded)+1)
+		handlers = append(handlers, loaded...)
+	}
 
+	handlers = append(handlers, func(event input.TypeEvent) {
+		fn(event)
+	})
+
+	c.typeEventHandlers.Store(handlers)
+}
+
+func (c *viewCtx) OnGesture(fn func(input.GestureEvent)) {
+	var handlers []func(input.GestureEvent)
+	if c.gestureEventHandlers == nil {
+		handlers = make([]func(input.GestureEvent), 0, 1)
+	} else {
+		loaded := c.gestureEventHandlers.Load()
+		handlers = make([]func(input.GestureEvent), 0, len(loaded)+1)
+		handlers = append(handlers, loaded...)
+	}
+
+	handlers = append(handlers, func(event input.GestureEvent) {
+		fn(event)
+	})
+
+	c.gestureEventHandlers.Store(handlers)
+}
+
+func (c *viewCtx) OnTouch(fn func(input.TouchEvent)) {
+	var handlers []func(input.TouchEvent)
+	if c.touchEventHandlers == nil {
+		handlers = make([]func(input.TouchEvent), 0, 1)
+	} else {
+		loaded := c.touchEventHandlers.Load()
+		handlers = make([]func(input.TouchEvent), 0, len(loaded)+1)
+		handlers = append(handlers, loaded...)
+	}
+
+	handlers = append(handlers, func(event input.TouchEvent) {
+		fn(event)
+	})
+
+	c.touchEventHandlers.Store(handlers)
+}
+
+func (c *viewCtx) OnAppear(f func()) SomeView {
+	// TODO: onAppear
+	return c._owner
+}
+
+func (c *viewCtx) OnDisappear(f func()) SomeView {
+	// TODO: OnDisappear
+	return c._owner
 }

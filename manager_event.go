@@ -54,7 +54,6 @@ func (em *eventManager) Update() {
 		}
 	}
 
-	println("remain handlers: ", len(handlers))
 	em.handlers = handlers
 }
 

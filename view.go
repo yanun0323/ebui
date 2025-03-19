@@ -68,6 +68,12 @@ type SomeView interface {
 	// BackgroundColor sets the background color of the view
 	BackgroundColor(color *Binding[CGColor]) SomeView
 
+	// Fill sets the background color of the view
+	Fill(color *Binding[CGColor]) SomeView
+
+	// Font sets the font of the view
+	Font(size *Binding[font.Size], weight *Binding[font.Weight]) SomeView
+
 	// FontSize sets the font size of the view
 	//
 	// It is a environment variable, so it will be inherited by subviews.

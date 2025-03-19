@@ -36,7 +36,13 @@ type viewCtxParam struct {
 
 func newParam() *viewCtxParam {
 	return &viewCtxParam{
-		frameSize: Bind(NewSize(Inf, Inf)),
+		frameSize:            Bind(NewSize(Inf, Inf)),
+		scrollEventHandlers:  newValue[[]func(input.ScrollEvent)](),
+		mouseEventHandlers:   newValue[[]func(input.MouseEvent)](),
+		keyEventHandlers:     newValue[[]func(input.KeyEvent)](),
+		typeEventHandlers:    newValue[[]func(input.TypeEvent)](),
+		touchEventHandlers:   newValue[[]func(input.TouchEvent)](),
+		gestureEventHandlers: newValue[[]func(input.GestureEvent)](),
 	}
 }
 

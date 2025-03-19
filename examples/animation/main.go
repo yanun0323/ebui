@@ -37,7 +37,7 @@ func (v *ContentView) Body() SomeView {
 				}).Padding(Bind(NewInset(5))),
 
 				Button("-100(EaseInOut)", func() {
-					count.Set(count.Get() - 100)
+					count.Set(count.Get()-100, animation.EaseInOut(time.Second))
 				}).Padding(Bind(NewInset(5))),
 			),
 			Text(BindOneWay(count, func(c float64) string {
@@ -91,14 +91,6 @@ func (v *ContentView) Body() SomeView {
 	).Padding(Bind(NewInset(5))).
 		Center().
 		Align(Bind(layout.AlignCenter))
-}
-
-func debugFunc(view SomeView) SomeView {
-	return view.Modify(func(view SomeView) SomeView {
-		return view.
-			Padding(Bind(NewInset(5))).
-			Border(Bind(NewInset(1)), Bind(NewColor(255, 0, 0)))
-	})
 }
 
 func main() {

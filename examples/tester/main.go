@@ -2,7 +2,7 @@ package main
 
 import (
 	"log"
-	"strconv"
+	"math/rand"
 
 	. "github.com/yanun0323/ebui"
 	"github.com/yanun0323/ebui/layout"
@@ -15,27 +15,25 @@ func NewContentView() View {
 type ContentView struct{}
 
 func (v *ContentView) Body() SomeView {
-	println("ContentView.Body() called")
-
-	rect := func(i int) SomeView {
-		return Text(Const(strconv.Itoa(i))).
-			Align(Bind(layout.AlignCenter)).
-			Frame(Bind(NewSize(100))).
-			BackgroundColor(Bind(NewColor(128, 0, 0)))
-	}
-
-	enum := func(count int) []View {
-		res := make([]View, 0, count)
-		for i := range count {
-			res = append(res, rect(i))
-		}
-		return res
-	}
+	clr := Bind(NewColor(128))
+	dis := Bind(false)
 
 	return ScrollView(
 		VStack(
-			enum(10)...,
-		).Spacing(),
+			Button("Test Button", func() {
+				r := rand.Intn(256)
+				g := rand.Intn(256)
+				b := rand.Intn(256)
+				clr.Set(NewColor(r, g, b))
+			}),
+
+			Rectangle().
+				Fill(clr).
+				Frame(Bind(NewSize(100, 500))).
+				Disabled(dis),
+
+			Toggle(dis),
+		).Spacing().Align(Bind(layout.AlignCenter)),
 	).Frame(Bind(NewSize(500, 500))) //.Debug()
 }
 

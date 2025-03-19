@@ -31,7 +31,7 @@ func ScrollView(content View) SomeView {
 		indicateCache:    helper.NewHashCache[[2]*ebiten.Image](),
 	}
 	sv.viewCtx = newViewContext(sv)
-	globalEventManager.RegisterHandler(sv)
+
 	return sv
 }
 
@@ -232,9 +232,10 @@ func (s *scrollViewImpl) onScrollEvent(event input.ScrollEvent) {
 	defer s.viewCtx.onScrollEvent(event)
 
 	anim := animation.EaseInOut(300 * time.Millisecond)
+	delay := 500 * time.Millisecond
 	if !onHover(s.systemSetBounds()) {
 		if opacity := s.indicatorOpacity.Get(); opacity != 0.0 {
-			s.indicatorOpacity.Set(0.0, anim)
+			s.indicatorOpacity.Set(0.0, anim.Delay(delay))
 		}
 
 		return
@@ -261,7 +262,7 @@ func (s *scrollViewImpl) onScrollEvent(event input.ScrollEvent) {
 	} else {
 		opacity := s.indicatorOpacity.Get()
 		if opacity != 0.0 {
-			s.indicatorOpacity.Set(0.0, anim)
+			s.indicatorOpacity.Set(0.0, anim.Delay(delay))
 		}
 	}
 }

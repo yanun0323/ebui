@@ -131,6 +131,10 @@ func (p CGPoint) Lt(other CGPoint) bool {
 	return p.X < other.X && p.Y < other.Y
 }
 
+func (p CGPoint) vector() input.Vector {
+	return newVector(p.X, p.Y)
+}
+
 // NewSize creates a CGSize from any numberable type.
 //
 // # Usage:

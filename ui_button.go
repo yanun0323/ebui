@@ -36,7 +36,7 @@ func Button(key string, action func(), label ...func() SomeView) SomeView {
 		label:  lb,
 	}
 	btn.viewCtx = newViewContext(btn)
-	globalEventManager.RegisterHandler(btn)
+
 	return btn
 }
 

@@ -51,7 +51,6 @@ func TextField[T string | *Binding[string]](content *Binding[string], placeholde
 	}
 	zs.viewCtx._owner = tf
 
-	globalEventManager.RegisterHandler(tf)
 	return tf
 }
 

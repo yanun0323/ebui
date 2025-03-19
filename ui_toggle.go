@@ -2,7 +2,6 @@ package ebui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/yanun0323/ebui/animation"
 	"github.com/yanun0323/ebui/input"
 	layout "github.com/yanun0323/ebui/layout"
 )
@@ -13,8 +12,8 @@ const (
 )
 
 var (
-	defaultToggleOnColor            = NewColor(239, 239, 239)
-	defaultToggleOffColor           = NewColor(239, 239, 239)
+	defaultToggleOnColor            = ivory
+	defaultToggleOffColor           = ivory
 	defaultToggleOnBackgroundColor  = NewColor(64, 191, 64)
 	defaultToggleOffBackgroundColor = NewColor(64, 64, 64)
 	defaultToggleOffset             = NewPoint(_defaultToggleSize-(2*_defaultTogglePadding), 0)
@@ -41,31 +40,46 @@ func Toggle(enabled *Binding[bool], label ...func() SomeView) SomeView {
 	if len(label) != 0 && label[0] != nil {
 		t.label = label[0]
 	} else {
-		t.defaultToggleOffset = Bind(CGPoint{})
-		t.defaultToggleColor = Bind(defaultToggleOffColor)
-		t.defaultToggleBackgroundColor = Bind(defaultToggleOffBackgroundColor)
-		if t.enabled.Value() {
-			t.defaultToggleOffset.Set(defaultToggleOffset)
-			t.defaultToggleColor.Set(defaultToggleOnColor)
-			t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor)
-		}
-		enabled.AddListener(func(_, newVal bool, animStyle ...animation.Style) {
-			if newVal {
-				t.defaultToggleOffset.Set(defaultToggleOffset, animStyle...)
-				t.defaultToggleColor.Set(defaultToggleOnColor, animStyle...)
-				t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor, animStyle...)
-			} else {
-				t.defaultToggleOffset.Set(CGPoint{}, animStyle...)
-				t.defaultToggleColor.Set(defaultToggleOffColor, animStyle...)
-				t.defaultToggleBackgroundColor.Set(defaultToggleOffBackgroundColor, animStyle...)
+		t.defaultToggleOffset = BindOneWay(t.enabled, func(enabled bool) CGPoint {
+			if enabled {
+				return defaultToggleOffset
 			}
+			return CGPoint{}
 		})
+		t.defaultToggleColor = BindOneWay(t.enabled, func(enabled bool) CGColor {
+			if enabled {
+				return defaultToggleOnColor
+			}
+			return defaultToggleOffColor
+		})
+		t.defaultToggleBackgroundColor = BindOneWay(t.enabled, func(enabled bool) CGColor {
+			if enabled {
+				return defaultToggleOnBackgroundColor
+			}
+			return defaultToggleOffBackgroundColor
+		})
+		// if t.enabled.Get() {
+		// 	t.defaultToggleOffset.Set(defaultToggleOffset)
+		// 	t.defaultToggleColor.Set(defaultToggleOnColor)
+		// 	t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor)
+		// }
+		// enabled.AddListener(func(_, newVal bool, animStyle ...animation.Style) {
+		// 	if newVal {
+		// 		t.defaultToggleOffset.Set(defaultToggleOffset, animStyle...)
+		// 		t.defaultToggleColor.Set(defaultToggleOnColor, animStyle...)
+		// 		t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor, animStyle...)
+		// 	} else {
+		// 		t.defaultToggleOffset.Set(CGPoint{}, animStyle...)
+		// 		t.defaultToggleColor.Set(defaultToggleOffColor, animStyle...)
+		// 		t.defaultToggleBackgroundColor.Set(defaultToggleOffBackgroundColor, animStyle...)
+		// 	}
+		// })
 
 		t.labelLoaded = t.defaultLabel()
 	}
 
 	t.viewCtx = newViewContext(t)
-	globalEventManager.RegisterHandler(t)
+
 	return t
 }
 
@@ -115,7 +129,7 @@ func (b *toggleImpl) defaultLabel() SomeView {
 func (t *toggleImpl) onMouseEvent(event input.MouseEvent) {
 	defer t.viewCtx.onMouseEvent(event)
 
-	if t.viewCtxEnv.disabled.Value() {
+	if t.viewCtxEnv.disabled.Get() {
 		return
 	}
 
@@ -130,7 +144,7 @@ func (t *toggleImpl) onMouseEvent(event input.MouseEvent) {
 		}
 
 		if t.labelLoaded.systemSetBounds().Contains(event.Position) {
-			t.enabled.Set(!t.enabled.Value())
+			t.enabled.Set(!t.enabled.Get())
 		}
 	}
 }

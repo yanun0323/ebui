@@ -277,12 +277,18 @@ func (b *Binding[T]) setValue(newVal T, with ...animation.Style) {
 			duration  = animStyle.Duration().Milliseconds()
 		)
 
+		cancel, ok := globalAnimationManager.RemoveExecutor(b.id())
+		if ok {
+			cancel.onCancel()
+		}
+
 		globalAnimationManager.AddExecutor(
 			b.id(),
 			animationExecutor{
 				onUpdate: func(now int64) bool {
 					elapsed := now - startTime
 					if elapsed >= duration {
+						b.set(newVal, true, nil)
 						return true
 					}
 
