@@ -28,6 +28,7 @@ func ScrollView(content View) SomeView {
 		contentOffset:    Bind(CGPoint{}),
 		content:          content.Body(),
 		indicatorOpacity: Bind(0.0),
+		isLastHover:      Bind(false),
 		indicateCache:    helper.NewHashCache[[2]*ebiten.Image](),
 	}
 	sv.viewCtx = newViewContext(sv)
@@ -41,49 +42,39 @@ type scrollViewImpl struct {
 	content          SomeView
 	contentOffset    *Binding[CGPoint]
 	indicatorOpacity *Binding[float64]
+	isLastHover      *Binding[bool]
 
 	indicateCache *helper.HashCache[[2]*ebiten.Image] // [base, main]
 }
 
-func (s *scrollViewImpl) clampScrollDelta(sFrameSize CGSize, cBoundsSize CGSize, delta CGPoint) CGPoint {
-	if sFrameSize.Height >= cBoundsSize.Height {
-		delta.Y = 0
-	}
-
-	if sFrameSize.Width >= cBoundsSize.Width {
-		delta.X = 0
-	}
-
-	return delta
-}
-
-func (s *scrollViewImpl) setScrollOffset(delta CGPoint, d layout.Direction) {
+func (s *scrollViewImpl) maxScrollOffset() CGPoint {
 	sFrameSize := s.systemSetFrame().Size()
 	cBoundsSize := s.content.systemSetBounds().Size()
-	delta = s.clampScrollDelta(sFrameSize, cBoundsSize, delta)
-	if delta.IsZero() {
-		return
-	}
 
+	return NewPoint(
+		max(cBoundsSize.Width-sFrameSize.Width, 0),
+		max(cBoundsSize.Height-sFrameSize.Height, 0),
+	)
+}
+
+func (s *scrollViewImpl) setScrollOffset(delta input.Vector, d layout.Direction, maxOffset CGPoint) {
 	offset := s.contentOffset.Value()
 	switch d {
 	case layout.DirectionVertical:
 		offset.Y += delta.Y
-		floor := -(cBoundsSize.Height - sFrameSize.Height)
 		switch {
-		case offset.Y > 0:
+		case offset.Y < 0:
 			offset.Y = 0
-		case offset.Y < floor:
-			offset.Y = floor
+		case offset.Y > maxOffset.Y:
+			offset.Y = maxOffset.Y
 		}
 	case layout.DirectionHorizontal:
 		offset.X += delta.X
-		floor := -(cBoundsSize.Width - sFrameSize.Width)
 		switch {
-		case offset.X > 0:
+		case offset.X < 0:
 			offset.X = 0
-		case offset.X < floor:
-			offset.X = floor
+		case offset.X > maxOffset.X:
+			offset.X = maxOffset.X
 		}
 	}
 
@@ -103,9 +94,9 @@ func (s *scrollViewImpl) preload(parent *viewCtxEnv, types ...stackType) (preloa
 	sData, sLayout := s.viewCtx.preload(parent, types...)
 
 	return sData, func(start CGPoint, childBoundsSize CGSize) (CGRect, alignFunc) {
-		childFrameSize := childBoundsSize.Shrink(sData.Padding).Shrink(sData.Border)
+		childFrameSize := childBoundsSize.Shrink(sData.Padding.Add(sData.Border))
 		sBounds, sAlignFunc := sLayout(start, childFrameSize)
-		sFrameSize := sBounds.Size().Shrink(sData.Padding).Shrink(sData.Border)
+		sFrameSize := sBounds.Size().Shrink(sData.Padding.Add(sData.Border))
 		cBounds, cAlignFunc := cLayout(start, sFrameSize)
 
 		sBoundsSize := sBounds.Size()
@@ -128,25 +119,19 @@ func (s *scrollViewImpl) preload(parent *viewCtxEnv, types ...stackType) (preloa
 func (s *scrollViewImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
 	s.viewCtx.draw(screen, hook...)
 	bounds := s.systemSetBounds()
-
-	offset := s.contentOffset.Value()
-	contentHook := make([]func(*ebiten.DrawImageOptions), 0, len(hook)+1)
-	contentHook = append(contentHook, hook...)
-	contentHook = append(contentHook, func(opt *ebiten.DrawImageOptions) {
-		opt.GeoM.Translate(offset.X, offset.Y)
-		opt.GeoM.Translate(-bounds.Start.X, -bounds.Start.Y)
-	})
-
 	if !bounds.drawable() {
 		return
 	}
 
+	offset := s.contentOffset.Value()
 	base := ebiten.NewImage(int(bounds.Dx()), int(bounds.Dy()))
+	s.content.draw(base, func(opt *ebiten.DrawImageOptions) {
+		opt.GeoM.Translate(-offset.X, -offset.Y)
+		opt.GeoM.Translate(-bounds.Start.X, -bounds.Start.Y)
+	})
+	s.drawScrollIndicator(base)
 
-	s.content.draw(base, contentHook...)
-	s.drawScrollIndicator(base, hook...)
-
-	screen.DrawImage(base, s.drawOption(bounds))
+	screen.DrawImage(base, s.drawOption(bounds, hook...))
 }
 
 func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
@@ -182,7 +167,7 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 
 			ratio := sBoundsHeight / cBoundsSize.Height
 			mainSize = NewSize(_scrollIndicatorLength-_scrollIndicatorPadding, ratio*sBoundsHeight)
-			optOffset = NewPoint(_scrollIndicatorPadding/2, -offset.Y*ratio)
+			optOffset = NewPoint(_scrollIndicatorPadding/2, offset.Y*ratio)
 			radius = mainSize.Width / 2
 		case layout.DirectionHorizontal:
 			baseSize = NewSize(sBoundsWidth, _scrollIndicatorLength)
@@ -191,7 +176,7 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 
 			ratio := sBoundsWidth / cBoundsSize.Width
 			mainSize = NewSize(ratio*sBoundsWidth, _scrollIndicatorLength-_scrollIndicatorPadding)
-			optOffset = NewPoint(-offset.X*ratio, _scrollIndicatorPadding/2)
+			optOffset = NewPoint(offset.X*ratio, _scrollIndicatorPadding/2)
 			radius = mainSize.Height / 2
 		}
 	}
@@ -228,45 +213,114 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 	screen.DrawImage(img[1], op)
 }
 
-func (s *scrollViewImpl) onScrollEvent(event input.ScrollEvent) {
-	defer s.viewCtx.onScrollEvent(event)
+func (s *scrollViewImpl) shiftCursor(cursor input.Vector) input.Vector {
+	scrollOffset := s.contentOffset.Value()
+	return cursor.Add(scrollOffset.X, scrollOffset.Y)
+}
 
-	anim := animation.EaseInOut(300 * time.Millisecond)
-	delay := 500 * time.Millisecond
-	if !onHover(s.systemSetBounds()) {
-		if opacity := s.indicatorOpacity.Get(); opacity != 0.0 {
-			s.indicatorOpacity.Set(0.0, anim.Delay(delay))
+func (s *scrollViewImpl) onHoverEvent(cursor input.Vector) {
+	isHover := s.isHover(cursor)
+	if isHover != s.isLastHover.Get() {
+		opacity := s.indicatorOpacity.Get()
+		if isHover {
+			if opacity == 0.0 {
+				s.indicatorOpacity.Set(1.0, nil)
+			}
+		} else {
+			if opacity != 0.0 {
+				s.indicatorOpacity.Set(0.0, _scrollIndicatorDisappearAnimation)
+			}
+		}
+		s.isLastHover.Set(isHover, nil)
+	}
+
+	s.viewCtx.onHoverEvent(cursor)
+	s.content.onHoverEvent(s.shiftCursor(cursor))
+}
+
+var (
+	_scrollIndicatorAppearAnimation    = animation.EaseInOut(300 * time.Millisecond)
+	_scrollIndicatorDisappearAnimation = _scrollIndicatorAppearAnimation.Delay(300 * time.Millisecond)
+)
+
+func (s *scrollViewImpl) onScrollEvent(cursor input.Vector, event input.ScrollEvent) bool {
+	opacity := s.indicatorOpacity.Get()
+	if !s.isHover(cursor) {
+		if opacity != 0.0 {
+			s.indicatorOpacity.Set(0.0, _scrollIndicatorDisappearAnimation)
 		}
 
-		return
+		return false
 	}
+
+	defer func() {
+		s.content.onScrollEvent(s.shiftCursor(cursor), event)
+	}()
+	defer s.viewCtx.onScrollEvent(cursor, event)
 
 	d := s.scrollViewDirection.Get()
+	maxOffset := s.maxScrollOffset()
 	if !event.Delta.IsZero() {
-		s.setScrollOffset(NewPoint(event.Delta.X, event.Delta.Y), d)
+		s.setScrollOffset(event.Delta, d, maxOffset)
 	}
 
-	scrolling := false
+	var (
+		threshold = 1.0
+		scrolling = false
+	)
+
 	switch d {
 	case layout.DirectionVertical:
+		if abs(event.Delta.Y) <= threshold {
+			event.Delta.Y = 0
+		}
 		scrolling = event.Delta.Y != 0
 	case layout.DirectionHorizontal:
+		if abs(event.Delta.X) <= threshold {
+			event.Delta.X = 0
+		}
 		scrolling = event.Delta.X != 0
 	}
 
-	if scrolling {
-		opacity := s.indicatorOpacity.Get()
-		if opacity != 1.0 {
-			s.indicatorOpacity.Set(1.0, anim)
-		}
-	} else {
-		opacity := s.indicatorOpacity.Get()
-		if opacity != 0.0 {
-			s.indicatorOpacity.Set(0.0, anim.Delay(delay))
+	lastScrolling := opacity != 0
+	if lastScrolling != scrolling {
+		if scrolling {
+			s.indicatorOpacity.Set(1.0, nil)
+		} else {
+			s.indicatorOpacity.Set(0.0, _scrollIndicatorDisappearAnimation)
 		}
 	}
+
+	return true
 }
 
-func (s *scrollViewImpl) processable() bool {
-	return true
+func (s *scrollViewImpl) onMouseEvent(event input.MouseEvent) {
+	s.viewCtx.onMouseEvent(event)
+
+	event.Position = s.shiftCursor(event.Position)
+	s.content.onMouseEvent(event)
+}
+
+func (s *scrollViewImpl) onKeyEvent(event input.KeyEvent) {
+	s.viewCtx.onKeyEvent(event)
+	s.content.onKeyEvent(event)
+}
+
+func (s *scrollViewImpl) onTypeEvent(event input.TypeEvent) {
+	s.viewCtx.onTypeEvent(event)
+	s.content.onTypeEvent(event)
+}
+
+func (s *scrollViewImpl) onGestureEvent(event input.GestureEvent) {
+	s.viewCtx.onGestureEvent(event)
+
+	event.Position = s.shiftCursor(event.Position)
+	s.content.onGestureEvent(event)
+}
+
+func (s *scrollViewImpl) onTouchEvent(event input.TouchEvent) {
+	s.viewCtx.onTouchEvent(event)
+
+	event.Position = s.shiftCursor(event.Position)
+	s.content.onTouchEvent(event)
 }

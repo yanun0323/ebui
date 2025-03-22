@@ -30,16 +30,32 @@ func (v *pageScrollView) Body() SomeView {
 		return res
 	}
 
+	value := Bind(10.0)
 	return HStack(
 		ScrollView(
 			VStack(
-				enum(100)...,
+				enum(10)...,
 			).Spacing(),
-		).Align(Bind(layout.AlignCenter)).ScrollViewDirection(Const(layout.DirectionVertical)),
+		).Align(Bind(layout.AlignCenter)).
+			ScrollViewDirection(Const(layout.DirectionVertical)).Debug(),
 		ScrollView(
 			HStack(
-				enum(100)...,
+				enum(10)...,
 			).Spacing(),
-		).Align(Bind(layout.AlignCenter)).ScrollViewDirection(Const(layout.DirectionHorizontal)),
-	).Spacing()
+		).Align(Bind(layout.AlignCenter)).
+			ScrollViewDirection(Const(layout.DirectionHorizontal)).Debug(),
+
+		VStack(
+			Text(BindOneWay(value, func(f float64) string {
+				return strconv.FormatFloat(f, 'f', 0, 64)
+			})).Center().Frame(Const(NewSize(150, 100))).Debug(),
+			Slider(value, Bind(100.0), Bind(0.0)).Debug(),
+			ZStack(
+				HStack(
+					Rectangle().Debug(),
+					Spacer().Debug(),
+				),
+			).Debug(),
+		).Debug(),
+	).Spacing().Frame(Bind(NewSize(1000, 500)))
 }

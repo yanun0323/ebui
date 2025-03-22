@@ -2,6 +2,7 @@ package ebui
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -10,7 +11,8 @@ import (
 )
 
 var (
-	popupViews []SomeView
+	popupViews            []SomeView
+	isLeftButtonTracking atomic.Bool
 )
 
 // CursorPosition returns a position of a mouse cursor relative to the game screen (window). The cursor position is
@@ -31,11 +33,6 @@ func CursorPosition() (x, y int) {
 func EbitenUpdate(contentView SomeView) {
 	m := helper.NewMetric()
 
-	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
-	for _, id := range touchIDs {
-		logf("touch id: %d", id)
-	}
-
 	// 1. update animations
 	globalAnimationManager.Update()
 
@@ -48,41 +45,42 @@ func EbitenUpdate(contentView SomeView) {
 
 	mLayout := m.ElapsedAndReset()
 
-	// 3. update event manager
-	globalEventManager.Update()
-
 	// 4. handle wheel events
+
+	x, y := ebiten.CursorPosition()
+	cursor := newVector(x, y)
+
+	contentView.onHoverEvent(cursor)
+
 	dx, dy := ebiten.Wheel()
 	speed := DefaultScrollSpeed.Value()
-	globalEventManager.DispatchWheelEvent(input.ScrollEvent{
-		Delta: newVector(dx*speed, dy*speed),
+
+	contentView.onScrollEvent(cursor, input.ScrollEvent{
+		Delta: newVector(-dx*speed, -dy*speed),
 	})
 
 	// 5. handle touch events
 
+	leftButtonTracking := isLeftButtonTracking.Load()
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		x, y := ebiten.CursorPosition()
-		pos := newVector(x, y)
-
-		if globalEventManager.isTracking {
-			globalEventManager.DispatchTouchEvent(input.MouseEvent{
+		if leftButtonTracking {
+			contentView.onMouseEvent(input.MouseEvent{
 				Phase:    input.MousePhaseMoved,
-				Position: pos,
+				Position: cursor,
 			})
 		} else {
-			globalEventManager.DispatchTouchEvent(input.MouseEvent{
+			contentView.onMouseEvent(input.MouseEvent{
 				Phase:    input.MousePhaseBegan,
-				Position: pos,
+				Position: cursor,
 			})
+			isLeftButtonTracking.Store(true)
 		}
-	} else if globalEventManager.isTracking {
-		x, y := ebiten.CursorPosition()
-		pos := newVector(x, y)
-
-		globalEventManager.DispatchTouchEvent(input.MouseEvent{
+	} else if leftButtonTracking {
+		contentView.onMouseEvent(input.MouseEvent{
 			Phase:    input.MousePhaseEnded,
-			Position: pos,
+			Position: cursor,
 		})
+		isLeftButtonTracking.Store(false)
 	}
 
 	mMouse := m.ElapsedAndReset()
@@ -95,7 +93,7 @@ func EbitenUpdate(contentView SomeView) {
 
 	keys := inpututil.AppendJustPressedKeys(nil)
 	for _, key := range keys {
-		globalEventManager.DispatchKeyEvent(input.KeyEvent{
+		contentView.onKeyEvent(input.KeyEvent{
 			Key:     input.Key(key),
 			Phase:   input.KeyPhaseJustPressed,
 			Shift:   shiftPressing,
@@ -107,7 +105,7 @@ func EbitenUpdate(contentView SomeView) {
 
 	keys = inpututil.AppendPressedKeys(nil)
 	for _, key := range keys {
-		globalEventManager.DispatchKeyEvent(input.KeyEvent{
+		contentView.onKeyEvent(input.KeyEvent{
 			Key:     input.Key(key),
 			Phase:   input.KeyPhasePressing,
 			Shift:   shiftPressing,
@@ -119,7 +117,7 @@ func EbitenUpdate(contentView SomeView) {
 
 	keys = inpututil.AppendJustReleasedKeys(nil)
 	for _, key := range keys {
-		globalEventManager.DispatchKeyEvent(input.KeyEvent{
+		contentView.onKeyEvent(input.KeyEvent{
 			Key:     input.Key(key),
 			Phase:   input.KeyPhaseJustReleased,
 			Shift:   shiftPressing,
@@ -134,7 +132,7 @@ func EbitenUpdate(contentView SomeView) {
 	// 7. handle input events
 	inputs := ebiten.AppendInputChars(nil)
 	for _, char := range inputs {
-		globalEventManager.DispatchInputEvent(input.TypeEvent{
+		contentView.onTypeEvent(input.TypeEvent{
 			Char: char,
 		})
 	}

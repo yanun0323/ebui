@@ -92,7 +92,3 @@ func (b *buttonImpl) onMouseEvent(event input.MouseEvent) {
 		}
 	}
 }
-
-func (b *buttonImpl) processable() bool {
-	return true
-}

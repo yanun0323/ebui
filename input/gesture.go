@@ -3,11 +3,13 @@ package input
 type GesturePhase int
 
 const (
-	GesturePhaseBegan GesturePhase = iota + 1
+	GesturePhaseNone GesturePhase = iota
+	GesturePhaseBegan
 	GesturePhaseMoved
 	GesturePhaseEnded
 )
 
 type GestureEvent struct {
+	Position Vector
 	// TODO: Implement me
 }

@@ -25,18 +25,22 @@ type viewCtxParam struct {
 	keepAspectRatio *Binding[bool]
 	offset          *Binding[CGPoint] /* only use for systemSetFrame */
 	spacing         *Binding[float64]
+	scale           *Binding[CGPoint]
 
-	scrollEventHandlers  *value[[]func(input.ScrollEvent)]
-	mouseEventHandlers   *value[[]func(input.MouseEvent)]
-	keyEventHandlers     *value[[]func(input.KeyEvent)]
-	typeEventHandlers    *value[[]func(input.TypeEvent)]
-	touchEventHandlers   *value[[]func(input.TouchEvent)]
-	gestureEventHandlers *value[[]func(input.GestureEvent)]
+	hoverEventHandlers   *value[[]func(isHover bool)]
+	scrollEventHandlers  *value[[]func(event input.ScrollEvent)]
+	mouseEventHandlers   *value[[]func(event input.MouseEvent)]
+	keyEventHandlers     *value[[]func(event input.KeyEvent)]
+	typeEventHandlers    *value[[]func(event input.TypeEvent)]
+	touchEventHandlers   *value[[]func(event input.TouchEvent)]
+	gestureEventHandlers *value[[]func(event input.GestureEvent)]
 }
 
 func newParam() *viewCtxParam {
 	return &viewCtxParam{
 		frameSize:            Bind(NewSize(Inf, Inf)),
+		scale:                Bind(NewPoint(1, 1)),
+		hoverEventHandlers:   newValue[[]func(isHover bool)](),
 		scrollEventHandlers:  newValue[[]func(input.ScrollEvent)](),
 		mouseEventHandlers:   newValue[[]func(input.MouseEvent)](),
 		keyEventHandlers:     newValue[[]func(input.KeyEvent)](),

@@ -32,6 +32,13 @@ func newVector[T numberable](x, y T) input.Vector {
 	return input.Vector{X: float64(x), Y: float64(y)}
 }
 
+func abs[T numberable](v T) T {
+	if v >= 0 {
+		return v
+	}
+	return -v
+}
+
 // value is a helper struct for atomic value
 type value[T any] struct {
 	val atomic.Value

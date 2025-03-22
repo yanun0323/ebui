@@ -127,6 +127,7 @@ func (b *toggleImpl) defaultLabel() SomeView {
 }
 
 func (t *toggleImpl) onMouseEvent(event input.MouseEvent) {
+
 	defer t.viewCtx.onMouseEvent(event)
 
 	if t.viewCtxEnv.disabled.Get() {
@@ -135,7 +136,7 @@ func (t *toggleImpl) onMouseEvent(event input.MouseEvent) {
 
 	switch event.Phase {
 	case input.MousePhaseBegan:
-		if t.labelLoaded.systemSetBounds().Contains(event.Position) {
+		if t.labelLoaded.isHover(event.Position) {
 			t.isPressed = true
 		}
 	case input.MousePhaseEnded, input.MousePhaseCancelled:
@@ -143,12 +144,8 @@ func (t *toggleImpl) onMouseEvent(event input.MouseEvent) {
 			t.isPressed = false
 		}
 
-		if t.labelLoaded.systemSetBounds().Contains(event.Position) {
+		if t.labelLoaded.isHover(event.Position) {
 			t.enabled.Set(!t.enabled.Get())
 		}
 	}
-}
-
-func (t *toggleImpl) processable() bool {
-	return true
 }

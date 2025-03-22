@@ -4,7 +4,8 @@ package input
 type MousePhase int
 
 const (
-	MousePhaseBegan MousePhase = iota + 1
+	MousePhaseNone MousePhase = iota
+	MousePhaseBegan
 	MousePhaseMoved
 	MousePhaseEnded
 	MousePhaseCancelled

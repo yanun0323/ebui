@@ -83,7 +83,7 @@ func (t *textFieldImpl) onMouseEvent(event input.MouseEvent) {
 
 	switch event.Phase {
 	case input.MousePhaseBegan:
-		if t.systemSetBounds().Contains(event.Position) {
+		if t.isHover(event.Position) {
 			t.setFocused(true)
 		} else {
 			t.setFocused(false)
@@ -94,11 +94,10 @@ func (t *textFieldImpl) onMouseEvent(event input.MouseEvent) {
 }
 
 func (t *textFieldImpl) onKeyEvent(event input.KeyEvent) {
-	defer t.viewCtx.onKeyEvent(event)
-
 	if !t.isFocused {
 		return
 	}
+	defer t.viewCtx.onKeyEvent(event)
 
 	if event.Phase != input.KeyPhaseJustReleased {
 		switch event.Key {
@@ -110,6 +109,9 @@ func (t *textFieldImpl) onKeyEvent(event input.KeyEvent) {
 }
 
 func (t *textFieldImpl) onTypeEvent(event input.TypeEvent) {
+	if !t.isFocused {
+		return
+	}
 	defer t.viewCtx.onTypeEvent(event)
 
 	if t.isFocused {
@@ -119,8 +121,4 @@ func (t *textFieldImpl) onTypeEvent(event input.TypeEvent) {
 		}
 		t.content.Set(content + string(event.Char))
 	}
-}
-
-func (t *textFieldImpl) processable() bool {
-	return true
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"math/rand"
+	"strconv"
 
 	. "github.com/yanun0323/ebui"
 	"github.com/yanun0323/ebui/layout"
@@ -18,6 +19,17 @@ func (v *ContentView) Body() SomeView {
 	clr := Bind(NewColor(128))
 	dis := Bind(false)
 
+	rect := func(i int, clr *Binding[CGColor]) SomeView {
+		return Text(strconv.Itoa(i)).
+			Fill(clr).
+			Frame(Bind(NewSize(50, 50))).
+			Center().
+			Disabled(dis)
+	}
+
+	red := Bind(NewColor(255, 0, 0))
+	blue := Bind(NewColor(0, 0, 255))
+
 	return ScrollView(
 		VStack(
 			Button("Test Button", func() {
@@ -29,12 +41,36 @@ func (v *ContentView) Body() SomeView {
 
 			Rectangle().
 				Fill(clr).
-				Frame(Bind(NewSize(100, 500))).
+				Frame(Bind(NewSize(100, 100))).
 				Disabled(dis),
 
+			ScrollView(
+				VStack(
+					rect(1, red),
+					rect(2, red),
+					rect(3, red),
+					rect(4, red),
+					rect(5, red),
+				).Debug(),
+			).Frame(Bind(NewSize(200, 200))).
+				ScrollViewDirection(Const(layout.DirectionVertical)).
+				Debug(),
+
+			ScrollView(
+				HStack(
+					rect(1, blue),
+					rect(2, blue),
+					rect(3, blue),
+					rect(4, blue),
+					rect(5, blue),
+				).Debug(),
+			).Frame(Bind(NewSize(200, 200))).
+				ScrollViewDirection(Const(layout.DirectionHorizontal)).
+				Debug(),
+
 			Toggle(dis),
-		).Spacing().Align(Bind(layout.AlignCenter)),
-	).Frame(Bind(NewSize(500, 500))) //.Debug()
+		).Spacing(),
+	).Frame(Bind(NewSize(500, 500))).Align(Bind(layout.AlignLeading | layout.AlignTrailing)) //.Debug()
 }
 
 func main() {

@@ -3,11 +3,13 @@ package input
 type TouchPhase int
 
 const (
-	TouchPhaseBegan TouchPhase = iota + 1
+	TouchPhaseNone TouchPhase = iota
+	TouchPhaseBegan
 	TouchPhaseMoved
 	TouchPhaseEnded
 )
 
 type TouchEvent struct {
+	Position Vector
 	// TODO: Implement me
 }

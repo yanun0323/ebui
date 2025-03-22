@@ -3,7 +3,8 @@ package input
 type ScrollPhase int
 
 const (
-	ScrollPhaseBegan ScrollPhase = iota + 1
+	ScrollPhaseNone ScrollPhase = iota
+	ScrollPhaseBegan
 	ScrollPhaseChanged
 	ScrollPhaseEnded
 )

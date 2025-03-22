@@ -11,7 +11,8 @@ import (
 type KeyPhase int
 
 const (
-	KeyPhaseJustPressed KeyPhase = iota + 1
+	KeyPhaseNone KeyPhase = iota
+	KeyPhaseJustPressed
 	KeyPhasePressing
 	KeyPhaseJustReleased
 )

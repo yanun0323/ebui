@@ -32,8 +32,6 @@ type viewCtx struct {
 
 // initialize ViewContext
 func newViewContext(owner SomeView) *viewCtx {
-	globalEventManager.RegisterHandler(owner)
-
 	return &viewCtx{
 		viewCtxEnv:   newEnv(),
 		viewCtxParam: newParam(),
@@ -89,6 +87,10 @@ func (c *viewCtx) align(offset CGPoint) {
 	c._systemSetFrame = c._systemSetFrame.Move(offset)
 }
 
+func (c *viewCtx) isHover(cursor input.Vector) bool {
+	return c.systemSetBounds().Contains(cursor)
+}
+
 func (c *viewCtx) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layoutFunc) {
 	c.viewCtxEnv.inheritFrom(parent)
 	padding := c.padding()
@@ -123,7 +125,8 @@ func (c *viewCtx) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layo
 
 func (c *viewCtx) drawOption(rect CGRect, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
 	opt := &ebiten.DrawImageOptions{}
-	opt.GeoM.Translate(rect.Start.X, rect.Start.Y)
+	scale := c.scale.Value()
+	opt.GeoM.Scale(scale.X, scale.Y)
 	for _, h := range hook {
 		h(opt)
 	}
@@ -131,6 +134,7 @@ func (c *viewCtx) drawOption(rect CGRect, hook ...func(*ebiten.DrawImageOptions)
 	if c.opacity != nil {
 		opt.ColorScale.ScaleAlpha(float32(c.opacity.Value()))
 	}
+	opt.GeoM.Translate(rect.Start.X, rect.Start.Y)
 	return opt
 }
 
@@ -168,10 +172,23 @@ func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptio
 
 var _ eventHandler = (*viewCtx)(nil)
 
-func (c *viewCtx) onScrollEvent(event input.ScrollEvent) {
+func (c *viewCtx) onHoverEvent(cursor input.Vector) {
+	isHover := c.isHover(cursor)
+	for _, handler := range c.hoverEventHandlers.Load() {
+		handler(isHover)
+	}
+}
+
+func (c *viewCtx) onScrollEvent(cursor input.Vector, event input.ScrollEvent) bool {
+	if !c.isHover(cursor) {
+		return false
+	}
+
 	for _, handler := range c.scrollEventHandlers.Load() {
 		handler(event)
 	}
+
+	return true
 }
 
 func (c *viewCtx) onMouseEvent(event input.MouseEvent) {
@@ -202,15 +219,6 @@ func (c *viewCtx) onTouchEvent(event input.TouchEvent) {
 	for _, handler := range c.touchEventHandlers.Load() {
 		handler(event)
 	}
-}
-
-func (c *viewCtx) processable() bool {
-	return len(c.scrollEventHandlers.Load()) != 0 ||
-		len(c.mouseEventHandlers.Load()) != 0 ||
-		len(c.keyEventHandlers.Load()) != 0 ||
-		len(c.typeEventHandlers.Load()) != 0 ||
-		len(c.gestureEventHandlers.Load()) != 0 ||
-		len(c.touchEventHandlers.Load()) != 0
 }
 
 /*
@@ -416,6 +424,11 @@ func (c *viewCtx) Offset(offset *Binding[CGPoint]) SomeView {
 	return c._owner
 }
 
+func (c *viewCtx) Scale(scale *Binding[CGPoint]) SomeView {
+	c.scale = scale
+	return c._owner
+}
+
 func (c *viewCtx) Spacing(spacing ...*Binding[float64]) SomeView {
 	if len(spacing) != 0 {
 		c.spacing = spacing[0]
@@ -431,7 +444,22 @@ func (c *viewCtx) ScrollViewDirection(direction *Binding[layout.Direction]) Some
 	return c._owner
 }
 
-func (c *viewCtx) OnScroll(fn func(input.ScrollEvent)) {
+func (c *viewCtx) OnHover(fn func(bool)) SomeView {
+	var handlers []func(bool)
+	if c.hoverEventHandlers == nil {
+		handlers = make([]func(bool), 0, 1)
+	}
+
+	handlers = append(handlers, func(isHover bool) {
+		fn(isHover)
+	})
+
+	c.hoverEventHandlers.Store(handlers)
+
+	return c._owner
+}
+
+func (c *viewCtx) OnScroll(fn func(input.ScrollEvent)) SomeView {
 	var handlers []func(input.ScrollEvent)
 	if c.scrollEventHandlers == nil {
 		handlers = make([]func(input.ScrollEvent), 0, 1)
@@ -447,9 +475,10 @@ func (c *viewCtx) OnScroll(fn func(input.ScrollEvent)) {
 
 	c.scrollEventHandlers.Store(handlers)
 
+	return c._owner
 }
 
-func (c *viewCtx) OnMouse(fn func(phase input.MousePhase, offset input.Vector)) {
+func (c *viewCtx) OnMouse(fn func(phase input.MousePhase, offset input.Vector)) SomeView {
 	var handlers []func(input.MouseEvent)
 	if c.mouseEventHandlers == nil {
 		handlers = make([]func(input.MouseEvent), 0, 1)
@@ -461,18 +490,18 @@ func (c *viewCtx) OnMouse(fn func(phase input.MousePhase, offset input.Vector)) 
 
 	handlers = append(handlers, func(event input.MouseEvent) {
 		bounds := c.systemSetBounds()
-		if bounds.Contains(event.Position) {
-			fn(event.Phase, newVector(
-				event.Position.X-bounds.Start.X,
-				event.Position.Y-bounds.Start.Y,
-			))
-		}
+		fn(event.Phase, newVector(
+			event.Position.X-bounds.Start.X,
+			event.Position.Y-bounds.Start.Y,
+		))
 	})
 
 	c.mouseEventHandlers.Store(handlers)
+
+	return c._owner
 }
 
-func (c *viewCtx) OnKey(fn func(input.KeyEvent)) {
+func (c *viewCtx) OnKey(fn func(input.KeyEvent)) SomeView {
 	var handlers []func(input.KeyEvent)
 	if c.keyEventHandlers == nil {
 		handlers = make([]func(input.KeyEvent), 0, 1)
@@ -487,9 +516,11 @@ func (c *viewCtx) OnKey(fn func(input.KeyEvent)) {
 	})
 
 	c.keyEventHandlers.Store(handlers)
+
+	return c._owner
 }
 
-func (c *viewCtx) OnType(fn func(input.TypeEvent)) {
+func (c *viewCtx) OnType(fn func(input.TypeEvent)) SomeView {
 	var handlers []func(input.TypeEvent)
 	if c.typeEventHandlers == nil {
 		handlers = make([]func(input.TypeEvent), 0, 1)
@@ -504,9 +535,11 @@ func (c *viewCtx) OnType(fn func(input.TypeEvent)) {
 	})
 
 	c.typeEventHandlers.Store(handlers)
+
+	return c._owner
 }
 
-func (c *viewCtx) OnGesture(fn func(input.GestureEvent)) {
+func (c *viewCtx) OnGesture(fn func(input.GestureEvent)) SomeView {
 	var handlers []func(input.GestureEvent)
 	if c.gestureEventHandlers == nil {
 		handlers = make([]func(input.GestureEvent), 0, 1)
@@ -521,9 +554,11 @@ func (c *viewCtx) OnGesture(fn func(input.GestureEvent)) {
 	})
 
 	c.gestureEventHandlers.Store(handlers)
+
+	return c._owner
 }
 
-func (c *viewCtx) OnTouch(fn func(input.TouchEvent)) {
+func (c *viewCtx) OnTouch(fn func(input.TouchEvent)) SomeView {
 	var handlers []func(input.TouchEvent)
 	if c.touchEventHandlers == nil {
 		handlers = make([]func(input.TouchEvent), 0, 1)
@@ -538,6 +573,8 @@ func (c *viewCtx) OnTouch(fn func(input.TouchEvent)) {
 	})
 
 	c.touchEventHandlers.Store(handlers)
+
+	return c._owner
 }
 
 func (c *viewCtx) OnAppear(f func()) SomeView {

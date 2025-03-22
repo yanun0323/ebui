@@ -3,6 +3,7 @@ package ebui
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/font"
+	"github.com/yanun0323/ebui/input"
 	layout "github.com/yanun0323/ebui/layout"
 )
 
@@ -43,6 +44,8 @@ type SomeView interface {
 
 	// count returns the count of the view
 	count() int
+
+	isHover(input.Vector) bool
 
 	// userSetFrameSize returns the frame size from the user
 	userSetFrameSize() CGSize
@@ -156,11 +159,41 @@ type SomeView interface {
 	// Offset sets the offset of the view
 	Offset(offset *Binding[CGPoint]) SomeView
 
+	// Scale sets the scale of the view
+	Scale(scale *Binding[CGPoint]) SomeView
+
 	// Spacing sets the spacing of the view
 	Spacing(spacing ...*Binding[float64]) SomeView
 
 	// ScrollViewDirection sets the direction of the view
 	ScrollViewDirection(direction *Binding[layout.Direction]) SomeView
+
+	// OnHover sets the function to be called when the view is hovered
+	OnHover(fn func(bool)) SomeView
+
+	// OnScroll sets the function to be called when the view is scrolled
+	OnScroll(fn func(input.ScrollEvent)) SomeView
+
+	// OnMouse sets the function to be called when the view is hovered
+	OnMouse(fn func(input.MousePhase, input.Vector)) SomeView
+
+	// OnKey sets the function to be called when the view is hovered
+	OnKey(fn func(input.KeyEvent)) SomeView
+
+	// OnType sets the function to be called when the view is hovered
+	OnType(fn func(input.TypeEvent)) SomeView
+
+	// OnGesture sets the function to be called when the view is hovered
+	OnGesture(fn func(input.GestureEvent)) SomeView
+
+	// OnTouch sets the function to be called when the view is hovered
+	OnTouch(fn func(input.TouchEvent)) SomeView
+
+	// OnAppear sets the function to be called when the view is hovered
+	OnAppear(fn func()) SomeView
+
+	// OnDisappear sets the function to be called when the view is hovered
+	OnDisappear(fn func()) SomeView
 }
 
 type alignFunc func(offset CGPoint)
