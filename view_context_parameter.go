@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/yanun0323/ebui/input"
 	"github.com/yanun0323/ebui/internal/helper"
@@ -27,6 +28,8 @@ type viewCtxParam struct {
 	spacing         *Binding[float64]
 	scale           *Binding[CGPoint]
 
+	isAppeared           atomic.Bool
+	appearEventHandlers  *value[[]func()]
 	hoverEventHandlers   *value[[]func(isHover bool)]
 	scrollEventHandlers  *value[[]func(event input.ScrollEvent)]
 	mouseEventHandlers   *value[[]func(event input.MouseEvent)]
@@ -34,12 +37,16 @@ type viewCtxParam struct {
 	typeEventHandlers    *value[[]func(event input.TypeEvent)]
 	touchEventHandlers   *value[[]func(event input.TouchEvent)]
 	gestureEventHandlers *value[[]func(event input.GestureEvent)]
+
+	shadowLength *Binding[float64]
+	shadowColor  *Binding[CGColor]
 }
 
 func newParam() *viewCtxParam {
 	return &viewCtxParam{
 		frameSize:            Bind(NewSize(Inf, Inf)),
 		scale:                Bind(NewPoint(1, 1)),
+		appearEventHandlers:  newValue[[]func()](),
 		hoverEventHandlers:   newValue[[]func(isHover bool)](),
 		scrollEventHandlers:  newValue[[]func(input.ScrollEvent)](),
 		mouseEventHandlers:   newValue[[]func(input.MouseEvent)](),

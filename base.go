@@ -26,11 +26,11 @@ type numberable interface {
 func NewColor[Number numberable](val ...Number) CGColor {
 	switch len(val) {
 	case 1:
-		return CGColor{uint8(val[0]), uint8(val[0]), uint8(val[0]), 255}
+		return CGColor{uint8(val[0]), uint8(val[0]), uint8(val[0]), 255}.clamp()
 	case 3:
-		return CGColor{uint8(val[0]), uint8(val[1]), uint8(val[2]), 255}
+		return CGColor{uint8(val[0]), uint8(val[1]), uint8(val[2]), 255}.clamp()
 	case 4:
-		return CGColor{uint8(val[0]), uint8(val[1]), uint8(val[2]), uint8(val[3])}
+		return CGColor{uint8(val[0]), uint8(val[1]), uint8(val[2]), uint8(val[3])}.clamp()
 	default:
 		return CGColor{}
 	}
@@ -51,6 +51,24 @@ func (c CGColor) Bytes() []byte {
 
 func (c CGColor) IsZero() bool {
 	return c == transparent
+}
+
+func (c CGColor) Scale(r, g, b, a float64) CGColor {
+	return CGColor{
+		R: uint8(float64(c.R) * r),
+		G: uint8(float64(c.G) * g),
+		B: uint8(float64(c.B) * b),
+		A: uint8(float64(c.A) * a),
+	}.clamp()
+}
+
+func (c CGColor) clamp() CGColor {
+	return CGColor{
+		R: max(min(c.R, 255), 0),
+		G: max(min(c.G, 255), 0),
+		B: max(min(c.B, 255), 0),
+		A: max(min(c.A, 255), 0),
+	}
 }
 
 // NewPoint creates a CGPoint from any numberable type.

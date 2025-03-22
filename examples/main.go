@@ -4,6 +4,7 @@ import (
 	"log"
 
 	. "github.com/yanun0323/ebui"
+	"github.com/yanun0323/ebui/animation"
 	"github.com/yanun0323/ebui/examples/view"
 )
 
@@ -24,7 +25,16 @@ func NewContentView() View {
 type ContentView struct{}
 
 func (v *ContentView) Body() SomeView {
-	return ZStack(
+	bgColor := Bind(NewColor(255))
+	toggle := Bind(false).AddListener(func(oldVal, newVal bool, animStyle ...animation.Style) {
+		if newVal {
+			bgColor.Set(NewColor(16), animStyle...)
+		} else {
+			bgColor.Set(NewColor(255), animStyle...)
+		}
+	})
+	return VStack(
+		Toggle(toggle),
 		view.PageScrollView(),
 	).
 		Padding(Bind(NewInset(30))).
@@ -32,12 +42,14 @@ func (v *ContentView) Body() SomeView {
 		Border(Bind(NewInset(1.5)), Bind(white)).
 		RoundCorner(Bind(15.0)).
 		Center().
+		BackgroundColor(bgColor).
 		FontKerning(Bind(1.0))
+
 }
 
 func main() {
 	app := NewApplication(NewContentView())
-	app.SetWindowBackgroundColor(NewColor(64, 16, 64, 64))
+	// app.SetWindowBackgroundColor(NewColor(0))
 	app.SetWindowSize(1200, 800)
 	app.SetWindowResizingMode(WindowResizingModeEnabled)
 	app.SetResourceFolder("resource")

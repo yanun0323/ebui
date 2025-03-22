@@ -7,15 +7,17 @@ import (
 )
 
 const (
-	_defaultToggleSize    = 30
-	_defaultTogglePadding = 2
+	_defaultToggleSize         = 30.0
+	_defaultTogglePadding      = 3.0
+	_defaultToggleBoundsSize   = _defaultToggleSize + 2*_defaultTogglePadding
+	_defaultToggleShadowLength = _defaultTogglePadding
 )
 
 var (
-	defaultToggleOnColor            = ivory
-	defaultToggleOffColor           = ivory
+	defaultToggleOnColor            = white
+	defaultToggleOffColor           = white
 	defaultToggleOnBackgroundColor  = NewColor(64, 191, 64)
-	defaultToggleOffBackgroundColor = NewColor(64, 64, 64)
+	defaultToggleOffBackgroundColor = NewColor(128, 128, 128)
 	defaultToggleOffset             = NewPoint(_defaultToggleSize-(2*_defaultTogglePadding), 0)
 )
 
@@ -35,6 +37,10 @@ type toggleImpl struct {
 func Toggle(enabled *Binding[bool], label ...func() SomeView) SomeView {
 	t := &toggleImpl{
 		enabled: enabled,
+	}
+
+	if enabled.animStyle == nil {
+		enabled.Animated()
 	}
 
 	if len(label) != 0 && label[0] != nil {
@@ -117,11 +123,12 @@ func (b *toggleImpl) defaultLabel() SomeView {
 			Frame(Const(NewSize(_defaultToggleSize, _defaultToggleSize))).
 			Offset(b.defaultToggleOffset).
 			BackgroundColor(b.defaultToggleColor).
+			Shadow(Const(_defaultToggleShadowLength)).
 			Padding(Const(NewInset(_defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding))),
 	).
-		Frame(Const(NewSize(60, _defaultToggleSize+_defaultTogglePadding*2))).
+		Frame(Const(NewSize(60, _defaultToggleBoundsSize))).
 		BackgroundColor(b.defaultToggleBackgroundColor).
-		RoundCorner(Const(float64(_defaultToggleSize / 2))).
+		RoundCorner(Const(float64(_defaultToggleBoundsSize / 2))).
 		Padding(Const(NewInset(5, 5, 5, 5))).
 		Align(Bind(layout.AlignLeading | layout.AlignTop))
 }

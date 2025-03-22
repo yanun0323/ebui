@@ -199,15 +199,17 @@ func (b *Binding[T]) Set(newVal T, with ...animation.Style) {
 // The listener will be called when the binding is updated.
 //
 // AddListener is thread-safe.
-func (b *Binding[T]) AddListener(listener func(oldVal, newVal T, animStyle ...animation.Style)) {
+func (b *Binding[T]) AddListener(listener func(oldVal, newVal T, animStyle ...animation.Style)) *Binding[T] {
 	if b == nil {
-		return
+		return b
 	}
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	b.listeners = append(b.listeners, listener)
+
+	return b
 }
 
 // Animated sets the animated style as the default animated style for the binding.

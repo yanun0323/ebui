@@ -46,8 +46,8 @@ func (c *circleImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 	img := ebiten.NewImage(diameter, diameter)
 	img.Fill(bgColor)
 
-	for x := 0; x < diameter; x++ {
-		for y := 0; y < diameter; y++ {
+	for x := range diameter {
+		for y := range diameter {
 			if (x-radius)*(x-radius)+(y-radius)*(y-radius) > radius*radius {
 				img.Set(x, y, color.Transparent)
 			}
@@ -55,9 +55,12 @@ func (c *circleImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 	}
 
 	opt := &ebiten.DrawImageOptions{}
-	opt.GeoM.Scale(_roundedScaleInverse, _roundedScaleInverse)
 	opt.Filter = ebiten.FilterLinear
+	opt.GeoM.Scale(_roundedScaleInverse, _roundedScaleInverse)
 	opt.GeoM.Concat(bOpt.GeoM)
 	opt.ColorScale.ScaleWithColorScale(bOpt.ColorScale)
+
+	c.drawShadow(screen, img, c.shadowLength.Value()*_roundedScale, c.shadowColor.Value(), opt, 0.66)
+
 	screen.DrawImage(img, opt)
 }

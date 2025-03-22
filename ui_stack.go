@@ -62,6 +62,13 @@ func (s *stackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpt
 
 var _ eventHandler = &stackImpl{}
 
+func (s *stackImpl) onAppearEvent() {
+	s.viewCtx.onAppearEvent()
+	for _, child := range s.children {
+		child.onAppearEvent()
+	}
+}
+
 func (s *stackImpl) onScrollEvent(cursor input.Vector, event input.ScrollEvent) bool {
 	s.viewCtx.onScrollEvent(cursor, event)
 	for _, child := range s.children {

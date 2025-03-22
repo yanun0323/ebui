@@ -7,8 +7,9 @@ type Hashable interface {
 }
 
 type eventHandler interface {
-	onScrollEvent(input.Vector, input.ScrollEvent) bool
+	onAppearEvent()
 	onHoverEvent(input.Vector)
+	onScrollEvent(input.Vector, input.ScrollEvent) bool
 	onMouseEvent(input.MouseEvent)
 	onKeyEvent(input.KeyEvent)
 	onTypeEvent(input.TypeEvent)

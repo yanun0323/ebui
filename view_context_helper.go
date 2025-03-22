@@ -85,3 +85,75 @@ func (c *viewCtx) drawBorderRect(screen *ebiten.Image, bounds CGRect, bgColor CG
 
 	screen.DrawImage(img, bOpt)
 }
+
+// draw a shadow
+func (c *viewCtx) drawShadow(screen, source *ebiten.Image, shadowLength float64, shadowColor CGColor, bOpt *ebiten.DrawImageOptions, fix ...float64) {
+	if shadowLength <= 0 {
+		return
+	}
+
+	fixOffset := 0.0
+	if len(fix) != 0 && fix[0] != 0 {
+		fixOffset = fix[0]
+	}
+	fixOffset *= shadowLength
+
+	blend := ebiten.BlendSourceOver
+	finalOpt := &ebiten.DrawImageOptions{}
+	finalOpt.Filter = ebiten.FilterLinear
+	finalOpt.Blend = blend
+	// finalOpt.GeoM.Scale(1.111, 1.111)
+	finalOpt.GeoM.Concat(bOpt.GeoM)
+	finalOpt.ColorScale.ScaleWithColorScale(bOpt.ColorScale)
+	finalOpt.GeoM.Translate(-shadowLength+fixOffset, -shadowLength+fixOffset)
+
+	if c._shadowCache.IsNextHashCached() {
+		screen.DrawImage(c._shadowCache.Load(), finalOpt)
+		return
+	}
+
+	w := int(source.Bounds().Dx())
+	h := int(source.Bounds().Dy())
+
+	shadowBlock := ebiten.NewImage(w, h)
+	sOpt := &ebiten.DrawImageOptions{}
+	sOpt.ColorScale.Scale(0, 0, 0, 1)
+	sOpt.ColorScale.ScaleWithColor(shadowColor)
+	shadowBlock.DrawImage(source, sOpt)
+
+	count := int(abs(shadowLength))
+	w += 2 * count
+	tempImg := ebiten.NewImage(w, h)
+
+	h += 2 * count
+	shadowImg := ebiten.NewImage(w, h)
+
+	alpha := 1.0 / float32(count)
+	// 步驟1：水平模糊
+	for i := -count; i <= count; i++ {
+		opt := &ebiten.DrawImageOptions{}
+		opt.Filter = ebiten.FilterLinear
+		opt.Blend = blend
+		opt.GeoM.Translate(float64(i)+shadowLength, 0.0)
+		opt.ColorScale.ScaleAlpha(alpha)
+		tempImg.DrawImage(shadowBlock, opt)
+	}
+
+	// 步驟2：垂直模糊 (將水平模糊的結果再進行垂直模糊)
+	for j := -count; j <= count; j++ {
+		if j == 0 {
+			continue // 中心點已經在水平模糊中處理過
+		}
+		opt := &ebiten.DrawImageOptions{}
+		opt.Filter = ebiten.FilterLinear
+		opt.Blend = blend
+		// opt.GeoM.Scale(0.9, 0.9)
+		opt.GeoM.Translate(0.0, float64(j)+shadowLength)
+		opt.ColorScale.ScaleAlpha(alpha)
+		shadowImg.DrawImage(tempImg, opt)
+	}
+
+	c._shadowCache.Update(shadowImg)
+	screen.DrawImage(shadowImg, finalOpt)
+
+}

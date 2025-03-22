@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	_scrollIndicatorLength  = 15.0
-	_scrollIndicatorPadding = 6.0
+	_scrollIndicatorLength  = 12.0
+	_scrollIndicatorPadding = 4.0
 )
 
 // ScrollView is a view that can scroll its content.
@@ -145,9 +145,6 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 		baseSize CGSize
 		mainSize CGSize
 
-		baseColor = NewColor(16, 16, 16, 64)
-		mainColor = NewColor(64, 64, 64, 64)
-
 		d                           = s.scrollViewDirection.Get()
 		offset                      = s.contentOffset.Value()
 		sBoundsSize                 = s.systemSetBounds().Size()
@@ -184,13 +181,13 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 	img := s.indicateCache.Load()
 	if s.indicateCache.IsNextCacheOutdated() || img[0] == nil || img[1] == nil {
 		img[0] = ebiten.NewImage(int(baseSize.Width), int(baseSize.Height))
-		img[0].Fill(baseColor)
+		img[0].Fill(defaultIndicatorBaseColor)
 
 		w := int(mainSize.Width * _roundedScale)
 		h := int(mainSize.Height * _roundedScale)
 		r := float64(int(radius * _roundedScale))
 		img[1] = ebiten.NewImage(w, h)
-		img[1].Fill(mainColor)
+		img[1].Fill(defaultIndicatorMainColor)
 		cornerHandler := newCornerHandler(w, h, r)
 		cornerHandler.Execute(func(isOutside, isBorder bool, x, y int) {
 			if isOutside {
@@ -216,6 +213,11 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 func (s *scrollViewImpl) shiftCursor(cursor input.Vector) input.Vector {
 	scrollOffset := s.contentOffset.Value()
 	return cursor.Add(scrollOffset.X, scrollOffset.Y)
+}
+
+func (s *scrollViewImpl) onAppearEvent() {
+	s.viewCtx.onAppearEvent()
+	s.content.onAppearEvent()
 }
 
 func (s *scrollViewImpl) onHoverEvent(cursor input.Vector) {

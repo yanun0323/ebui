@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	popupViews            []SomeView
+	popupViews           []SomeView
 	isLeftButtonTracking atomic.Bool
 )
 
@@ -44,6 +44,9 @@ func EbitenUpdate(contentView SomeView) {
 	}
 
 	mLayout := m.ElapsedAndReset()
+
+	// 3. handle appear event
+	contentView.onAppearEvent()
 
 	// 4. handle wheel events
 

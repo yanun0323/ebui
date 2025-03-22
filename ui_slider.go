@@ -1,6 +1,8 @@
 package ebui
 
 import (
+	"time"
+
 	"github.com/yanun0323/ebui/input"
 	"github.com/yanun0323/ebui/layout"
 )
@@ -24,12 +26,7 @@ func Slider(value, maximum, minimum *Binding[float64]) SomeView {
 	isDragging := Bind(false)
 	hovered := Bind(false)
 
-	minValue := minimum.Get()
-	maxValue := maximum.Get()
-	currValue := value.Get()
-	ratio := (currValue - minValue) / (maxValue - minValue)
-
-	colorBlockScale := Bind(NewPoint(ratio, 1))
+	colorBlockScale := Bind(NewPoint(0, 1))
 	leftOffset := Bind(NewPoint(0, 0))
 	hs := stack(stackTypeZStack, false,
 		HStack(
@@ -42,12 +39,31 @@ func Slider(value, maximum, minimum *Binding[float64]) SomeView {
 			RoundCorner(),
 		Circle().
 			Frame(Const(NewSize(_sliderSizeIndicator))).
-			Fill(Const(ivory)).Offset(leftOffset),
+			Fill(Const(white)).Offset(leftOffset).
+			Shadow(),
 	)
 
 	hs.Align(Const(layout.AlignLeading | layout.AlignTop | layout.AlignBottom)).
 		Fill(Const(NewColor(128))).
 		Spacing(Const(0.0))
+
+	hs.OnAppear(func() {
+		var (
+			minValue       = minimum.Get()
+			maxValue       = maximum.Get()
+			currValue      = value.Get()
+			ratio          = (currValue - minValue) / (maxValue - minValue)
+			frameSizeWidth = hs.systemSetFrame().Size().Width - _sliderSizeIndicatorRadius
+			anim           = value.animStyle
+		)
+
+		if anim != nil {
+			anim = anim.Delay(100 * time.Millisecond)
+		}
+
+		colorBlockScale.Set(NewPoint(ratio, 1), anim)
+		leftOffset.Set(NewPoint(ratio*frameSizeWidth, 0), anim)
+	})
 
 	hs.OnHover(func(b bool) {
 		hovered.Set(b)
@@ -94,18 +110,5 @@ func Slider(value, maximum, minimum *Binding[float64]) SomeView {
 		max:        maximum,
 		min:        minimum,
 		leftOffset: leftOffset,
-	}
-}
-
-func (s *sliderImpl) preload(ctx *viewCtxEnv, types ...stackType) (preloadData, layoutFunc) {
-	logf("preload")
-	return preloadData{}, func(start CGPoint, childBoundsSize CGSize) (CGRect, alignFunc) {
-		return CGRect{}, func(offset CGPoint) {}
-	}
-	data, layout := s.stackImpl.preload(ctx, types...)
-	return data, func(start CGPoint, childBoundsSize CGSize) (CGRect, alignFunc) {
-		bounds, alignFunc := layout(start, childBoundsSize)
-		logf("bounds: %v", bounds)
-		return bounds, alignFunc
 	}
 }

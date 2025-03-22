@@ -26,8 +26,9 @@ type viewCtx struct {
 	*viewCtxEnv
 	*viewCtxParam
 
-	_owner SomeView
-	_cache *helper.HashCache[*ebiten.Image]
+	_owner       SomeView
+	_cache       *helper.HashCache[*ebiten.Image]
+	_shadowCache *helper.HashCache[*ebiten.Image]
 }
 
 // initialize ViewContext
@@ -37,6 +38,7 @@ func newViewContext(owner SomeView) *viewCtx {
 		viewCtxParam: newParam(),
 		_owner:       owner,
 		_cache:       helper.NewHashCache[*ebiten.Image](),
+		_shadowCache: helper.NewHashCache[*ebiten.Image](),
 	}
 }
 
@@ -56,6 +58,13 @@ func (c *viewCtx) Hash(withFont bool) string {
 	h := xxhash.New()
 	h.Write(c.viewCtxEnv.Bytes(withFont))
 	h.Write(c.viewCtxParam.Bytes())
+	return strconv.FormatUint(h.Sum64(), 16)
+}
+
+func (c *viewCtx) HashShadow() string {
+	h := xxhash.New()
+	h.Write(helper.BytesFloat64(c.shadowLength.Value()))
+	h.Write(c.shadowColor.Value().Bytes())
 	return strconv.FormatUint(h.Sum64(), 16)
 }
 
@@ -117,6 +126,7 @@ func (c *viewCtx) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layo
 		)
 
 		c._cache.SetNextHash(c.Hash(false))
+		c._shadowCache.SetNextHash(c.HashShadow())
 		c.debugPrintPreload(finalFrame, flexFrameSize, data)
 
 		return finalFrame.Expand(padding).Expand(border), c.align
@@ -152,7 +162,12 @@ func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptio
 		borderColor = c.borderColor.Value()
 	}
 
+	shadowColor := c.shadowColor.Value()
 	opt := c.drawOption(drawBounds, hook...)
+	source := ebiten.NewImage(int(drawBounds.Dx()), int(drawBounds.Dy()))
+	source.Fill(NewColor(0))
+	c.drawShadow(screen, source, c.shadowLength.Value(), shadowColor, opt)
+
 	if radius := c.roundCorner.Value(); radius > 0 {
 		c.drawRoundedAndBorderRect(screen, drawBounds, radius, bgColor, borderLength, borderColor, opt)
 	} else {
@@ -171,6 +186,16 @@ func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptio
 */
 
 var _ eventHandler = (*viewCtx)(nil)
+
+func (c *viewCtx) onAppearEvent() {
+	if c.isAppeared.Swap(true) {
+		return
+	}
+
+	for _, handler := range c.appearEventHandlers.Load() {
+		handler()
+	}
+}
 
 func (c *viewCtx) onHoverEvent(cursor input.Vector) {
 	isHover := c.isHover(cursor)
@@ -439,6 +464,28 @@ func (c *viewCtx) Spacing(spacing ...*Binding[float64]) SomeView {
 	return c._owner
 }
 
+func (c *viewCtx) Shadow(length ...*Binding[float64]) SomeView {
+	if len(length) != 0 {
+		c.shadowLength = length[0]
+	} else {
+		c.shadowLength = DefaultShadowLength
+	}
+
+	c.shadowColor = DefaultShadowColor
+	return c._owner
+}
+
+func (c *viewCtx) ShadowWithColor(color *Binding[CGColor], length ...*Binding[float64]) SomeView {
+	if len(length) != 0 {
+		c.shadowLength = length[0]
+	} else {
+		c.shadowLength = DefaultShadowLength
+	}
+
+	c.shadowColor = color
+	return c._owner
+}
+
 func (c *viewCtx) ScrollViewDirection(direction *Binding[layout.Direction]) SomeView {
 	c.scrollViewDirection = direction
 	return c._owner
@@ -578,7 +625,13 @@ func (c *viewCtx) OnTouch(fn func(input.TouchEvent)) SomeView {
 }
 
 func (c *viewCtx) OnAppear(f func()) SomeView {
-	// TODO: onAppear
+	var handlers []func()
+	if c.appearEventHandlers == nil {
+		handlers = make([]func(), 0, 1)
+	}
+
+	handlers = append(handlers, f)
+	c.appearEventHandlers.Store(handlers)
 	return c._owner
 }
 

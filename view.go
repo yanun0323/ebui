@@ -165,6 +165,9 @@ type SomeView interface {
 	// Spacing sets the spacing of the view
 	Spacing(spacing ...*Binding[float64]) SomeView
 
+	// Shadow sets the shadow of the view
+	Shadow(length ...*Binding[float64]) SomeView
+
 	// ScrollViewDirection sets the direction of the view
 	ScrollViewDirection(direction *Binding[layout.Direction]) SomeView
 
@@ -191,9 +194,6 @@ type SomeView interface {
 
 	// OnAppear sets the function to be called when the view is hovered
 	OnAppear(fn func()) SomeView
-
-	// OnDisappear sets the function to be called when the view is hovered
-	OnDisappear(fn func()) SomeView
 }
 
 type alignFunc func(offset CGPoint)
