@@ -25,16 +25,19 @@ func NewContentView() View {
 type ContentView struct{}
 
 func (v *ContentView) Body() SomeView {
-	bgColor := Bind(NewColor(255))
+	bgColor := Bind(NewColor(16))
 	toggle := Bind(false).AddListener(func(oldVal, newVal bool, animStyle ...animation.Style) {
 		if newVal {
-			bgColor.Set(NewColor(16), animStyle...)
+			bgColor.Set(NewColor(240), animStyle...)
 		} else {
-			bgColor.Set(NewColor(255), animStyle...)
+			bgColor.Set(NewColor(16), animStyle...)
 		}
 	})
 	return VStack(
-		Toggle(toggle),
+		HStack(
+			Text("Light Mode"),
+			Toggle(toggle),
+		),
 		view.PageScrollView(),
 	).
 		Padding(Bind(NewInset(30))).

@@ -67,7 +67,7 @@ func (t *textFieldImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImag
 	t.stackImpl.draw(screen, hook...)
 
 	if t.isFocused && time.Now().Unix()%4%2 == 0 {
-		_, h := t.text.measure(t.content.Value())
+		_, h, _ := t.text.measure(t.content.Value())
 		rect := t.systemSetBounds()
 		opt := t.stackImpl.drawOption(rect, hook...)
 		opt.GeoM.Translate(3, 3)

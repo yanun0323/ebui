@@ -3,6 +3,7 @@ package ebui
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"unicode/utf8"
 
@@ -33,7 +34,7 @@ func Text[T string | *Binding[string]](content T) SomeView {
 	return nil
 }
 
-func newText(content *Binding[string]) SomeView {
+func newText(content *Binding[string]) *textImpl {
 	v := &textImpl{
 		content: content,
 		cache:   helper.NewHashCache[*ebiten.Image](),
@@ -90,7 +91,7 @@ func (t *textImpl) face(s ...font.Size) text.Face {
 
 func (t *textImpl) userSetFrameSize() CGSize {
 	ctxUserSetFrameSize := t.viewCtx.userSetFrameSize()
-	w, h := t.measure(t.content.Value())
+	w, h, _ := t.measure(t.content.Value())
 
 	if ctxUserSetFrameSize.IsInfWidth() {
 		ctxUserSetFrameSize.Width = w
@@ -103,14 +104,34 @@ func (t *textImpl) userSetFrameSize() CGSize {
 	return ctxUserSetFrameSize
 }
 
-func (t *textImpl) measure(content string) (w, h float64) {
+func (t *textImpl) measure(content string) (w, h, lineHeight float64) {
 	if len(content) == 0 {
 		content = " "
 	}
-	kerning := t.fontKerning.Value()
-	w, h = text.Measure(content, t.face(), kerning)
-	w += float64(utf8.RuneCountInString(content)-1) * kerning
-	return w, h
+
+	var (
+		kerning          = t.fontKerning.Value()
+		lineSpacing      = t.fontLineHeight.Value()
+		face             = t.face()
+		maxLineRuneCount = 0
+		maxW             = 0.0
+		totalH           = 0.0
+		lineH            = 0.0
+	)
+
+	for _, line := range strings.Split(content, "\n") {
+		w, h := text.Measure(line, face, kerning)
+		maxW = max(w, maxW)
+		maxLineRuneCount = max(utf8.RuneCountInString(line), maxLineRuneCount)
+		if h == 0 {
+			lineH = h
+		} else {
+			lineH = h + lineSpacing
+		}
+		totalH += lineH
+	}
+
+	return maxW + float64(maxLineRuneCount-1)*kerning, totalH, lineH
 }
 
 func (t *textImpl) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layoutFunc) {
@@ -151,25 +172,33 @@ func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpti
 		return
 	}
 
-	textBase := ebiten.NewImage(int(bounds.Dx()), int(bounds.Dy()))
-
-	face := t.face()
-	foregroundColor := t.foregroundColor.Value()
-	kerning := t.fontKerning.Value()
-	for i, gl := range text.AppendGlyphs(nil, content, face, &text.LayoutOptions{
-		LineSpacing: t.fontLineHeight.Value(),
-	}) {
-		if gl.Image == nil {
-			continue
+	var (
+		layoutOpt = &text.LayoutOptions{
+			LineSpacing: t.fontLineHeight.Value(),
 		}
+		textBase        = ebiten.NewImage(int(bounds.Dx()), int(bounds.Dy()))
+		foregroundColor = t.foregroundColor.Value()
+		kerning         = t.fontKerning.Value()
+		face            = t.face()
+		lines           = strings.Split(content, "\n")
+		_, _, lineH     = t.measure(content)
+	)
 
-		opt := &ebiten.DrawImageOptions{}
-		opt.ColorScale.ScaleWithColor(foregroundColor)
-		opt.GeoM.Translate(float64(i)*kerning, 0)
-		opt.GeoM.Translate(gl.X, gl.Y)
-		opt.ColorScale.ScaleWithColorScale(op.ColorScale)
+	for i, line := range lines {
+		for j, gl := range text.AppendGlyphs(nil, line, face, layoutOpt) {
+			if gl.Image == nil {
+				continue
+			}
 
-		textBase.DrawImage(gl.Image, opt)
+			opt := &ebiten.DrawImageOptions{}
+			opt.ColorScale.ScaleWithColor(foregroundColor)
+			opt.ColorScale.ScaleWithColorScale(op.ColorScale)
+			opt.GeoM.Translate(float64(j)*kerning, 0)
+			opt.GeoM.Translate(gl.X, gl.Y)
+			opt.GeoM.Translate(0, float64(i)*lineH)
+
+			textBase.DrawImage(gl.Image, opt)
+		}
 	}
 
 	t.cache.Update(textBase)
