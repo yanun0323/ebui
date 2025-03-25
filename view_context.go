@@ -639,3 +639,12 @@ func (c *viewCtx) OnDisappear(f func()) SomeView {
 	// TODO: OnDisappear
 	return c._owner
 }
+
+func (c *viewCtx) Overlay(view SomeView) SomeView {
+	ZStack(
+		c._owner,
+		view,
+	)
+
+	return c._owner
+}

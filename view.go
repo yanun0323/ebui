@@ -194,6 +194,9 @@ type SomeView interface {
 
 	// OnAppear sets the function to be called when the view is hovered
 	OnAppear(fn func()) SomeView
+
+	// Overlay sets the view to be on the top of the view
+	Overlay(view SomeView) SomeView
 }
 
 type alignFunc func(offset CGPoint)
