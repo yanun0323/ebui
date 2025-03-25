@@ -19,6 +19,7 @@ type viewCtxEnv struct {
 	fontKerning     *Binding[float64]
 	fontAlignment   *Binding[font.TextAlign]
 	fontItalic      *Binding[bool]
+	lineLimit       *Binding[int]
 	opacity         *Binding[float64] /* only use for drawOption */
 	disabled        *Binding[bool]    /* only use for drawOption */
 	alignment       *Binding[layout.Align]
@@ -48,6 +49,7 @@ func (e *viewCtxEnv) inheritFrom(parent *viewCtxEnv) *viewCtxEnv {
 	e.fontKerning = getNewIfOldNil(parent.fontKerning, e.fontKerning)
 	e.fontAlignment = getNewIfOldNil(parent.fontAlignment, e.fontAlignment)
 	e.fontItalic = getNewIfOldNil(parent.fontItalic, e.fontItalic)
+	e.lineLimit = getNewIfOldNil(parent.lineLimit, e.lineLimit)
 	e.opacity = getNewIfOldNil(parent.opacity, e.opacity)
 	e.disabled = getNewIfOldNil(parent.disabled, e.disabled)
 	e.alignment = getNewIfOldNil(parent.alignment, e.alignment)
@@ -86,6 +88,7 @@ func (e *viewCtxEnv) Bytes(withFont bool) []byte {
 		b.Write(helper.BytesFloat64(e.fontKerning.Value()))
 		b.Write(e.fontAlignment.Value().Bytes())
 		b.Write(helper.BytesBool(e.fontItalic.Value()))
+		b.Write(helper.BytesInt(e.lineLimit.Value()))
 	}
 
 	b.Write(e.alignment.Value().Hash())

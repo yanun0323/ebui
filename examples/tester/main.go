@@ -13,14 +13,18 @@ func NewContentView() View {
 type ContentView struct{}
 
 func (v *ContentView) Body() SomeView {
-	return VStack(
+	return HStack(
 		Spacer(),
-		Text("Hello, World!").Debug(),
-		Text("你好\n世界!\n第三行").Debug(),
-		Text("你好\n世界!\n行高: 10").FontLineHeight(Const(10.0)).Debug(),
-		Text("你好\n世界!\n字距: 10").FontKerning(Const(10.0)).Debug(),
+		VStack(
+			Spacer(),
+			Text("Hello, World!").Debug(),
+			Text("你好\n世界!\nThe third line").LineLimit(Const(1)).Debug(),
+			Text("你好\n世界!\n行高: 10").FontLineHeight(Const(10.0)).Debug(),
+			Text("你好\n世界!\n字距: 10").FontKerning(Const(10.0)).Debug(),
+			Spacer(),
+		),
 		Spacer(),
-	).Frame(Bind(NewSize(500, 500)))
+	)
 }
 
 func main() {

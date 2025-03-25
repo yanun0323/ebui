@@ -339,6 +339,11 @@ func (c *viewCtx) FontItalic(italic ...*Binding[bool]) SomeView {
 	return c._owner
 }
 
+func (c *viewCtx) LineLimit(limit *Binding[int]) SomeView {
+	c.lineLimit = limit
+	return c._owner
+}
+
 func (c *viewCtx) RoundCorner(radius ...*Binding[float64]) SomeView {
 	if len(radius) != 0 {
 		c.roundCorner = radius[0]

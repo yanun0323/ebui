@@ -43,6 +43,24 @@ func newText(content *Binding[string]) *textImpl {
 	return v
 }
 
+func (t *textImpl) getContent() []string {
+	lines := strings.Split(t.content.Value(), "\n")
+	if lineLimit := t.lineLimit.Value(); lineLimit >= 1 {
+		result := make([]string, 0, lineLimit)
+		buffer := strings.Builder{}
+		for i, line := range lines {
+			if i+1 <= lineLimit {
+				result = append(result, line)
+			} else {
+				buffer.WriteString(line)
+			}
+		}
+		lines = append(result, buffer.String())
+	}
+
+	return lines
+}
+
 func (textImpl) faceKey(size font.Size, weight font.Weight, italic bool) string {
 	return fmt.Sprintf("%d-%d-%t", size, weight, italic)
 }
@@ -91,7 +109,8 @@ func (t *textImpl) face(s ...font.Size) text.Face {
 
 func (t *textImpl) userSetFrameSize() CGSize {
 	ctxUserSetFrameSize := t.viewCtx.userSetFrameSize()
-	w, h, _ := t.measure(t.content.Value())
+	lines := t.getContent()
+	w, h, _ := t.measure(lines)
 
 	if ctxUserSetFrameSize.IsInfWidth() {
 		ctxUserSetFrameSize.Width = w
@@ -104,9 +123,9 @@ func (t *textImpl) userSetFrameSize() CGSize {
 	return ctxUserSetFrameSize
 }
 
-func (t *textImpl) measure(content string) (w, h, lineHeight float64) {
-	if len(content) == 0 {
-		content = " "
+func (t *textImpl) measure(lines []string) (w, h, lineHeight float64) {
+	if len(lines) == 0 {
+		lines = []string{" "}
 	}
 
 	var (
@@ -119,7 +138,7 @@ func (t *textImpl) measure(content string) (w, h, lineHeight float64) {
 		lineH            = 0.0
 	)
 
-	for _, line := range strings.Split(content, "\n") {
+	for _, line := range lines {
 		w, h := text.Measure(line, face, kerning)
 		maxW = max(w, maxW)
 		maxLineRuneCount = max(utf8.RuneCountInString(line), maxLineRuneCount)
@@ -180,8 +199,8 @@ func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpti
 		foregroundColor = t.foregroundColor.Value()
 		kerning         = t.fontKerning.Value()
 		face            = t.face()
-		lines           = strings.Split(content, "\n")
-		_, _, lineH     = t.measure(content)
+		lines           = t.getContent()
+		_, _, lineH     = t.measure(lines)
 	)
 
 	for i, line := range lines {

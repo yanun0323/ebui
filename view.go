@@ -107,6 +107,11 @@ type SomeView interface {
 	// It is a environment variable, so it will be inherited by subviews.
 	FontItalic(italic ...*Binding[bool]) SomeView
 
+	// LineLimit sets the line limit of the view
+	//
+	// It is a environment variable, so it will be inherited by subviews.
+	LineLimit(limit *Binding[int]) SomeView
+
 	// RoundCorner sets the round corner of the view
 	RoundCorner(radius ...*Binding[float64]) SomeView
 
