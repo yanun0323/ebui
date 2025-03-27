@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"image/color"
-	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -18,7 +17,7 @@ var (
 	WindowResizingModeOnlyFullscreenEnabled windowResizingMode = windowResizingMode(ebiten.WindowResizingModeOnlyFullscreenEnabled)
 	WindowResizingModeEnabled               windowResizingMode = windowResizingMode(ebiten.WindowResizingModeEnabled)
 
-	resourceDir atomic.Value
+	resourceDir *Binding[string] = Bind("")
 )
 
 type application struct {
@@ -36,12 +35,13 @@ func NewApplication(root View) *application {
 }
 
 // SetWindowBackgroundColor sets the background color of the application.
-func (app *application) SetWindowBackgroundColor(color AnyColor) {
+func (app *application) SetWindowBackgroundColor(color CGColor) {
 	app.backgroundColor = color
 }
 
 // SetWindowSize sets the size of the window.
 func (app *application) SetWindowSize(width, height int) {
+	ebiten.SetWindowSize(width, height)
 	EbitenLayout(width, height)
 }
 
@@ -50,7 +50,8 @@ func (app *application) SetWindowResizingMode(mode windowResizingMode) {
 }
 
 func (app *application) SetResourceFolder(folder string) {
-	resourceDir.Store(folder)
+	resourceDir.Set(folder)
+	logf("set resource folder: %s", folder)
 }
 
 func (app *application) Debug() {

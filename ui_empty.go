@@ -12,10 +12,12 @@ func EmptyView() SomeView {
 	return empty
 }
 
-func (e *emptyImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
-	return flexibleSize{}, CGInset{}, nil
+func (e *emptyImpl) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layoutFunc) {
+	return preloadData{}, func(start CGPoint, flexBoundsSize CGSize) (bounds CGRect, alignFunc alignFunc) {
+		return CGRect{start, start}, func(CGPoint) {}
+	}
 }
 
-func (e *emptyImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-	return &ebiten.DrawImageOptions{}
+func (e *emptyImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
+	// EmptyView is a blank component, so it does not need to draw anything
 }

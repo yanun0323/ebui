@@ -14,19 +14,13 @@ type RectangleSuite struct {
 	suite.Suite
 }
 
-func newRectangleForTest() *rectangleImpl {
-	rect := &rectangleImpl{}
-	rect.viewCtx = newViewContext(rect)
-	return rect
-}
-
 func (su *RectangleSuite) Test() {
-	rect := newRectangleForTest()
+	rect := Rectangle().(*rectangleImpl)
 	rect.Frame(Bind(NewSize(100, 100)))
 
 	s := rect.viewCtx.userSetFrameSize()
-	su.Equal(100.0, s.Frame.Width)
-	su.Equal(100.0, s.Frame.Height)
+	su.Equal(100.0, s.Width)
+	su.Equal(100.0, s.Height)
 
 	r := rect.viewCtx.systemSetFrame()
 	su.Equal(CGPoint{}, r.Start)

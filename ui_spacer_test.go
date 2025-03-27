@@ -6,12 +6,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func newSpacerForTest() *spacerImpl {
-	sp := &spacerImpl{}
-	sp.viewCtx = newViewContext(sp)
-	return sp
-}
-
 func TestSpacer(t *testing.T) {
 	suite.Run(t, new(SpacerSuite))
 }
@@ -22,11 +16,11 @@ type SpacerSuite struct {
 
 func (su *SpacerSuite) Test() {
 	{
-		sp1 := newSpacerForTest()
-		sp2 := newSpacerForTest()
-		sp3 := newSpacerForTest()
-		sp4 := newSpacerForTest()
-		rect1 := newRectangleForTest()
+		sp1 := Spacer()
+		sp2 := Spacer()
+		sp3 := Spacer()
+		sp4 := Spacer()
+		rect1 := Rectangle().(*rectangleImpl)
 		rect1.Frame(Bind(NewSize(100, 100)))
 
 		view := ZStack(
@@ -40,8 +34,8 @@ func (su *SpacerSuite) Test() {
 				sp4,
 			),
 		)
-		_, _, layoutFn := view.preload(nil)
-		bound := layoutFn(NewPoint(0, 0), NewSize(500, 500))
+		_, layoutFn := view.preload(nil)
+		bound, _ := layoutFn(NewPoint(0, 0), NewSize(500, 500))
 		su.Equal(NewPoint(0, 0), bound.Start)
 		su.Equal(NewPoint(500, 500), bound.End)
 

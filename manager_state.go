@@ -1,7 +1,9 @@
 package ebui
 
+import "sync/atomic"
+
 type stateManager struct {
-	dirty  bool
+	dirty  atomic.Bool
 	bounds CGRect
 }
 
@@ -10,15 +12,15 @@ var globalStateManager = &stateManager{
 }
 
 func (sm *stateManager) markDirty() {
-	sm.dirty = true
+	sm.dirty.Store(true)
 }
 
 func (sm *stateManager) clearDirty() {
-	sm.dirty = false
+	sm.dirty.Store(false)
 }
 
 func (sm *stateManager) isDirty() bool {
-	return sm.dirty
+	return sm.dirty.Load()
 }
 
 func (sm *stateManager) GetBounds() CGRect {

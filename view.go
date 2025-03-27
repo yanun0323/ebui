@@ -3,59 +3,234 @@ package ebui
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/font"
+	"github.com/yanun0323/ebui/input"
+	layout "github.com/yanun0323/ebui/layout"
 )
 
+// Frame: internal bounds (exclude padding, border ...)
+// Bounds: external bounds (include padding, border ...)
+
+// View represents the base of all views
 type View interface {
 	Body() SomeView
 }
 
-// layoutFunc: 用於設置 View 的位置及大小，並回傳實際佔用的空間
-//
-//	start: 給這個 View 的起始座標
-//	flexFrameSize: 給這個 View 的內部邊界彈性大小
-//	bounds: 回傳實際佔用的空間(包含 padding 的最外圍邊界)
-type layoutFunc func(start CGPoint, flexFrameSize CGSize) (bounds CGRect)
-
-// SomeView 是所有 View 的基礎介面
-type SomeView interface {
-	View
-
-	// preload 設置環境變量，並回傳 View 的佈局資訊
-	// preload 回傳的 frameSize 是 View 用 Frame 設置的大小
-	// preload 回傳的 padding 是 View 用 Padding 設置的 padding
-	// layoutFn: 用於設置 View 的位置及大小，並回傳實際佔用的空間
-	// 		start: 給這個 View 的起始座標
-	// 		flexFrameSize: 給這個 View 的內部邊界彈性大小
-	// 		bounds: 回傳實際佔用的空間(包含 padding 的最外圍邊界)
-	preload(parent *viewCtxEnv) (frameSize flexibleSize, padding CGInset, layoutFn layoutFunc)
-
-	// draw 繪製 View
-	draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions
-	debugPrint(frame CGRect)
-
-	setEnv(env *viewCtxEnv)
-
-	count() int
-
-	userSetFrameSize() flexibleSize
-	systemSetFrame() CGRect
-	systemSetBounds() CGRect
-
-	Debug(tag string) SomeView
-	Frame(*Binding[CGSize]) SomeView
-	Padding(padding *Binding[CGInset]) SomeView
-	ForegroundColor(color *Binding[AnyColor]) SomeView
-	BackgroundColor(color *Binding[AnyColor]) SomeView
-	FontSize(size *Binding[font.Size]) SomeView
-	FontWeight(weight *Binding[font.Weight]) SomeView
-	FontLineHeight(height *Binding[float64]) SomeView
-	FontLetterSpacing(spacing *Binding[float64]) SomeView
-	FontAlignment(alignment *Binding[font.Alignment]) SomeView
-	FontItalic(italic ...*Binding[bool]) SomeView
-	RoundCorner(radius ...*Binding[float64]) SomeView
-	ScaleToFit(enable ...*Binding[bool]) SomeView
-	KeepAspectRatio(enable ...*Binding[bool]) SomeView
+// ViewModifier represents the base of all view modifiers
+type ViewModifier interface {
+	Body(SomeView) SomeView
 }
 
-// Frame: 不包含 Padding 的內部邊界
-// Bounds: 包含 Padding 的外部邊界
+// SomeView represents the instance of View
+type SomeView interface {
+	View
+	eventHandler
+
+	// preload sets the environment variables and returns the layout information of the view
+	preload(parent *viewCtxEnv, stackTypes ...stackType) (preloadData, layoutFunc)
+
+	// drawOption returns the draw options of the view
+	drawOption(rect CGRect, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions
+	// draw draws the view
+	draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions))
+
+	// debugPrint prints debug information in the console
+	debugPrint(prefix string, format string, a ...any)
+
+	// setEnv sets the environment variables of the view
+	setEnv(env *viewCtxEnv)
+
+	// bytes returns the bytes of the view
+	bytes() []byte
+
+	// count returns the count of the view
+	count() int
+
+	isHover(input.Vector) bool
+
+	// userSetFrameSize returns the frame size from the user
+	userSetFrameSize() CGSize
+	// systemSetFrame returns the frame from the system
+	systemSetFrame() CGRect
+	// systemSetBounds returns the bounds from the system
+	systemSetBounds() CGRect
+
+	// DebugPrint makes the view print debug information in the console
+	DebugPrint(tag string) SomeView
+
+	// Frame sets the frame of the view
+	Frame(*Binding[CGSize]) SomeView
+
+	// Padding sets the padding of the view
+	Padding(inset ...*Binding[CGInset]) SomeView
+
+	// ForegroundColor sets the foreground color of the view
+	//
+	// It is a environment variable, so it will be inherited by subviews.
+	ForegroundColor(color *Binding[CGColor]) SomeView
+
+	// BackgroundColor sets the background color of the view
+	BackgroundColor(color *Binding[CGColor]) SomeView
+
+	// Fill sets the background color of the view
+	Fill(color *Binding[CGColor]) SomeView
+
+	// Font sets the font of the view
+	Font(size *Binding[font.Size], weight *Binding[font.Weight]) SomeView
+
+	// FontSize sets the font size of the view
+	//
+	// It is a environment variable, so it will be inherited by subviews.
+	FontSize(size *Binding[font.Size]) SomeView
+
+	// FontWeight sets the font weight of the view
+	//
+	// It is a environment variable, so it will be inherited by subviews.
+	FontWeight(weight *Binding[font.Weight]) SomeView
+
+	// FontLineHeight sets the line height of the view
+	//
+	// It is a environment variable, so it will be inherited by subviews.
+	FontLineHeight(height *Binding[float64]) SomeView
+
+	// FontKerning sets the kerning of the view
+	//
+	// It is a environment variable, so it will be inherited by subviews.
+	FontKerning(spacing *Binding[float64]) SomeView
+
+	// FontAlignment sets the alignment of the view
+	//
+	// It is a environment variable, so it will be inherited by subviews.
+	FontAlignment(alignment *Binding[font.TextAlign]) SomeView
+
+	// FontItalic sets the italic of the view
+	//
+	// It is a environment variable, so it will be inherited by subviews.
+	FontItalic(italic ...*Binding[bool]) SomeView
+
+	// LineLimit sets the line limit of the view
+	//
+	// It is a environment variable, so it will be inherited by subviews.
+	LineLimit(limit *Binding[int]) SomeView
+
+	// RoundCorner sets the round corner of the view
+	RoundCorner(radius ...*Binding[float64]) SomeView
+
+	// ScaleToFit sets the scale to fit of the view
+	ScaleToFit(enable ...*Binding[bool]) SomeView
+
+	// KeepAspectRatio sets the keep aspect ratio of the view
+	KeepAspectRatio(enable ...*Binding[bool]) SomeView
+
+	// Border sets the border of the view
+	Border(border *Binding[CGInset], color ...*Binding[CGColor]) SomeView
+
+	// Opacity sets the opacity of the view
+	//
+	// It is a environment variable, so it will be inherited by subviews.
+	Opacity(opacity *Binding[float64]) SomeView
+
+	// Modifier sets the modifier of the view
+	Modifier(ViewModifier) SomeView
+
+	// Modify sets the modifier of the view
+	Modify(with func(SomeView) SomeView) SomeView
+
+	// Disabled sets the disabled of the view
+	//
+	// It is a environment variable, so it will be inherited by subviews.
+	Disabled(disabled ...*Binding[bool]) SomeView
+
+	// Align sets the alignment of the view
+	//
+	// It is a environment variable, so it will be inherited by subviews.
+	Align(alignment *Binding[layout.Align]) SomeView
+
+	// Center is a convenience method for:
+	//
+	//	 VStack(
+	//		Spacer(),
+	//		HStack(
+	//			Spacer(),
+	//			view,
+	//			Spacer(),
+	//		),
+	//		Spacer(),
+	//	 )
+	Center() SomeView
+
+	// Debug sets a red border around the view
+	Debug() SomeView
+
+	// Offset sets the offset of the view
+	Offset(offset *Binding[CGPoint]) SomeView
+
+	// Scale sets the scale of the view
+	Scale(scale *Binding[CGPoint]) SomeView
+
+	// Spacing sets the spacing of the view
+	Spacing(spacing ...*Binding[float64]) SomeView
+
+	// Shadow sets the shadow of the view
+	Shadow(length ...*Binding[float64]) SomeView
+
+	// ScrollViewDirection sets the direction of the view
+	ScrollViewDirection(direction *Binding[layout.Direction]) SomeView
+
+	// OnHover sets the function to be called when the view is hovered
+	OnHover(fn func(bool)) SomeView
+
+	// OnScroll sets the function to be called when the view is scrolled
+	OnScroll(fn func(input.ScrollEvent)) SomeView
+
+	// OnMouse sets the function to be called when the view is hovered
+	OnMouse(fn func(input.MousePhase, input.Vector)) SomeView
+
+	// OnKey sets the function to be called when the view is hovered
+	OnKey(fn func(input.KeyEvent)) SomeView
+
+	// OnType sets the function to be called when the view is hovered
+	OnType(fn func(input.TypeEvent)) SomeView
+
+	// OnGesture sets the function to be called when the view is hovered
+	OnGesture(fn func(input.GestureEvent)) SomeView
+
+	// OnTouch sets the function to be called when the view is hovered
+	OnTouch(fn func(input.TouchEvent)) SomeView
+
+	// OnAppear sets the function to be called when the view is hovered
+	OnAppear(fn func()) SomeView
+
+	// Overlay sets the view to be on the top of the view
+	Overlay(view SomeView) SomeView
+}
+
+type alignFunc func(offset CGPoint)
+
+// layoutFunc: used to set the position and size of the child View, and return the actual occupied space
+//
+//	start: the starting coordinate of this child View
+//	childBoundsSize: the external bounds of this child View
+//	bounds: the actual occupied space (include padding, border ...)
+type layoutFunc func(start CGPoint, childBoundsSize CGSize) (bounds CGRect, alignFunc alignFunc)
+
+func newPreloadData(frameSize CGSize, padding, border CGInset) preloadData {
+	return preloadData{
+		FrameSize:   frameSize,
+		IsInfWidth:  frameSize.IsInfWidth(),
+		IsInfHeight: frameSize.IsInfHeight(),
+		Padding:     padding,
+		Border:      border,
+	}
+}
+
+type preloadData struct {
+	FrameSize   CGSize // the actual internal bounds size
+	IsInfWidth  bool
+	IsInfHeight bool
+	Padding     CGInset // set by Padding
+	Border      CGInset // set by Border
+}
+
+func (p *preloadData) BoundsSize() CGSize {
+	return p.FrameSize.Expand(p.Padding).Expand(p.Border)
+}

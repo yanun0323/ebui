@@ -1,25 +1,39 @@
 package ebui
 
 import (
-	"image/color"
+	"bytes"
 
 	"github.com/yanun0323/ebui/font"
+	"github.com/yanun0323/ebui/internal/helper"
+	"github.com/yanun0323/ebui/layout"
 )
 
-// viewCtxEnv 提供所有 View 共用的環境變量
+// viewCtxEnv provides the environment variables for all views
+//
+// It can be inherited by subviews.
 type viewCtxEnv struct {
-	foregroundColor   *Binding[AnyColor]
-	fontSize          *Binding[font.Size]
-	fontWeight        *Binding[font.Weight]
-	fontLineHeight    *Binding[float64]
-	fontLetterSpacing *Binding[float64]
-	fontAlignment     *Binding[font.Alignment]
-	fontItalic        *Binding[bool]
+	foregroundColor *Binding[CGColor] /* only use for drawOption */
+	fontSize        *Binding[font.Size]
+	fontWeight      *Binding[font.Weight]
+	fontLineHeight  *Binding[float64]
+	fontKerning     *Binding[float64]
+	fontAlignment   *Binding[font.TextAlign]
+	fontItalic      *Binding[bool]
+	lineLimit       *Binding[int]
+	opacity         *Binding[float64] /* only use for drawOption */
+	disabled        *Binding[bool]    /* only use for drawOption */
+	alignment       *Binding[layout.Align]
+	transition      *Binding[float64] /* for all animation progress */
+	transitionAlign *Binding[CGPoint] /* for all animation offset */
+
+	// ScrollView
+
+	scrollViewDirection *Binding[layout.Direction]
 }
 
 func newEnv() *viewCtxEnv {
 	return &viewCtxEnv{
-		foregroundColor: Bind[AnyColor](color.White),
+		foregroundColor: Bind(white),
 	}
 }
 
@@ -32,17 +46,55 @@ func (e *viewCtxEnv) inheritFrom(parent *viewCtxEnv) *viewCtxEnv {
 	e.fontSize = getNewIfOldNil(parent.fontSize, e.fontSize)
 	e.fontWeight = getNewIfOldNil(parent.fontWeight, e.fontWeight)
 	e.fontLineHeight = getNewIfOldNil(parent.fontLineHeight, e.fontLineHeight)
-	e.fontLetterSpacing = getNewIfOldNil(parent.fontLetterSpacing, e.fontLetterSpacing)
+	e.fontKerning = getNewIfOldNil(parent.fontKerning, e.fontKerning)
 	e.fontAlignment = getNewIfOldNil(parent.fontAlignment, e.fontAlignment)
 	e.fontItalic = getNewIfOldNil(parent.fontItalic, e.fontItalic)
+	e.lineLimit = getNewIfOldNil(parent.lineLimit, e.lineLimit)
+	e.opacity = getNewIfOldNil(parent.opacity, e.opacity)
+	e.disabled = getNewIfOldNil(parent.disabled, e.disabled)
+	e.alignment = getNewIfOldNil(parent.alignment, e.alignment)
+	e.transition = getNewIfOldNil(parent.transition, e.transition)
+	e.transitionAlign = getNewIfOldNil(parent.transitionAlign, e.transitionAlign)
+	e.scrollViewDirection = getNewIfOldNil(parent.scrollViewDirection, e.scrollViewDirection)
 
 	return e
 }
 
-func getNewIfOldNil[T comparable](newValue, oldValue *Binding[T]) *Binding[T] {
+func getNewIfOldNil[T bindable](newValue, oldValue *Binding[T]) *Binding[T] {
 	if oldValue != nil {
 		return oldValue
 	}
 
 	return newValue
+}
+
+/*
+	##     ##    ###     ######  ##     ##    ###    ########  ##       ########
+	##     ##   ## ##   ##    ## ##     ##   ## ##   ##     ## ##       ##
+	##     ##  ##   ##  ##       ##     ##  ##   ##  ##     ## ##       ##
+	######### ##     ##  ######  ######### ##     ## ########  ##       ######
+	##     ## #########       ## ##     ## ######### ##     ## ##       ##
+	##     ## ##     ## ##    ## ##     ## ##     ## ##     ## ##       ##
+	##     ## ##     ##  ######  ##     ## ##     ## ########  ######## ########
+*/
+
+func (e *viewCtxEnv) Bytes(withFont bool) []byte {
+	b := bytes.Buffer{}
+
+	if withFont {
+		b.Write(e.fontSize.Value().Bytes())
+		b.Write(e.fontWeight.Value().Bytes())
+		b.Write(helper.BytesFloat64(e.fontLineHeight.Value()))
+		b.Write(helper.BytesFloat64(e.fontKerning.Value()))
+		b.Write(e.fontAlignment.Value().Bytes())
+		b.Write(helper.BytesBool(e.fontItalic.Value()))
+		b.Write(helper.BytesInt(e.lineLimit.Value()))
+	}
+
+	b.Write(e.alignment.Value().Hash())
+
+	b.Write(helper.BytesFloat64(e.transition.Value()))
+	b.Write(e.transitionAlign.Value().Bytes())
+	b.Write(helper.BytesInt8(e.scrollViewDirection.Value()))
+	return b.Bytes()
 }

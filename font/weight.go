@@ -1,5 +1,7 @@
 package font
 
+import "github.com/yanun0323/ebui/internal/helper"
+
 type Weight int
 
 const (
@@ -28,4 +30,8 @@ func (w Weight) Int() int {
 
 func (w Weight) F32() float32 {
 	return float32(w)
+}
+
+func (w Weight) Bytes() []byte {
+	return helper.BytesInt(int(w))
 }

@@ -3,7 +3,11 @@ package ebui
 import (
 	"math"
 	"time"
+
+	"github.com/yanun0323/ebui/input"
 )
+
+// TODO: Implement gesture recognizer manager
 
 type gestureType int
 
@@ -27,23 +31,23 @@ const (
 type gestureEvent struct {
 	Type      gestureType
 	State     gestureState
-	Location  CGPoint
-	Delta     CGPoint
-	Scale     float64 // 用於捏合手勢
-	Rotation  float64 // 用於旋轉手勢
-	Velocity  CGPoint
+	Location  input.Vector
+	Delta     input.Vector
+	Scale     float64 // for pinch gesture
+	Rotation  float64 // for rotation gesture
+	Velocity  input.Vector
 	Timestamp time.Time
 }
 
 type gestureRecognizer struct {
 	onGesture func(gestureEvent)
 
-	// 內部狀態
+	// internal state
 	startTime   time.Time
-	startPos    CGPoint
-	lastPos     CGPoint
+	startPos    input.Vector
+	lastPos     input.Vector
 	lastTime    time.Time
-	touchPoints []CGPoint
+	touchPoints []input.Vector
 	isTracking  bool
 }
 
@@ -53,47 +57,44 @@ func newGestureRecognizer(handler func(gestureEvent)) *gestureRecognizer {
 	}
 }
 
-func (gr *gestureRecognizer) HandleTouchEvent(event touchEvent) bool {
+func (gr *gestureRecognizer) HandleTouchEvent(event input.MouseEvent) bool {
 	switch event.Phase {
-	case touchPhaseBegan:
+	case input.MousePhaseBegan:
 		gr.startTracking(event)
 
-	case touchPhaseMoved:
+	case input.MousePhaseMoved:
 		if gr.isTracking {
 			gr.updateTracking(event)
 		}
 
-	case touchPhaseEnded:
+	case input.MousePhaseEnded:
 		if gr.isTracking {
 			gr.endTracking(event)
 		}
 
-	case touchPhaseCancelled:
+	case input.MousePhaseCancelled:
 		gr.cancelTracking()
 	}
 
 	return gr.isTracking
 }
 
-func (gr *gestureRecognizer) startTracking(event touchEvent) {
+func (gr *gestureRecognizer) startTracking(event input.MouseEvent) {
 	gr.isTracking = true
 	gr.startTime = time.Now()
 	gr.startPos = event.Position
 	gr.lastPos = event.Position
 	gr.lastTime = gr.startTime
-	gr.touchPoints = []CGPoint{event.Position}
+	gr.touchPoints = []input.Vector{event.Position}
 }
 
-func (gr *gestureRecognizer) updateTracking(event touchEvent) {
+func (gr *gestureRecognizer) updateTracking(event input.MouseEvent) {
 	now := time.Now()
-	delta := event.Position.Sub(gr.lastPos)
+	delta := newVector(event.Position.X-gr.lastPos.X, event.Position.Y-gr.lastPos.Y)
 
-	// 計算速度
+	// calculate velocity
 	duration := now.Sub(gr.lastTime).Seconds()
-	velocity := CGPoint{
-		X: delta.X / duration,
-		Y: delta.Y / duration,
-	}
+	velocity := newVector(delta.X/duration, delta.Y/duration)
 
 	gr.onGesture(gestureEvent{
 		Type:      gestureSwipe,
@@ -109,10 +110,10 @@ func (gr *gestureRecognizer) updateTracking(event touchEvent) {
 	gr.touchPoints = append(gr.touchPoints, event.Position)
 }
 
-func (gr *gestureRecognizer) endTracking(event touchEvent) {
+func (gr *gestureRecognizer) endTracking(event input.MouseEvent) {
 	duration := time.Since(gr.startTime)
 
-	// 檢測點擊
+	// detect tap
 	if duration < 300*time.Millisecond &&
 		math.Abs(float64(event.Position.X-gr.startPos.X)) < 10 &&
 		math.Abs(float64(event.Position.Y-gr.startPos.Y)) < 10 {

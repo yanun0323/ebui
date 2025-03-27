@@ -4,22 +4,40 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// Spacer 元件
 type spacerImpl struct {
 	*viewCtx
 }
 
+// Spacer creates a blank component, so it does not need to draw anything.
 func Spacer() SomeView {
 	sp := &spacerImpl{}
 	sp.viewCtx = newViewContext(sp)
 	return sp
 }
 
-func (*spacerImpl) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
-	return newFlexibleSize(Inf, Inf, true), NewInset(0, 0, 0, 0), nil
+func (sp *spacerImpl) preload(parent *viewCtxEnv, stackTypes ...stackType) (preloadData, layoutFunc) {
+	types := getTypes(stackTypes...)
+
+	sz := NewSize(Inf)
+	switch types {
+	case stackTypeVStack:
+		sz.Width = 0
+	case stackTypeHStack:
+		sz.Height = 0
+	}
+
+	return newPreloadData(sz, CGInset{}, CGInset{}), func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc) {
+		switch types {
+		case stackTypeVStack:
+			return CGRect{start, NewPoint(start.X, start.Y+flexBoundsSize.Height)}, func(CGPoint) {}
+		case stackTypeHStack:
+			return CGRect{start, NewPoint(start.X+flexBoundsSize.Width, start.Y)}, func(CGPoint) {}
+		default:
+			return CGRect{start, start}, func(CGPoint) {}
+		}
+	}
 }
 
-func (*spacerImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-	// Spacer 是空白元件，不需要繪製任何內容
-	return &ebiten.DrawImageOptions{}
+func (*spacerImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
+	// Spacer is a blank component, so it does not need to draw anything
 }

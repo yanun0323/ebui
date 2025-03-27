@@ -1,10 +1,17 @@
 package ebui
 
 import (
+	"bytes"
 	"math"
+	"strconv"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/yanun0323/ebui/animation"
 	"github.com/yanun0323/ebui/font"
+	"github.com/yanun0323/ebui/input"
+	"github.com/yanun0323/ebui/internal/helper"
+	"github.com/yanun0323/ebui/layout"
 )
 
 var _ SomeView = &viewCtx{}
@@ -14,39 +21,65 @@ var isInf = func(f float64) bool {
 	return math.IsInf(f, 1)
 }
 
-const (
-	_defaultRoundCorner float64 = 8.0
-)
-
-// viewCtx 提供所有 View 共用的修飾器方法和狀態
+// viewCtx provides the common modifiers and states for all views
 type viewCtx struct {
 	*viewCtxEnv
 	*viewCtxParam
 
-	_owner SomeView
+	_owner       SomeView
+	_cache       *helper.HashCache[*ebiten.Image]
+	_shadowCache *helper.HashCache[*ebiten.Image]
 }
 
-// 初始化 ViewContext
+// initialize ViewContext
 func newViewContext(owner SomeView) *viewCtx {
 	return &viewCtx{
 		viewCtxEnv:   newEnv(),
 		viewCtxParam: newParam(),
 		_owner:       owner,
+		_cache:       helper.NewHashCache[*ebiten.Image](),
+		_shadowCache: helper.NewHashCache[*ebiten.Image](),
 	}
 }
 
-func (c *viewCtx) wrap(modify func(*viewCtx)) SomeView {
-	// 創建一個新的 zstackImpl 實例
-	zs := &zstackImpl{
-		children: []SomeView{c._owner},
-	}
+func (c *viewCtx) Bytes(withFont bool) []byte {
+	b := bytes.Buffer{}
+	b.Write(c.viewCtxEnv.Bytes(withFont))
+	b.Write(c.viewCtxParam.Bytes())
+
+	return b.Bytes()
+}
+
+func (c *viewCtx) bytes() []byte {
+	return c.Bytes(false)
+}
+
+func (c *viewCtx) Hash(withFont bool) string {
+	h := xxhash.New()
+	h.Write(c.viewCtxEnv.Bytes(withFont))
+	h.Write(c.viewCtxParam.Bytes())
+	return strconv.FormatUint(h.Sum64(), 16)
+}
+
+func (c *viewCtx) HashShadow() string {
+	h := xxhash.New()
+	h.Write(helper.BytesFloat64(c.shadowLength.Value()))
+	h.Write(c.shadowColor.Value().Bytes())
+	return strconv.FormatUint(h.Sum64(), 16)
+}
+
+func (c *viewCtx) wrap(modify ...func(*viewCtx)) SomeView {
+	// create a new zstackImpl instance
+	zs := ZStack(c._owner).(*stackImpl)
 
 	zs.viewCtx = newViewContext(zs)
 	zs.viewCtx.viewCtxEnv = c.viewCtxEnv
-	zs.viewCtx.viewCtxParam.frameSize = c.frameSize
+	// zs.viewCtx.viewCtxParam.frameSize = c.frameSize
 
-	// 應用修改
-	modify(zs.viewCtx)
+	// apply modifiers
+	for _, m := range modify {
+		m(zs.viewCtx)
+	}
 
 	return zs
 }
@@ -59,70 +92,179 @@ func (c *viewCtx) count() int {
 	return 1
 }
 
-func (c *viewCtx) preload(parent *viewCtxEnv) (flexibleSize, CGInset, layoutFunc) {
+func (c *viewCtx) align(offset CGPoint) {
+	c._systemSetFrame = c._systemSetFrame.Move(offset)
+}
+
+func (c *viewCtx) isHover(cursor input.Vector) bool {
+	return c.systemSetBounds().Contains(cursor)
+}
+
+func (c *viewCtx) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layoutFunc) {
 	c.viewCtxEnv.inheritFrom(parent)
-	padding := c.inset.Get()
+	padding := c.padding()
+	border := c.border()
 	userSetFrameSize := c._owner.userSetFrameSize()
-	return userSetFrameSize, padding, func(start CGPoint, flexFrameSize CGSize) CGRect {
-		finalFrame := CGRect{start, start.Add(flexFrameSize.ToCGPoint())}
-		finalFrameSize := userSetFrameSize
-		if !finalFrameSize.IsInfX {
-			finalFrame.End.X = start.X + finalFrameSize.Frame.Width
+	data := newPreloadData(userSetFrameSize, padding, border)
+	return data, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc) {
+		flexFrameSize := flexBoundsSize.Shrink(padding).Shrink(border)
+		flexibleFrame := CGRect{start, start.Add(flexFrameSize.ToCGPoint())}
+		finalFrame := flexibleFrame
+		if !userSetFrameSize.IsInfWidth() {
+			finalFrame.End.X = start.X + userSetFrameSize.Width
 		}
 
-		if !finalFrameSize.IsInfY {
-			finalFrame.End.Y = start.Y + finalFrameSize.Frame.Height
+		if !userSetFrameSize.IsInfHeight() {
+			finalFrame.End.Y = start.Y + userSetFrameSize.Height
 		}
 
 		c._systemSetFrame = NewRect(
-			finalFrame.Start.X+padding.Left,
-			finalFrame.Start.Y+padding.Top,
-			finalFrame.End.X+padding.Left,
-			finalFrame.End.Y+padding.Top,
+			finalFrame.Start.X+padding.Left+border.Left,
+			finalFrame.Start.Y+padding.Top+border.Top,
+			finalFrame.End.X+padding.Left+border.Left,
+			finalFrame.End.Y+padding.Top+border.Top,
 		)
 
-		result := finalFrame.Expand(padding)
-		c.debugPrint(result)
-		return result
+		c._cache.SetNextHash(c.Hash(false))
+		c._shadowCache.SetNextHash(c.HashShadow())
+		c.debugPrintPreload(finalFrame, flexFrameSize, data)
+
+		return finalFrame.Expand(padding).Expand(border), c.align
 	}
 }
 
-func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
-	drawFrame := c._owner.systemSetBounds()
+func (c *viewCtx) drawOption(rect CGRect, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions {
 	opt := &ebiten.DrawImageOptions{}
-	opt.GeoM.Translate(drawFrame.Start.X, drawFrame.Start.Y)
+	scale := c.scale.Value()
+	opt.GeoM.Scale(scale.X, scale.Y)
 	for _, h := range hook {
 		h(opt)
 	}
 
-	bgColor := c.backgroundColor.Get()
-	if bgColor == nil {
-		return opt
+	if c.opacity != nil {
+		opt.ColorScale.ScaleAlpha(float32(c.opacity.Value()))
 	}
-
-	if !drawFrame.drawable() {
-		return opt
-	}
-
-	if radius := c.roundCorner.Get(); radius > 0 {
-		drawRoundedRect(screen, drawFrame, radius, bgColor, opt)
-	} else {
-		img := ebiten.NewImage(int(drawFrame.Dx()), int(drawFrame.Dy()))
-		img.Fill(bgColor)
-		screen.DrawImage(img, opt)
-	}
-
+	opt.GeoM.Translate(rect.Start.X, rect.Start.Y)
 	return opt
 }
+
+func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
+	drawBounds := c._owner.systemSetBounds()
+
+	if !drawBounds.drawable() {
+		return
+	}
+
+	bgColor := c.backgroundColor.Value()
+	borderLength := c.borderInset.Value()
+	borderColor := black
+	if c.borderColor != nil {
+		borderColor = c.borderColor.Value()
+	}
+
+	shadowColor := c.shadowColor.Value()
+	opt := c.drawOption(drawBounds, hook...)
+	source := ebiten.NewImage(int(drawBounds.Dx()), int(drawBounds.Dy()))
+	source.Fill(NewColor(0))
+	c.drawShadow(screen, source, c.shadowLength.Value(), shadowColor, opt)
+
+	if radius := c.roundCorner.Value(); radius > 0 {
+		c.drawRoundedAndBorderRect(screen, drawBounds, radius, bgColor, borderLength, borderColor, opt)
+	} else {
+		c.drawBorderRect(screen, drawBounds, bgColor, borderLength, borderColor, opt)
+	}
+}
+
+/*
+	######## ##     ## ######## ##    ## ########
+	##       ##     ## ##       ###   ##    ##
+	##       ##     ## ##       ####  ##    ##
+	######   ##     ## ######   ## ## ##    ##
+	##        ##   ##  ##       ##  ####    ##
+	##         ## ##   ##       ##   ###    ##
+	########    ###    ######## ##    ##    ##
+*/
+
+var _ eventHandler = (*viewCtx)(nil)
+
+func (c *viewCtx) onAppearEvent() {
+	if c.isAppeared.Swap(true) {
+		return
+	}
+
+	for _, handler := range c.appearEventHandlers.Load() {
+		handler()
+	}
+}
+
+func (c *viewCtx) onHoverEvent(cursor input.Vector) {
+	isHover := c.isHover(cursor)
+	for _, handler := range c.hoverEventHandlers.Load() {
+		handler(isHover)
+	}
+}
+
+func (c *viewCtx) onScrollEvent(cursor input.Vector, event input.ScrollEvent) bool {
+	if !c.isHover(cursor) {
+		return false
+	}
+
+	for _, handler := range c.scrollEventHandlers.Load() {
+		handler(event)
+	}
+
+	return true
+}
+
+func (c *viewCtx) onMouseEvent(event input.MouseEvent) {
+	for _, handler := range c.mouseEventHandlers.Load() {
+		handler(event)
+	}
+}
+
+func (c *viewCtx) onKeyEvent(event input.KeyEvent) {
+	for _, handler := range c.keyEventHandlers.Load() {
+		handler(event)
+	}
+}
+
+func (c *viewCtx) onTypeEvent(event input.TypeEvent) {
+	for _, handler := range c.typeEventHandlers.Load() {
+		handler(event)
+	}
+}
+
+func (c *viewCtx) onGestureEvent(event input.GestureEvent) {
+	for _, handler := range c.gestureEventHandlers.Load() {
+		handler(event)
+	}
+}
+
+func (c *viewCtx) onTouchEvent(event input.TouchEvent) {
+	for _, handler := range c.touchEventHandlers.Load() {
+		handler(event)
+	}
+}
+
+/*
+	 ######   #######  ##     ## ######## ##     ## #### ######## ##      ##
+	##    ## ##     ## ###   ### ##       ##     ##  ##  ##       ##  ##  ##
+	##       ##     ## #### #### ##       ##     ##  ##  ##       ##  ##  ##
+	 ######  ##     ## ## ### ## ######   ##     ##  ##  ######   ##  ##  ##
+	      ## ##     ## ##     ## ##        ##   ##   ##  ##       ##  ##  ##
+	##    ## ##     ## ##     ## ##         ## ##    ##  ##       ##  ##  ##
+	 ######   #######  ##     ## ########    ###    #### ########  ###  ###
+*/
+
+var _ SomeView = (*viewCtx)(nil)
 
 func (c *viewCtx) Body() SomeView {
 	return c._owner
 }
 
-// Frame 修飾器
 func (c *viewCtx) Frame(size *Binding[CGSize]) SomeView {
 	if size == nil {
-		size = Bind(NewSize(Inf, Inf))
+		size = Const(NewSize(Inf, Inf))
 	}
 
 	c.frameSize = size
@@ -130,22 +272,35 @@ func (c *viewCtx) Frame(size *Binding[CGSize]) SomeView {
 	return c._owner
 }
 
-// Padding 修飾器
-func (c *viewCtx) Padding(padding *Binding[CGInset]) SomeView {
-	return c.wrap(func(c *viewCtx) {
-		c.inset = padding
-	})
+func (c *viewCtx) Padding(padding ...*Binding[CGInset]) SomeView {
+	if len(padding) != 0 {
+		return c.wrap(func(c *viewCtx) {
+			c.inset = padding[0]
+		})
+	} else {
+		return c.wrap(func(c *viewCtx) {
+			c.inset = DefaultPadding
+		})
+	}
 }
 
-// ForegroundColor 修飾器
-func (c *viewCtx) ForegroundColor(color *Binding[AnyColor]) SomeView {
+func (c *viewCtx) ForegroundColor(color *Binding[CGColor]) SomeView {
 	c.foregroundColor = color
 	return c._owner
 }
 
-// BackgroundColor 修飾器
-func (c *viewCtx) BackgroundColor(color *Binding[AnyColor]) SomeView {
+func (c *viewCtx) BackgroundColor(color *Binding[CGColor]) SomeView {
 	c.backgroundColor = color
+	return c._owner
+}
+
+func (c *viewCtx) Fill(color *Binding[CGColor]) SomeView {
+	return c.BackgroundColor(color)
+}
+
+func (c *viewCtx) Font(size *Binding[font.Size], weight *Binding[font.Weight]) SomeView {
+	c.fontSize = size
+	c.fontWeight = weight
 	return c._owner
 }
 
@@ -164,12 +319,12 @@ func (c *viewCtx) FontLineHeight(height *Binding[float64]) SomeView {
 	return c._owner
 }
 
-func (c *viewCtx) FontLetterSpacing(spacing *Binding[float64]) SomeView {
-	c.fontLetterSpacing = spacing
+func (c *viewCtx) FontKerning(spacing *Binding[float64]) SomeView {
+	c.fontKerning = spacing
 	return c._owner
 }
 
-func (c *viewCtx) FontAlignment(alignment *Binding[font.Alignment]) SomeView {
+func (c *viewCtx) FontAlignment(alignment *Binding[font.TextAlign]) SomeView {
 	c.fontAlignment = alignment
 	return c._owner
 }
@@ -178,9 +333,14 @@ func (c *viewCtx) FontItalic(italic ...*Binding[bool]) SomeView {
 	if len(italic) != 0 {
 		c.fontItalic = italic[0]
 	} else {
-		c.fontItalic.Set(true)
+		c.fontItalic = Const(true)
 	}
 
+	return c._owner
+}
+
+func (c *viewCtx) LineLimit(limit *Binding[int]) SomeView {
+	c.lineLimit = limit
 	return c._owner
 }
 
@@ -188,12 +348,12 @@ func (c *viewCtx) RoundCorner(radius ...*Binding[float64]) SomeView {
 	if len(radius) != 0 {
 		c.roundCorner = radius[0]
 	} else {
-		c.roundCorner = Bind(_defaultRoundCorner)
+		c.roundCorner = DefaultRoundCorner
 	}
-	return c._owner
+	return c.wrap()
 }
 
-func (c *viewCtx) Debug(tag string) SomeView {
+func (c *viewCtx) DebugPrint(tag string) SomeView {
 	c._debug = tag
 	return c._owner
 }
@@ -202,7 +362,7 @@ func (c *viewCtx) ScaleToFit(enable ...*Binding[bool]) SomeView {
 	if len(enable) != 0 {
 		c.scaleToFit = enable[0]
 	} else {
-		c.scaleToFit = Bind(true)
+		c.scaleToFit = Const(true)
 	}
 
 	return c._owner
@@ -212,8 +372,284 @@ func (c *viewCtx) KeepAspectRatio(enable ...*Binding[bool]) SomeView {
 	if len(enable) != 0 {
 		c.keepAspectRatio = enable[0]
 	} else {
-		c.keepAspectRatio = Bind(true)
+		c.keepAspectRatio = Const(true)
 	}
+
+	return c._owner
+}
+
+func (c *viewCtx) Border(border *Binding[CGInset], color ...*Binding[CGColor]) SomeView {
+	c.borderInset = border
+	if len(color) != 0 {
+		c.borderColor = color[0]
+	} else {
+		c.borderColor = DefaultBorderColor
+	}
+
+	return c._owner
+}
+
+func (c *viewCtx) Opacity(opacity *Binding[float64]) SomeView {
+	c.opacity = opacity
+	return c._owner
+}
+
+func (c *viewCtx) Modifier(modifier ViewModifier) SomeView {
+	return modifier.Body(c)
+}
+
+func (c *viewCtx) Modify(with func(SomeView) SomeView) SomeView {
+	return with(c)
+}
+
+func (c *viewCtx) Disabled(disabled ...*Binding[bool]) SomeView {
+	if len(disabled) != 0 {
+		c.disabled = disabled[0]
+	} else {
+		c.disabled = Const(true)
+	}
+
+	return c._owner
+}
+
+func (c *viewCtx) Align(alignment *Binding[layout.Align]) SomeView {
+	return c.wrap(func(c *viewCtx) {
+		c.alignment = alignment
+
+		if alignment == nil {
+			return
+		}
+
+		if c.transitionAlign == nil {
+			c.transitionAlign = Bind(CGPoint{})
+		}
+
+		c.transitionAlign.Set(NewPoint(alignment.Value().Vector()), nil)
+		alignment.AddListener(func(oldVal, newVal layout.Align, animStyle ...animation.Style) {
+			c.transitionAlign.Set(NewPoint(newVal.Vector()), animStyle...)
+		})
+	})
+
+}
+
+func (c *viewCtx) Debug() SomeView {
+	c.Border(Const(NewInset(1)), Const(NewColor(255, 0, 0)))
+	return c.wrap()
+}
+
+func (c *viewCtx) Center() SomeView {
+	return VStack(
+		Spacer(),
+		HStack(
+			Spacer(),
+			c._owner,
+			Spacer(),
+		),
+		Spacer(),
+	)
+}
+
+func (c *viewCtx) Offset(offset *Binding[CGPoint]) SomeView {
+	c.offset = offset
+	return c._owner
+}
+
+func (c *viewCtx) Scale(scale *Binding[CGPoint]) SomeView {
+	c.scale = scale
+	return c._owner
+}
+
+func (c *viewCtx) Spacing(spacing ...*Binding[float64]) SomeView {
+	if len(spacing) != 0 {
+		c.spacing = spacing[0]
+	} else {
+		c.spacing = DefaultSpacing
+	}
+
+	return c._owner
+}
+
+func (c *viewCtx) Shadow(length ...*Binding[float64]) SomeView {
+	if len(length) != 0 {
+		c.shadowLength = length[0]
+	} else {
+		c.shadowLength = DefaultShadowLength
+	}
+
+	c.shadowColor = DefaultShadowColor
+	return c._owner
+}
+
+func (c *viewCtx) ShadowWithColor(color *Binding[CGColor], length ...*Binding[float64]) SomeView {
+	if len(length) != 0 {
+		c.shadowLength = length[0]
+	} else {
+		c.shadowLength = DefaultShadowLength
+	}
+
+	c.shadowColor = color
+	return c._owner
+}
+
+func (c *viewCtx) ScrollViewDirection(direction *Binding[layout.Direction]) SomeView {
+	c.scrollViewDirection = direction
+	return c._owner
+}
+
+func (c *viewCtx) OnHover(fn func(bool)) SomeView {
+	var handlers []func(bool)
+	if c.hoverEventHandlers == nil {
+		handlers = make([]func(bool), 0, 1)
+	}
+
+	handlers = append(handlers, func(isHover bool) {
+		fn(isHover)
+	})
+
+	c.hoverEventHandlers.Store(handlers)
+
+	return c._owner
+}
+
+func (c *viewCtx) OnScroll(fn func(input.ScrollEvent)) SomeView {
+	var handlers []func(input.ScrollEvent)
+	if c.scrollEventHandlers == nil {
+		handlers = make([]func(input.ScrollEvent), 0, 1)
+	} else {
+		loaded := c.scrollEventHandlers.Load()
+		handlers = make([]func(input.ScrollEvent), 0, len(loaded)+1)
+		handlers = append(handlers, loaded...)
+	}
+
+	handlers = append(handlers, func(event input.ScrollEvent) {
+		fn(event)
+	})
+
+	c.scrollEventHandlers.Store(handlers)
+
+	return c._owner
+}
+
+func (c *viewCtx) OnMouse(fn func(phase input.MousePhase, offset input.Vector)) SomeView {
+	var handlers []func(input.MouseEvent)
+	if c.mouseEventHandlers == nil {
+		handlers = make([]func(input.MouseEvent), 0, 1)
+	} else {
+		loaded := c.mouseEventHandlers.Load()
+		handlers = make([]func(input.MouseEvent), 0, len(loaded)+1)
+		handlers = append(handlers, loaded...)
+	}
+
+	handlers = append(handlers, func(event input.MouseEvent) {
+		bounds := c.systemSetBounds()
+		fn(event.Phase, newVector(
+			event.Position.X-bounds.Start.X,
+			event.Position.Y-bounds.Start.Y,
+		))
+	})
+
+	c.mouseEventHandlers.Store(handlers)
+
+	return c._owner
+}
+
+func (c *viewCtx) OnKey(fn func(input.KeyEvent)) SomeView {
+	var handlers []func(input.KeyEvent)
+	if c.keyEventHandlers == nil {
+		handlers = make([]func(input.KeyEvent), 0, 1)
+	} else {
+		loaded := c.keyEventHandlers.Load()
+		handlers = make([]func(input.KeyEvent), 0, len(loaded)+1)
+		handlers = append(handlers, loaded...)
+	}
+
+	handlers = append(handlers, func(event input.KeyEvent) {
+		fn(event)
+	})
+
+	c.keyEventHandlers.Store(handlers)
+
+	return c._owner
+}
+
+func (c *viewCtx) OnType(fn func(input.TypeEvent)) SomeView {
+	var handlers []func(input.TypeEvent)
+	if c.typeEventHandlers == nil {
+		handlers = make([]func(input.TypeEvent), 0, 1)
+	} else {
+		loaded := c.typeEventHandlers.Load()
+		handlers = make([]func(input.TypeEvent), 0, len(loaded)+1)
+		handlers = append(handlers, loaded...)
+	}
+
+	handlers = append(handlers, func(event input.TypeEvent) {
+		fn(event)
+	})
+
+	c.typeEventHandlers.Store(handlers)
+
+	return c._owner
+}
+
+func (c *viewCtx) OnGesture(fn func(input.GestureEvent)) SomeView {
+	var handlers []func(input.GestureEvent)
+	if c.gestureEventHandlers == nil {
+		handlers = make([]func(input.GestureEvent), 0, 1)
+	} else {
+		loaded := c.gestureEventHandlers.Load()
+		handlers = make([]func(input.GestureEvent), 0, len(loaded)+1)
+		handlers = append(handlers, loaded...)
+	}
+
+	handlers = append(handlers, func(event input.GestureEvent) {
+		fn(event)
+	})
+
+	c.gestureEventHandlers.Store(handlers)
+
+	return c._owner
+}
+
+func (c *viewCtx) OnTouch(fn func(input.TouchEvent)) SomeView {
+	var handlers []func(input.TouchEvent)
+	if c.touchEventHandlers == nil {
+		handlers = make([]func(input.TouchEvent), 0, 1)
+	} else {
+		loaded := c.touchEventHandlers.Load()
+		handlers = make([]func(input.TouchEvent), 0, len(loaded)+1)
+		handlers = append(handlers, loaded...)
+	}
+
+	handlers = append(handlers, func(event input.TouchEvent) {
+		fn(event)
+	})
+
+	c.touchEventHandlers.Store(handlers)
+
+	return c._owner
+}
+
+func (c *viewCtx) OnAppear(f func()) SomeView {
+	var handlers []func()
+	if c.appearEventHandlers == nil {
+		handlers = make([]func(), 0, 1)
+	}
+
+	handlers = append(handlers, f)
+	c.appearEventHandlers.Store(handlers)
+	return c._owner
+}
+
+func (c *viewCtx) OnDisappear(f func()) SomeView {
+	// TODO: OnDisappear
+	return c._owner
+}
+
+func (c *viewCtx) Overlay(view SomeView) SomeView {
+	ZStack(
+		c._owner,
+		view,
+	)
 
 	return c._owner
 }
