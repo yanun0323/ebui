@@ -1,42 +1,44 @@
 package main
 
 import (
+	"image/color"
 	"log"
 
-	. "github.com/yanun0323/ebui"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-func NewContentView() View {
-	return &ContentView{}
+const (
+	screenWidth  = 640
+	screenHeight = 480
+)
+
+type Game struct{}
+
+func NewGame() *Game {
+	return &Game{}
 }
 
-type ContentView struct{}
+func (g *Game) Update() error {
+	return nil
+}
 
-func (v *ContentView) Body() SomeView {
-	return HStack(
-		Spacer(),
-		VStack(
-			Spacer(),
-			Text("Hello, World!").Debug(),
-			Text("你好\n世界!\nThe third line").LineLimit(Const(1)).Debug(),
-			Text("你好\n世界!\n行高: 10").FontLineHeight(Const(10.0)).Debug(),
-			Text("你好\n世界!\n字距: 10").FontKerning(Const(10.0)).Debug(),
-			Spacer(),
-		),
-		Spacer(),
-	)
+func (g *Game) Draw(screen *ebiten.Image) {
+	screen.Fill(color.RGBA{255, 255, 255, 255})
+
+	vector.DrawFilledCircle(screen, 100, 100, 100, color.RGBA{255, 0, 0, 255}, true)
+	vector.DrawFilledRect(screen, 300, 300, 100, 100, color.RGBA{0, 255, 0, 255}, true)
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
-	app := NewApplication(NewContentView())
-	app.SetWindowBackgroundColor(NewColor(64, 16, 64, 64))
-	app.SetWindowSize(800, 600)
-	app.SetWindowResizingMode(WindowResizingModeEnabled)
-	app.SetResourceFolder("resource")
-	app.VSyncEnabled(false)
-	app.Debug()
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Ebiten 文字輸入框示例")
 
-	if err := app.Run("Counter Demo"); err != nil {
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }

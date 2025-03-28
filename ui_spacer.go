@@ -15,7 +15,7 @@ func Spacer() SomeView {
 	return sp
 }
 
-func (sp *spacerImpl) preload(parent *viewCtxEnv, stackTypes ...stackType) (preloadData, layoutFunc) {
+func (sp *spacerImpl) preload(parent *viewCtx, stackTypes ...stackType) (preloadData, layoutFunc) {
 	types := getTypes(stackTypes...)
 
 	sz := NewSize(Inf)

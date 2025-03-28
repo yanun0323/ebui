@@ -42,6 +42,10 @@ func newViewContext(owner SomeView) *viewCtx {
 	}
 }
 
+func (c *viewCtx) initRootEnv() {
+	c.viewCtxEnv.initRootEnv()
+}
+
 func (c *viewCtx) Bytes(withFont bool) []byte {
 	b := bytes.Buffer{}
 	b.Write(c.viewCtxEnv.Bytes(withFont))
@@ -100,8 +104,8 @@ func (c *viewCtx) isHover(cursor input.Vector) bool {
 	return c.systemSetBounds().Contains(cursor)
 }
 
-func (c *viewCtx) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layoutFunc) {
-	c.viewCtxEnv.inheritFrom(parent)
+func (c *viewCtx) preload(parent *viewCtx, _ ...stackType) (preloadData, layoutFunc) {
+	c.viewCtxEnv.inheritEnvFrom(parent)
 	padding := c.padding()
 	border := c.border()
 	userSetFrameSize := c._owner.userSetFrameSize()
@@ -145,6 +149,7 @@ func (c *viewCtx) drawOption(rect CGRect, hook ...func(*ebiten.DrawImageOptions)
 		opt.ColorScale.ScaleAlpha(float32(c.opacity.Value()))
 	}
 	opt.GeoM.Translate(rect.Start.X, rect.Start.Y)
+
 	return opt
 }
 
@@ -162,17 +167,11 @@ func (c *viewCtx) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptio
 		borderColor = c.borderColor.Value()
 	}
 
-	shadowColor := c.shadowColor.Value()
 	opt := c.drawOption(drawBounds, hook...)
-	source := ebiten.NewImage(int(drawBounds.Dx()), int(drawBounds.Dy()))
-	source.Fill(NewColor(0))
-	c.drawShadow(screen, source, c.shadowLength.Value(), shadowColor, opt)
+	backgroundImage := c.loadBackgroundImage(drawBounds, c.roundCorner.Value(), bgColor, borderLength, borderColor)
+	c.drawShadow(screen, backgroundImage, c.shadowLength.Value(), c.shadowColor.Value(), opt)
 
-	if radius := c.roundCorner.Value(); radius > 0 {
-		c.drawRoundedAndBorderRect(screen, drawBounds, radius, bgColor, borderLength, borderColor, opt)
-	} else {
-		c.drawBorderRect(screen, drawBounds, bgColor, borderLength, borderColor, opt)
-	}
+	screen.DrawImage(backgroundImage, opt)
 }
 
 /*
@@ -450,7 +449,19 @@ func (c *viewCtx) Center() SomeView {
 }
 
 func (c *viewCtx) Offset(offset *Binding[CGPoint]) SomeView {
-	c.offset = offset
+	if offset == nil {
+		return c._owner
+	}
+
+	if c.offset == nil {
+		c.offset = offset
+		return c._owner
+	}
+
+	c.offset = bindCombineOneWay(c.offset, offset, func(a, b CGPoint) CGPoint {
+		return CGPoint{a.X + b.X, a.Y + b.Y}
+	})
+
 	return c._owner
 }
 

@@ -1,9 +1,9 @@
 package ebui
 
 import (
+	"math"
 	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/input"
 )
 
@@ -23,9 +23,8 @@ func getTypes(types ...stackType) stackType {
 	return types[0]
 }
 
-func onHover(bounds CGRect) bool {
-	x, y := ebiten.CursorPosition()
-	return bounds.Contain(NewPoint(x, y))
+func ceil(v float64) float64 {
+	return math.Ceil(v)
 }
 
 func newVector[T numberable](x, y T) input.Vector {

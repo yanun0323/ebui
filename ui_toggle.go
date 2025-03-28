@@ -89,7 +89,7 @@ func Toggle(enabled *Binding[bool], label ...func() SomeView) SomeView {
 	return t
 }
 
-func (b *toggleImpl) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layoutFunc) {
+func (b *toggleImpl) preload(parent *viewCtx, _ ...stackType) (preloadData, layoutFunc) {
 	if b.label != nil {
 		b.labelLoaded = b.label()
 	}

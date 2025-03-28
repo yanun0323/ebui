@@ -43,7 +43,7 @@ func (s *stackImpl) count() int {
 	return count
 }
 
-func (s *stackImpl) preload(parent *viewCtxEnv, types ...stackType) (preloadData, layoutFunc) {
+func (s *stackImpl) preload(parent *viewCtx, types ...stackType) (preloadData, layoutFunc) {
 	stackFormula := &stackPreloader{
 		types:                 s.types,
 		stackCtx:              s.viewCtx,
@@ -143,14 +143,17 @@ type stackPreloader struct {
 	preloadStackOnlyFrame bool
 }
 
-func (v *stackPreloader) preload(parent *viewCtxEnv, types ...stackType) (preloadData, layoutFunc) {
+func (v *stackPreloader) preload(parent *viewCtx, types ...stackType) (preloadData, layoutFunc) {
 	var (
-		children             = v.children
-		stackEnv             = v.stackCtx.inheritFrom(parent)
+		children = v.children
+
 		childrenSummedBounds = CGSize{}
 		childrenLayoutFns    = make([]layoutFunc, 0, len(children))
 		flexCount            = NewPoint(0, 0)
 	)
+
+	v.stackCtx.inheritEnvFrom(parent)
+	v.stackCtx.inheritStackParam(parent)
 
 	t := v.types
 	if t == stackTypeZStack && len(types) != 0 {
@@ -161,7 +164,8 @@ func (v *stackPreloader) preload(parent *viewCtxEnv, types ...stackType) (preloa
 	isSpacingInf := isInf(spacing)
 
 	for i, child := range children {
-		childData, layoutFn := child.preload(stackEnv, t)
+		child.inheritStackParam(v.stackCtx)
+		childData, layoutFn := child.preload(v.stackCtx, t)
 		{
 			if childData.IsInfWidth {
 				flexCount.X++
@@ -207,7 +211,7 @@ func (v *stackPreloader) preload(parent *viewCtxEnv, types ...stackType) (preloa
 		childrenLayoutFns = append(childrenLayoutFns, layoutFn)
 	}
 
-	sData, sLayoutFn := v.stackCtx.preload(stackEnv)
+	sData, sLayoutFn := v.stackCtx.preload(v.stackCtx)
 	{
 		// if the Stack itself has no size set
 		// 		-> has flexible subviews: use infinite size

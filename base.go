@@ -1,7 +1,6 @@
 package ebui
 
 import (
-	"image"
 	"unsafe"
 
 	"github.com/yanun0323/ebui/input"
@@ -331,7 +330,7 @@ func (r CGRect) Empty() bool {
 
 func (r CGRect) drawable() bool {
 	w, h := r.Dx(), r.Dy()
-	return int(w) > 0 && int(h) > 0 && !isInf(w) && !isInf(h)
+	return w > 0 && h > 0 && !isInf(w) && !isInf(h)
 }
 
 func (r CGRect) Dx() float64 {
@@ -361,10 +360,6 @@ func (r CGRect) Size() CGSize {
 		Width:  r.Dx(),
 		Height: r.Dy(),
 	}
-}
-
-func (r CGRect) Rect() image.Rectangle {
-	return image.Rect(int(r.Start.X), int(r.Start.Y), int(r.End.X), int(r.End.Y))
 }
 
 func (r CGRect) Expand(inset CGInset) CGRect {

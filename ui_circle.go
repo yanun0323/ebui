@@ -1,11 +1,5 @@
 package ebui
 
-import (
-	"image/color"
-
-	"github.com/hajimehoshi/ebiten/v2"
-)
-
 type circleImpl struct {
 	*viewCtx
 }
@@ -13,6 +7,7 @@ type circleImpl struct {
 func Circle() SomeView {
 	circle := &circleImpl{}
 	circle.viewCtx = newViewContext(circle)
+	circle.viewCtx.RoundCorner(Const(Inf))
 	return circle
 }
 
@@ -24,43 +19,19 @@ func (c *circleImpl) userSetFrameSize() CGSize {
 	return frameSize
 }
 
-func (c *circleImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
-	drawFrame := c._owner.systemSetBounds()
-
-	bOpt := c.drawOption(drawFrame, hook...)
-
-	if c.backgroundColor == nil {
-		return
+func (c *circleImpl) Frame(size *Binding[CGSize]) SomeView {
+	if size == nil {
+		size = Const(NewSize(Inf, Inf))
 	}
 
-	bgColor := c.backgroundColor.Value()
-	if !drawFrame.drawable() {
-		return
-	}
+	c.frameSize = BindOneWay(size, func(s CGSize) CGSize {
+		sz := min(s.Width, s.Height)
+		return NewSize(sz, sz)
+	})
 
-	w := int(drawFrame.Dx() * _roundedScale)
-	h := int(drawFrame.Dy() * _roundedScale)
-	diameter := min(w, h)
-	radius := diameter / 2
+	return c
+}
 
-	img := ebiten.NewImage(diameter, diameter)
-	img.Fill(bgColor)
-
-	for x := range diameter {
-		for y := range diameter {
-			if (x-radius)*(x-radius)+(y-radius)*(y-radius) > radius*radius {
-				img.Set(x, y, color.Transparent)
-			}
-		}
-	}
-
-	opt := &ebiten.DrawImageOptions{}
-	opt.Filter = ebiten.FilterLinear
-	opt.GeoM.Scale(_roundedScaleInverse, _roundedScaleInverse)
-	opt.GeoM.Concat(bOpt.GeoM)
-	opt.ColorScale.ScaleWithColorScale(bOpt.ColorScale)
-
-	c.drawShadow(screen, img, c.shadowLength.Value()*_roundedScale, c.shadowColor.Value(), opt, 0.66)
-
-	screen.DrawImage(img, opt)
+func (c *circleImpl) RoundCorner(radius ...*Binding[float64]) SomeView {
+	return c
 }

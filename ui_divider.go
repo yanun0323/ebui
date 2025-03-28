@@ -19,7 +19,7 @@ func Divider(length ...*Binding[float64]) SomeView {
 	return v
 }
 
-func (v *dividerImpl) preload(env *viewCtxEnv, stackTypes ...stackType) (preloadData, layoutFunc) {
+func (v *dividerImpl) preload(parent *viewCtx, stackTypes ...stackType) (preloadData, layoutFunc) {
 	types := getTypes(stackTypes...)
 
 	length := v.length.Value()
@@ -40,6 +40,6 @@ func (v *dividerImpl) preload(env *viewCtxEnv, stackTypes ...stackType) (preload
 		v.viewCtx.backgroundColor = Bind(NewColor(128))
 	}
 
-	_, layout := v.viewCtx.preload(env)
+	_, layout := v.viewCtx.preload(parent)
 	return newPreloadData(CGSize{}, v.padding(), v.border()), layout
 }

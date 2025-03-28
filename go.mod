@@ -4,6 +4,7 @@ go 1.24
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0
+	github.com/disintegration/imaging v1.6.2
 	github.com/hajimehoshi/ebiten/v2 v2.8.6
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/image v0.23.0

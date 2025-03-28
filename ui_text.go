@@ -153,7 +153,7 @@ func (t *textImpl) measure(lines []string) (w, h, lineHeight float64) {
 	return maxW + float64(maxLineRuneCount-1)*kerning, totalH, lineH
 }
 
-func (t *textImpl) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layoutFunc) {
+func (t *textImpl) preload(parent *viewCtx, _ ...stackType) (preloadData, layoutFunc) {
 	data, layoutFn := t.viewCtx.preload(parent)
 	return data, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc) {
 		flexFrameSize := flexBoundsSize.Shrink(data.Padding).Shrink(data.Border)
@@ -181,6 +181,7 @@ func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpti
 	}
 
 	op := t.viewCtx.drawOption(t.systemSetBounds(), hook...)
+	op.ColorScale.ScaleWithColor(t.foregroundColor.Value())
 	if t.cache.IsNextHashCached() {
 		screen.DrawImage(t.cache.Load(), op)
 		return
@@ -195,12 +196,11 @@ func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpti
 		layoutOpt = &text.LayoutOptions{
 			LineSpacing: t.fontLineHeight.Value(),
 		}
-		textBase        = ebiten.NewImage(int(bounds.Dx()), int(bounds.Dy()))
-		foregroundColor = t.foregroundColor.Value()
-		kerning         = t.fontKerning.Value()
-		face            = t.face()
-		lines           = t.getContent()
-		_, _, lineH     = t.measure(lines)
+		textBase    = ebiten.NewImage(int(bounds.Dx()), int(bounds.Dy()))
+		kerning     = t.fontKerning.Value()
+		face        = t.face()
+		lines       = t.getContent()
+		_, _, lineH = t.measure(lines)
 	)
 
 	for i, line := range lines {
@@ -210,8 +210,6 @@ func (t *textImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpti
 			}
 
 			opt := &ebiten.DrawImageOptions{}
-			opt.ColorScale.ScaleWithColor(foregroundColor)
-			opt.ColorScale.ScaleWithColorScale(op.ColorScale)
 			opt.GeoM.Translate(float64(j)*kerning, 0)
 			opt.GeoM.Translate(gl.X, gl.Y)
 			opt.GeoM.Translate(0, float64(i)*lineH)

@@ -11,7 +11,9 @@ var (
 			return Text(key).
 				Padding(Bind(NewInset(5, 15, 5, 15))).
 				BackgroundColor(AccentColor).
-				RoundCorner(Bind(15.0))
+				RoundCorner(Bind(15.0)).
+				Shadow().
+				Padding(Bind(NewInset(5, 15, 5, 15)))
 		}
 	}
 )
@@ -40,7 +42,7 @@ func Button(key string, action func(), label ...func() SomeView) SomeView {
 	return btn
 }
 
-func (b *buttonImpl) preload(parent *viewCtxEnv, _ ...stackType) (preloadData, layoutFunc) {
+func (b *buttonImpl) preload(parent *viewCtx, _ ...stackType) (preloadData, layoutFunc) {
 	b.labelLoaded = b.label()
 	if b.labelLoaded == nil {
 		panic("empty view from button label")
