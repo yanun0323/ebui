@@ -16,10 +16,10 @@ import (
 )
 
 var (
-	file   = flag.String("f", "", "ebui go file with functions starting with Preview_")
 	helper = flag.Bool("h", false, "show help")
 	debug  = flag.Bool("debug", false, "debug mode")
 	keep   = flag.Bool("k", false, "keep running changed go file")
+	file   = flag.String("f", "", "ebui go file with functions starting with Preview_")
 )
 
 func main() {
@@ -37,6 +37,7 @@ func main() {
 	}
 
 	if !*keep {
+		println("!keep: try kill previous process")
 		if err := tryKillPreviousProcess(); err != nil {
 			fatal("try kill previous process, err: %+v", err)
 		}
@@ -220,7 +221,10 @@ func main() {
 		return
 	}
 
+	println("keep:", *keep)
+
 	if *keep {
+		println("keep: try kill previous process")
 		if err := tryKillPreviousProcess(); err != nil {
 			fatal("try kill previous process, err: %+v", err)
 		}
@@ -264,7 +268,7 @@ func findGoModuleName(wd string) (string, error) {
 
 func tryKillPreviousProcess() error {
 	cmd := exec.Command("ps", "aux")
-	grepCmd := exec.Command("grep", ".*go-build.*/main$")
+	grepCmd := exec.Command("grep", ".*/main$")
 
 	psOutput, err := cmd.Output()
 	if err != nil {
@@ -274,7 +278,10 @@ func tryKillPreviousProcess() error {
 	grepCmd.Stdin = bytes.NewReader(psOutput)
 	grepOutput, err := grepCmd.Output()
 	if err != nil {
-		return nil
+		var execErr *exec.ExitError
+		if !errors.As(err, &execErr) || execErr.ProcessState.ExitCode() != 1 {
+			return errors.Errorf("grep, err: %+v", err)
+		}
 	}
 
 	fmt.Println("找到的程序：")

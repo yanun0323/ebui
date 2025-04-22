@@ -31,7 +31,7 @@ func (v *ContentView) Body() SomeView {
 		Rectangle().Fill(Const(green)),
 		Text("Hello, World!"),
 		Rectangle().Fill(Const(red)),
-	).Spacing().Padding()
+	).Spacing().Padding().Debug()
 }
 
 func (v *ContentView) CurrentBackgroundColorText() SomeView {
