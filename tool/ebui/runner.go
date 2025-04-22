@@ -16,15 +16,22 @@ import (
 )
 
 var (
-	file = flag.String("f", "", "file")
+	file   = flag.String("f", "", "ebui go file with functions starting with Preview_")
+	helper = flag.Bool("h", false, "show help")
 )
 
 func main() {
 	flag.Parse()
 
-	// XXX: Remove me
-	if len(*file) == 0 {
-		flag.Set("f", "/Users/Shared/Project/personal/go/ebui/ui_text.go")
+	if *helper {
+		flag.Usage()
+		return
+	}
+
+	if *file == "" {
+		log.Print("-f is required")
+		flag.Usage()
+		return
 	}
 
 	if err := tryKillPreviousProcess(); err != nil {
