@@ -25,8 +25,14 @@ type SomeView interface {
 	View
 	eventHandler
 
+	// initRootEnv initializes the environment variables of the view
+	initRootEnv()
+
+	// inheritStackParam inherits the stack parameters from the parent view
+	inheritStackParam(parent *viewCtx)
+
 	// preload sets the environment variables and returns the layout information of the view
-	preload(parent *viewCtxEnv, stackTypes ...stackType) (preloadData, layoutFunc)
+	preload(parent *viewCtx, stackTypes ...stackType) (preloadData, layoutFunc)
 
 	// drawOption returns the draw options of the view
 	drawOption(rect CGRect, hook ...func(*ebiten.DrawImageOptions)) *ebiten.DrawImageOptions
@@ -211,7 +217,7 @@ type alignFunc func(offset CGPoint)
 //	start: the starting coordinate of this child View
 //	childBoundsSize: the external bounds of this child View
 //	bounds: the actual occupied space (include padding, border ...)
-type layoutFunc func(start CGPoint, childBoundsSize CGSize) (bounds CGRect, alignFunc alignFunc)
+type layoutFunc func(start CGPoint, childBoundsSize CGSize) (bounds CGRect, alignFunc alignFunc, cached bool)
 
 func newPreloadData(frameSize CGSize, padding, border CGInset) preloadData {
 	return preloadData{

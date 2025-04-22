@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	_sliderSizeIndicator       = 20.0
+	_sliderSizeIndicator       = 22.0
 	_sliderSizeBar             = 5.0
 	_sliderSizeIndicatorRadius = _sliderSizeIndicator / 2
+	_sliderIndicatorShadow     = 3.0
 )
 
 type sliderImpl struct {
@@ -22,7 +23,7 @@ type sliderImpl struct {
 	leftOffset *Binding[CGPoint]
 }
 
-func Slider(value, maximum, minimum *Binding[float64]) SomeView {
+func Slider(value, minimum, maximum *Binding[float64]) SomeView {
 	isDragging := Bind(false)
 	hovered := Bind(false)
 
@@ -40,12 +41,8 @@ func Slider(value, maximum, minimum *Binding[float64]) SomeView {
 		Circle().
 			Frame(Const(NewSize(_sliderSizeIndicator))).
 			Fill(Const(white)).Offset(leftOffset).
-			Shadow(),
+			Shadow(Const(_sliderIndicatorShadow)),
 	)
-
-	hs.Align(Const(layout.AlignLeading | layout.AlignTop | layout.AlignBottom)).
-		Fill(Const(NewColor(128))).
-		Spacing(Const(0.0))
 
 	hs.OnAppear(func() {
 		var (
@@ -97,18 +94,21 @@ func Slider(value, maximum, minimum *Binding[float64]) SomeView {
 		valueRatio := (offset.X - _sliderSizeIndicatorRadius) / (frame.Dx() - _sliderSizeIndicator)
 		minValue := minimum.Value()
 		maxValue := maximum.Value()
-		value.Set(minValue + valueRatio*(maxValue-minValue))
+		value.Set(minValue+valueRatio*(maxValue-minValue), nil)
 
 		offset.X -= _sliderSizeIndicatorRadius
 		leftOffset.Set(NewPoint(offset.X, 0))
 		colorBlockScale.Set(NewPoint(ratio, 1))
 	})
 
-	return &sliderImpl{
+	return (&sliderImpl{
 		stackImpl:  hs,
 		value:      value,
 		max:        maximum,
 		min:        minimum,
 		leftOffset: leftOffset,
-	}
+	}).Spacing(Const(0.0)).
+		Padding(Const(NewInset(7))).
+		Border(Const(NewInset(1)), Const(transparent)).
+		Align(Const(layout.AlignLeading | layout.AlignTop | layout.AlignBottom))
 }

@@ -6,37 +6,59 @@ import (
 	. "github.com/yanun0323/ebui"
 )
 
+var (
+	gray   = NewColor(128)
+	white  = NewColor(239)
+	black  = NewColor(16)
+	red    = NewColor(128, 0, 0)
+	green  = NewColor(0, 128, 0)
+	blue   = NewColor(0, 0, 128)
+	yellow = NewColor(128, 128, 0)
+)
+
 func NewContentView() View {
-	return &ContentView{}
+	return &ContentView{
+		lightMode: Bind(true).Animated(),
+		length:    Bind(5.0).Animated(),
+	}
 }
 
-type ContentView struct{}
+type ContentView struct {
+	lightMode *Binding[bool]
+	length    *Binding[float64]
+}
 
 func (v *ContentView) Body() SomeView {
-	return HStack(
-		Spacer(),
-		VStack(
-			Spacer(),
-			Text("Hello, World!").Debug(),
-			Text("你好\n世界!\nThe third line").LineLimit(Const(1)).Debug(),
-			Text("你好\n世界!\n行高: 10").FontLineHeight(Const(10.0)).Debug(),
-			Text("你好\n世界!\n字距: 10").FontKerning(Const(10.0)).Debug(),
-			Spacer(),
-		),
-		Spacer(),
-	)
+	return VStack(
+		Rectangle().Fill(Const(green)),
+		Rectangle().Fill(Const(red)),
+	).Spacing().Padding()
+}
+
+func (v *ContentView) CurrentBackgroundColorText() SomeView {
+	return Text(BindOneWay(v.lightMode, func(lightMode bool) string {
+		if lightMode {
+			return "White"
+		}
+		return "Black"
+	}))
+}
+
+func (v *ContentView) ChangeBackgroundColor() {
+	v.lightMode.Set(!v.lightMode.Get())
 }
 
 func main() {
 	app := NewApplication(NewContentView())
-	app.SetWindowBackgroundColor(NewColor(64, 16, 64, 64))
-	app.SetWindowSize(800, 600)
+	app.SetWindowSize(300, 600)
+	app.SetWindowBackgroundColor(black)
 	app.SetWindowResizingMode(WindowResizingModeEnabled)
 	app.SetResourceFolder("resource")
-	app.VSyncEnabled(false)
+	app.VSyncEnabled(true)
 	app.Debug()
 
 	if err := app.Run("Counter Demo"); err != nil {
 		log.Fatal(err)
 	}
+
 }

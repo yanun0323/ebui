@@ -1,7 +1,6 @@
 package ebui
 
 import (
-	"image/color"
 	"strconv"
 	"time"
 
@@ -89,15 +88,15 @@ func (s *scrollViewImpl) Hash() string {
 	return strconv.FormatUint(h.Sum64(), 16)
 }
 
-func (s *scrollViewImpl) preload(parent *viewCtxEnv, types ...stackType) (preloadData, layoutFunc) {
+func (s *scrollViewImpl) preload(parent *viewCtx, types ...stackType) (preloadData, layoutFunc) {
 	_, cLayout := s.content.preload(parent, types...)
 	sData, sLayout := s.viewCtx.preload(parent, types...)
 
-	return sData, func(start CGPoint, childBoundsSize CGSize) (CGRect, alignFunc) {
+	return sData, func(start CGPoint, childBoundsSize CGSize) (CGRect, alignFunc, bool) {
 		childFrameSize := childBoundsSize.Shrink(sData.Padding.Add(sData.Border))
-		sBounds, sAlignFunc := sLayout(start, childFrameSize)
+		sBounds, sAlignFunc, sIsImageCache := sLayout(start, childFrameSize)
 		sFrameSize := sBounds.Size().Shrink(sData.Padding.Add(sData.Border))
-		cBounds, cAlignFunc := cLayout(start, sFrameSize)
+		cBounds, cAlignFunc, cIsImageCache := cLayout(start, sFrameSize)
 
 		sBoundsSize := sBounds.Size()
 		cBoundsSize := cBounds.Size()
@@ -112,7 +111,7 @@ func (s *scrollViewImpl) preload(parent *viewCtxEnv, types ...stackType) (preloa
 		return sBounds, func(offset CGPoint) {
 			sAlignFunc(offset)
 			cAlignFunc(offset)
-		}
+		}, sIsImageCache && cIsImageCache && s.indicateCache.IsNextCacheOutdated()
 	}
 }
 
@@ -162,8 +161,10 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 			opt.GeoM.Translate(sBoundsWidth-_scrollIndicatorLength, 0)
 			opt.ColorScale.ScaleAlpha(float32(s.indicatorOpacity.Value()))
 
-			ratio := sBoundsHeight / cBoundsSize.Height
-			mainSize = NewSize(_scrollIndicatorLength-_scrollIndicatorPadding, ratio*sBoundsHeight)
+			ratio := min(max(sBoundsHeight/cBoundsSize.Height, 0.1), 1.0)
+			mainHeight := ratio * sBoundsHeight
+			mainHeight = max(mainHeight, _scrollIndicatorLength)
+			mainSize = NewSize(_scrollIndicatorLength-_scrollIndicatorPadding, mainHeight)
 			optOffset = NewPoint(_scrollIndicatorPadding/2, offset.Y*ratio)
 			radius = mainSize.Width / 2
 		case layout.DirectionHorizontal:
@@ -171,8 +172,10 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 			opt.GeoM.Translate(0, sBoundsHeight-_scrollIndicatorLength)
 			opt.ColorScale.ScaleAlpha(float32(s.indicatorOpacity.Value()))
 
-			ratio := sBoundsWidth / cBoundsSize.Width
-			mainSize = NewSize(ratio*sBoundsWidth, _scrollIndicatorLength-_scrollIndicatorPadding)
+			ratio := min(max(sBoundsWidth/cBoundsSize.Width, 0.1), 1.0)
+			mainWidth := ratio * sBoundsWidth
+			mainWidth = max(mainWidth, _scrollIndicatorLength)
+			mainSize = NewSize(mainWidth, _scrollIndicatorLength-_scrollIndicatorPadding)
 			optOffset = NewPoint(offset.X*ratio, _scrollIndicatorPadding/2)
 			radius = mainSize.Height / 2
 		}
@@ -183,27 +186,19 @@ func (s *scrollViewImpl) drawScrollIndicator(screen *ebiten.Image, hook ...func(
 		img[0] = ebiten.NewImage(int(baseSize.Width), int(baseSize.Height))
 		img[0].Fill(defaultIndicatorBaseColor)
 
-		w := int(mainSize.Width * _roundedScale)
-		h := int(mainSize.Height * _roundedScale)
-		r := float64(int(radius * _roundedScale))
-		img[1] = ebiten.NewImage(w, h)
-		img[1].Fill(defaultIndicatorMainColor)
-		cornerHandler := newCornerHandler(w, h, r)
-		cornerHandler.Execute(func(isOutside, isBorder bool, x, y int) {
-			if isOutside {
-				img[1].Set(x, y, color.Transparent)
-				return
-			}
-		})
+		w := int(mainSize.Width)
+		h := int(mainSize.Height)
+		r := float64(int(radius))
+		img[1] = createRoundedRect(NewRect(0, 0, w, h), r, defaultIndicatorMainColor, NewInset(0, 0, 0, 0), CGColor{})
 
 		s.indicateCache.Update(img)
 	}
 
 	screen.DrawImage(img[0], opt)
 
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(_roundedScaleInverse, _roundedScaleInverse)
-	op.Filter = ebiten.FilterLinear
+	op := &ebiten.DrawImageOptions{
+		Filter: ebiten.FilterLinear,
+	}
 	op.GeoM.Concat(opt.GeoM)
 	op.GeoM.Translate(optOffset.X, optOffset.Y)
 	op.ColorScale.ScaleWithColorScale(opt.ColorScale)

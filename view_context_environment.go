@@ -32,40 +32,41 @@ type viewCtxEnv struct {
 }
 
 func newEnv() *viewCtxEnv {
-	return &viewCtxEnv{
-		foregroundColor: Bind(white),
-	}
+	return &viewCtxEnv{}
 }
 
-func (e *viewCtxEnv) inheritFrom(parent *viewCtxEnv) *viewCtxEnv {
+func (e *viewCtxEnv) initRootEnv() {
+	e.foregroundColor = Bind(white)
+}
+
+func (e *viewCtxEnv) inheritEnvFrom(parent *viewCtx) {
 	if parent == nil {
-		return e
+		return
 	}
 
-	e.foregroundColor = getNewIfOldNil(parent.foregroundColor, e.foregroundColor)
-	e.fontSize = getNewIfOldNil(parent.fontSize, e.fontSize)
-	e.fontWeight = getNewIfOldNil(parent.fontWeight, e.fontWeight)
-	e.fontLineHeight = getNewIfOldNil(parent.fontLineHeight, e.fontLineHeight)
-	e.fontKerning = getNewIfOldNil(parent.fontKerning, e.fontKerning)
-	e.fontAlignment = getNewIfOldNil(parent.fontAlignment, e.fontAlignment)
-	e.fontItalic = getNewIfOldNil(parent.fontItalic, e.fontItalic)
-	e.lineLimit = getNewIfOldNil(parent.lineLimit, e.lineLimit)
-	e.opacity = getNewIfOldNil(parent.opacity, e.opacity)
-	e.disabled = getNewIfOldNil(parent.disabled, e.disabled)
-	e.alignment = getNewIfOldNil(parent.alignment, e.alignment)
-	e.transition = getNewIfOldNil(parent.transition, e.transition)
-	e.transitionAlign = getNewIfOldNil(parent.transitionAlign, e.transitionAlign)
-	e.scrollViewDirection = getNewIfOldNil(parent.scrollViewDirection, e.scrollViewDirection)
-
-	return e
+	e.foregroundColor = inheritValue(e.foregroundColor, parent.foregroundColor)
+	e.fontSize = inheritValue(e.fontSize, parent.fontSize)
+	e.fontWeight = inheritValue(e.fontWeight, parent.fontWeight)
+	e.fontLineHeight = inheritValue(e.fontLineHeight, parent.fontLineHeight)
+	e.fontKerning = inheritValue(e.fontKerning, parent.fontKerning)
+	e.fontAlignment = inheritValue(e.fontAlignment, parent.fontAlignment)
+	e.fontItalic = inheritValue(e.fontItalic, parent.fontItalic)
+	e.lineLimit = inheritValue(e.lineLimit, parent.lineLimit)
+	e.opacity = inheritValue(e.opacity, parent.opacity)
+	e.disabled = inheritValue(e.disabled, parent.disabled)
+	e.alignment = inheritValue(e.alignment, parent.alignment)
+	e.transition = inheritValue(e.transition, parent.transition)
+	e.transitionAlign = inheritValue(e.transitionAlign, parent.transitionAlign)
+	e.scrollViewDirection = inheritValue(e.scrollViewDirection, parent.scrollViewDirection)
 }
 
-func getNewIfOldNil[T bindable](newValue, oldValue *Binding[T]) *Binding[T] {
-	if oldValue != nil {
-		return oldValue
+// inheritValue returns the value if it is not nil, otherwise it returns the parent value
+func inheritValue[T bindable](nullableVal, val *Binding[T]) *Binding[T] {
+	if nullableVal != nil {
+		return nullableVal
 	}
 
-	return newValue
+	return val
 }
 
 /*
@@ -91,8 +92,8 @@ func (e *viewCtxEnv) Bytes(withFont bool) []byte {
 		b.Write(helper.BytesInt(e.lineLimit.Value()))
 	}
 
+	b.Write(e.foregroundColor.Value().Bytes())
 	b.Write(e.alignment.Value().Hash())
-
 	b.Write(helper.BytesFloat64(e.transition.Value()))
 	b.Write(e.transitionAlign.Value().Bytes())
 	b.Write(helper.BytesInt8(e.scrollViewDirection.Value()))

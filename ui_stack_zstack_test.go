@@ -32,7 +32,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewInset(0, 0, 0, 0), data.Padding)
 		su.Equal(NewInset(0, 0, 0, 0), data.Border)
 
-		result, _ := layoutFn(NewPoint(0, 0), NewSize(100, 100))
+		result, _, _ := layoutFn(NewPoint(0, 0), NewSize(100, 100))
 		su.Equal(NewPoint(0, 0), result.Start)
 		su.Equal(NewPoint(100, 100), result.End)
 	}
@@ -48,7 +48,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewInset(0, 0, 0, 0), data.Padding)
 		su.Equal(NewInset(0, 0, 0, 0), data.Border)
 
-		result, _ := layoutFn(NewPoint(0, 0), NewSize(200, 200))
+		result, _, _ := layoutFn(NewPoint(0, 0), NewSize(200, 200))
 		su.Equal(NewPoint(0, 0), result.Start)
 		su.Equal(NewPoint(100, 100), result.End)
 	}
@@ -65,7 +65,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewInset(10, 10, 10, 10), data.Padding)
 		su.Equal(NewInset(0, 0, 0, 0), data.Border)
 
-		final, _ := layoutFn(NewPoint(0, 0), NewSize(200, 200))
+		final, _, _ := layoutFn(NewPoint(0, 0), NewSize(200, 200))
 		su.Equal(NewPoint(0, 0), final.Start)
 		su.Equal(NewPoint(200, 200), final.End)
 
@@ -94,7 +94,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewInset(10, 10, 10, 10), data.Padding)
 		su.Equal(NewInset(0, 0, 0, 0), data.Border)
 
-		final, _ := layoutFn(NewPoint(0, 0), NewSize(200, 200))
+		final, _, _ := layoutFn(NewPoint(0, 0), NewSize(200, 200))
 		su.Equal(NewPoint(0, 0), final.Start)
 		su.Equal(NewPoint(120, 120), final.End)
 
@@ -124,7 +124,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewInset(10, 10, 10, 10), data.Padding)
 		su.Equal(NewInset(10, 10, 10, 10), data.Border)
 
-		final, _ := layoutFn(NewPoint(0, 0), NewSize(200, 200))
+		final, _, _ := layoutFn(NewPoint(0, 0), NewSize(200, 200))
 		su.Equal(NewPoint(0, 0), final.Start)
 		su.Equal(NewPoint(200, 200), final.End)
 
@@ -154,7 +154,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewInset(10, 10, 10, 10), data.Padding)
 		su.Equal(NewInset(10, 10, 10, 10), data.Border)
 
-		final, _ := layoutFn(NewPoint(0, 0), NewSize(200, 200))
+		final, _, _ := layoutFn(NewPoint(0, 0), NewSize(200, 200))
 		su.Equal(NewPoint(0, 0), final.Start)
 		su.Equal(NewPoint(140, 140), final.End)
 
@@ -187,7 +187,7 @@ func (su *ZSTestZStackSuite) TestZStack() {
 		su.Equal(NewInset(0, 0, 0, 0), data.Padding)
 		su.Equal(NewInset(0, 0, 0, 0), data.Border)
 
-		final, _ := layoutFn(NewPoint(0, 0), NewSize(1000, 1000))
+		final, _, _ := layoutFn(NewPoint(0, 0), NewSize(1000, 1000))
 		su.Equal(NewPoint(0, 0), final.Start)
 		su.Equal(NewPoint(400, 540), final.End)
 

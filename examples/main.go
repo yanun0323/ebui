@@ -1,17 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	. "github.com/yanun0323/ebui"
-	"github.com/yanun0323/ebui/animation"
-	"github.com/yanun0323/ebui/examples/view"
+	"github.com/yanun0323/ebui/layout"
 )
 
 var (
 	gray   = NewColor(128)
-	white  = NewColor(255)
-	black  = NewColor(0)
+	white  = NewColor(239)
+	black  = NewColor(16)
 	red    = NewColor(128, 0, 0)
 	green  = NewColor(0, 128, 0)
 	blue   = NewColor(0, 0, 128)
@@ -19,40 +19,79 @@ var (
 )
 
 func NewContentView() View {
-	return &ContentView{}
+	return &ContentView{
+		lightMode: Bind(true).Animated(),
+		length:    Bind(5.0).Animated(),
+	}
 }
 
-type ContentView struct{}
+type ContentView struct {
+	lightMode *Binding[bool]
+	length    *Binding[float64]
+}
 
 func (v *ContentView) Body() SomeView {
-	bgColor := Bind(NewColor(16))
-	toggle := Bind(false).AddListener(func(oldVal, newVal bool, animStyle ...animation.Style) {
-		if newVal {
-			bgColor.Set(NewColor(240), animStyle...)
-		} else {
-			bgColor.Set(NewColor(16), animStyle...)
-		}
-	})
-	return VStack(
-		HStack(
-			Text("Light Mode"),
-			Toggle(toggle),
-		),
-		view.PageScrollView(),
-	).
-		Padding(Bind(NewInset(30))).
-		Frame(Bind(NewSize(1000, 600))).
-		Border(Bind(NewInset(1.5)), Bind(white)).
-		RoundCorner(Bind(15.0)).
-		Center().
-		BackgroundColor(bgColor).
-		FontKerning(Bind(1.0))
+	return ScrollView(
+		VStack(
+			HStack(
+				Text("Light Mode"),
+				Toggle(v.lightMode),
+			),
 
+			Text(BindOneWay(v.length, func(length float64) string {
+				return fmt.Sprintf("length: %.2f", length)
+			})),
+
+			Slider(v.length, Const(0.0), Const(100.0)),
+
+			HStack(
+				Rectangle().Fill(Const(red)).Frame(Const(NewSize(100, 100))),
+				Rectangle().Fill(Const(yellow)).Frame(Const(NewSize(100, 100))),
+			).RoundCorner(),
+
+			HStack(
+				Circle().Fill(Const(red)).Frame(Const(NewSize(100))).Shadow(v.length),
+				Rectangle().Fill(Const(yellow)).Frame(Const(NewSize(150))).Shadow(v.length).RoundCorner(),
+				Rectangle().Fill(Const(green)).Frame(Const(NewSize(150))).Border(Const(NewInset(10)), Const(blue)).RoundCorner().Shadow(v.length),
+				Rectangle().Fill(Const(blue)).Frame(Const(NewSize(150))).Border(Const(NewInset(10)), Const(green)).RoundCorner(Const(150.0)).Shadow(v.length),
+			).Spacing(Const(30.0)).Align(Const(layout.AlignCenter)),
+
+			Rectangle().Fill(Const(red)).Frame(Const(NewSize(100, 1000))),
+		).Spacing(Const(30.0)).
+			Center().
+			Align(Const(layout.AlignCenter)).
+			ForegroundColor(BindOneWay(v.lightMode, func(lightMode bool) CGColor {
+				if lightMode {
+					return black
+				}
+				return white
+			})).
+			BackgroundColor(BindOneWay(v.lightMode, func(lightMode bool) CGColor {
+				if lightMode {
+					return white
+				}
+				return black
+			})),
+	)
+}
+
+func (v *ContentView) CurrentBackgroundColorText() SomeView {
+	return Text(BindOneWay(v.lightMode, func(lightMode bool) string {
+		if lightMode {
+			return "White"
+		}
+		return "Black"
+	}))
+}
+
+func (v *ContentView) ChangeBackgroundColor() {
+	v.lightMode.Set(!v.lightMode.Get())
 }
 
 func main() {
 	app := NewApplication(NewContentView())
 	app.SetWindowSize(1200, 800)
+	app.SetWindowBackgroundColor(black)
 	app.SetWindowResizingMode(WindowResizingModeEnabled)
 	app.SetResourceFolder("resource")
 	app.VSyncEnabled(true)

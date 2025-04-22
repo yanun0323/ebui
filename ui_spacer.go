@@ -15,7 +15,7 @@ func Spacer() SomeView {
 	return sp
 }
 
-func (sp *spacerImpl) preload(parent *viewCtxEnv, stackTypes ...stackType) (preloadData, layoutFunc) {
+func (sp *spacerImpl) preload(parent *viewCtx, stackTypes ...stackType) (preloadData, layoutFunc) {
 	types := getTypes(stackTypes...)
 
 	sz := NewSize(Inf)
@@ -26,14 +26,14 @@ func (sp *spacerImpl) preload(parent *viewCtxEnv, stackTypes ...stackType) (prel
 		sz.Height = 0
 	}
 
-	return newPreloadData(sz, CGInset{}, CGInset{}), func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc) {
+	return newPreloadData(sz, CGInset{}, CGInset{}), func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc, bool) {
 		switch types {
 		case stackTypeVStack:
-			return CGRect{start, NewPoint(start.X, start.Y+flexBoundsSize.Height)}, func(CGPoint) {}
+			return CGRect{start, NewPoint(start.X, start.Y+flexBoundsSize.Height)}, func(CGPoint) {}, true
 		case stackTypeHStack:
-			return CGRect{start, NewPoint(start.X+flexBoundsSize.Width, start.Y)}, func(CGPoint) {}
+			return CGRect{start, NewPoint(start.X+flexBoundsSize.Width, start.Y)}, func(CGPoint) {}, true
 		default:
-			return CGRect{start, start}, func(CGPoint) {}
+			return CGRect{start, start}, func(CGPoint) {}, true
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package ebui
 
 import (
+	"encoding/json"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,7 +15,7 @@ import (
 func Const[T bindable](value T) *Binding[T] {
 	return BindFunc(
 		func() T { return value },
-		func(T, ...animation.Style) {},
+		nil,
 	)
 }
 
@@ -144,6 +145,40 @@ func (b *Binding[T]) id() animationID {
 	return animationID(unsafe.Pointer(b))
 }
 
+// Description returns the description of the binding.
+func (b *Binding[T]) Description() string {
+	if b == nil {
+		return "<nil>"
+	}
+
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	type Info struct {
+		IsConstant        bool            `json:"isConstant"`
+		CurrentValue      T               `json:"currentValue"`
+		CurrentFinalValue T               `json:"currentFinalValue"`
+		ListenerCount     int             `json:"listenerCount"`
+		AnimStyle         animation.Style `json:"animStyle"`
+	}
+
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	info, err := json.MarshalIndent(&Info{
+		IsConstant:        b.getter == nil,
+		CurrentValue:      b.getValue(false),
+		CurrentFinalValue: b.getValue(true),
+		ListenerCount:     len(b.listeners),
+		AnimStyle:         b.animStyle,
+	}, "", "  ")
+	if err != nil {
+		return "<unknown>"
+	}
+
+	return string(info)
+}
+
 // Value returns the current value of the binding. Current value may be an intermediate value during animation.
 //
 // Value is thread-safe.
@@ -179,6 +214,10 @@ func (b *Binding[T]) Get() T {
 // Set is thread-safe.
 func (b *Binding[T]) Set(newVal T, with ...animation.Style) {
 	if b == nil {
+		return
+	}
+
+	if b.setter == nil {
 		return
 	}
 
@@ -253,6 +292,10 @@ func (b *Binding[T]) getAnimationStyle(with ...animation.Style) animation.Style 
 }
 
 func (b *Binding[T]) set(newVal T, rmAnimResult bool, with ...animation.Style) {
+	if b.setter == nil {
+		return
+	}
+
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -263,6 +306,10 @@ func (b *Binding[T]) set(newVal T, rmAnimResult bool, with ...animation.Style) {
 }
 
 func (b *Binding[T]) setValue(newVal T, with ...animation.Style) {
+	if b.setter == nil {
+		return
+	}
+
 	var (
 		animStyle = b.getAnimationStyle(with...)
 		oldVal    = b.getValue(true)

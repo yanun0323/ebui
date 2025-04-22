@@ -30,7 +30,7 @@ func (su *TestVStackSuite) TestVStack() {
 		su.Equal(NewInset(0, 0, 0, 0), data.Padding)
 		su.NotNil(layoutFn)
 
-		result, _ := layoutFn(NewPoint(0, 0), NewSize(500, 500))
+		result, _, _ := layoutFn(NewPoint(0, 0), NewSize(500, 500))
 		su.Equal(CGPoint{}, result.Start)
 		su.Equal(NewPoint(200, 300), result.End)
 
@@ -62,7 +62,7 @@ func (su *TestVStackSuite) TestVStack() {
 		su.Equal(NewInset(15, 15, 15, 15), data.Padding)
 		su.NotNil(layoutFn)
 
-		result, _ := layoutFn(NewPoint(0, 0), NewSize(500, 500))
+		result, _, _ := layoutFn(NewPoint(0, 0), NewSize(500, 500))
 		su.Equal(CGPoint{}, result.Start)
 		su.Equal(NewPoint(230, 330), result.End)
 
@@ -94,7 +94,7 @@ func (su *TestVStackSuite) TestVStack() {
 		su.Equal(NewInset(0, 0, 0, 0), data.Padding)
 		su.NotNil(layoutFn)
 
-		result, _ := layoutFn(NewPoint(0, 0), NewSize(500, 500))
+		result, _, _ := layoutFn(NewPoint(0, 0), NewSize(500, 500))
 		su.Equal(CGPoint{}, result.Start)
 		su.Equal(NewPoint(500, 300), result.End)
 
@@ -126,7 +126,7 @@ func (su *TestVStackSuite) TestVStack() {
 		su.Equal(NewInset(0, 0, 0, 0), data.Padding)
 		su.NotNil(layoutFn)
 
-		result, _ := layoutFn(NewPoint(0, 0), NewSize(500, 500))
+		result, _, _ := layoutFn(NewPoint(0, 0), NewSize(500, 500))
 		su.Equal(CGPoint{}, result.Start)
 		su.Equal(NewPoint(200, 500), result.End)
 
@@ -163,7 +163,7 @@ func (su *TestVStackSuite) TestVStack() {
 		su.Equal(NewInset(10, 10, 10, 10), data.Padding)
 		su.NotNil(layoutFn)
 
-		result, _ := layoutFn(NewPoint(0, 0), NewSize(500.0, 500.0))
+		result, _, _ := layoutFn(NewPoint(0, 0), NewSize(500.0, 500.0))
 		su.Equal(CGPoint{}, result.Start)
 		su.Equal(NewPoint(320, 470), result.End)
 

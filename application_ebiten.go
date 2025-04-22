@@ -31,6 +31,8 @@ func CursorPosition() (x, y int) {
 //
 // should be called in ebiten.Update
 func EbitenUpdate(contentView SomeView) {
+	contentView.initRootEnv()
+
 	m := helper.NewMetric()
 
 	// 1. update animations
@@ -153,7 +155,7 @@ func EbitenUpdate(contentView SomeView) {
 func resetLayout(contentView SomeView) {
 	bounds := globalStateManager.GetBounds()
 	_, layoutFn := contentView.preload(nil)
-	_, _ = layoutFn(bounds.Start, bounds.Size())
+	_, _, _ = layoutFn(bounds.Start, bounds.Size())
 	globalStateManager.clearDirty()
 }
 

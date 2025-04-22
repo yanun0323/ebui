@@ -57,6 +57,17 @@ func newParam() *viewCtxParam {
 	}
 }
 
+func (p *viewCtxParam) inheritStackParam(parent *viewCtx) {
+	if parent == nil {
+		return
+	}
+
+	if parent.backgroundColor == nil {
+		p.shadowLength = inheritValue(p.shadowLength, parent.shadowLength)
+		p.shadowColor = inheritValue(p.shadowColor, parent.shadowColor)
+	}
+}
+
 func (p *viewCtxParam) userSetFrameSize() CGSize {
 	return p.frameSize.Value()
 }
