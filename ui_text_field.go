@@ -24,34 +24,36 @@ type textFieldImpl struct {
 	isFocused    bool
 	focusedColor *Binding[CGColor]
 	content      *Binding[string]
-	placeholder  *Binding[string]
+	placeholder  string
 	cursorPos    int
 }
 
-func TextField[T string | *Binding[string]](content *Binding[string], placeholder ...T) SomeView {
-	ph := Const("")
-	if len(placeholder) != 0 {
-		switch phT := any(placeholder[0]).(type) {
-		case string:
-			return TextField(content, Const(phT))
-		case *Binding[string]:
-			ph = phT
+func TextField[T string | *Binding[string]](content T, placeholder ...string) SomeView {
+	switch c := any(content).(type) {
+	case string:
+		return TextField(Bind(c), placeholder...)
+	case *Binding[string]:
+		ph := ""
+		if len(placeholder) != 0 {
+			ph = placeholder[0]
 		}
-	}
-	text := Text(content).(*textImpl)
-	focusedColor := Bind(textFieldUnfocusedBorderColor)
-	zs := ZStack(text).BackgroundColor(Bind(textFieldBackgroundColor)).Border(Const(NewInset(1, 1, 1, 1)), focusedColor).(*stackImpl)
-	tf := &textFieldImpl{
-		stackImpl:    zs,
-		text:         text,
-		isFocused:    false,
-		focusedColor: focusedColor,
-		content:      content,
-		placeholder:  ph,
-	}
-	zs.viewCtx._owner = tf
+		text := Text(content).(*textImpl)
+		focusedColor := Bind(textFieldUnfocusedBorderColor)
+		zs := ZStack(text).BackgroundColor(Bind(textFieldBackgroundColor)).Border(Const(NewInset(1, 1, 1, 1)), focusedColor).(*stackImpl)
+		tf := &textFieldImpl{
+			stackImpl:    zs,
+			text:         text,
+			isFocused:    false,
+			focusedColor: focusedColor,
+			content:      c,
+			placeholder:  ph,
+		}
+		zs.viewCtx._owner = tf
 
-	return tf
+		return tf
+	}
+
+	return nil
 }
 
 func (t *textFieldImpl) setFocused(focused bool) {
@@ -103,7 +105,7 @@ func (t *textFieldImpl) onKeyEvent(event input.KeyEvent) {
 	if event.Phase != input.KeyPhaseJustReleased {
 		switch event.Key {
 		case input.KeyBackspace:
-			t.content.Set(removeLastChar(t.content.Value()))
+			t.content.Set(removeLastRune(t.content.Value()))
 			t.cursorPos--
 		}
 	}
@@ -122,4 +124,9 @@ func (t *textFieldImpl) onTypeEvent(event input.TypeEvent) {
 		}
 		t.content.Set(content + string(event.Char))
 	}
+}
+
+func Preview_TextField() View {
+	text := Bind("Hello")
+	return TextField(text, "Hello, World!").Center()
 }

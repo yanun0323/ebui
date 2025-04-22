@@ -167,3 +167,59 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 - [ ] Overlay
 - [ ] Mask
 - [ ] Clip
+
+## Live Preview with VSCode
+
+EBUI supports live preview functionality similar to SwiftUI, allowing you to see your UI changes in real-time without restarting your application.
+
+### Using the VSCode Extension
+
+You can use the [ebui-vscode extension](https://github.com/yanun0323/ebui-vscode) to automatically hot-reload any function that starts with `Preview_`. This enables SwiftUI-like instant previews of your UI components.
+
+1. Install the extension from the VSCode marketplace or from the repository
+2. Open your project using EBUI as a framework
+3. Create functions that start with `Preview_` to define your preview components
+4. Save your file to automatically see changes in a preview window
+
+### Example
+
+Create a file with a `Preview_` function:
+
+```go
+package mypackage
+
+import (
+	ui "github.com/yanun0323/ebui"
+	"image/color"
+)
+
+// This function will be automatically detected and previewed
+func Preview_MyButton() ui.View {
+	return ui.Button(ui.Const("Click Me")).
+		BackgroundColor(ui.Bind[color.Color](color.RGBA{200, 100, 100, 255})).
+		Padding(ui.Bind(ui.Inset{10, 10, 10, 10})).
+		Center()
+}
+```
+
+Similarly, as shown in the `ui_text.go` file:
+
+```go
+func Preview_Text() ui.View {
+	return ui.Text(ui.Const("Hello, World!")).Center()
+}
+```
+
+When you save the file, the VSCode extension will automatically run the EBUI tool and display a preview window with your component.
+
+### How It Works
+
+The extension:
+
+1. Monitors changes to your Go files
+2. Automatically runs the EBUI tool (`ebui -f ${FILEPATH}`) when saving
+3. Detects functions starting with `Preview_`
+4. Generates a temporary application to render the preview
+5. Shows the preview in a floating window
+
+This workflow allows you to iteratively design and test your UI components without leaving your editor.

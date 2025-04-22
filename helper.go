@@ -7,7 +7,7 @@ import (
 	"github.com/yanun0323/ebui/input"
 )
 
-func removeLastChar(s string) string {
+func removeLastRune(s string) string {
 	if len(s) == 0 {
 		return s
 	}
