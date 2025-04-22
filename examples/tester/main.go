@@ -1,8 +1,6 @@
-package main
+package tester
 
 import (
-	"log"
-
 	. "github.com/yanun0323/ebui"
 )
 
@@ -48,17 +46,6 @@ func (v *ContentView) ChangeBackgroundColor() {
 	v.lightMode.Set(!v.lightMode.Get())
 }
 
-func main() {
-	app := NewApplication(NewContentView())
-	app.SetWindowSize(300, 600)
-	app.SetWindowBackgroundColor(black)
-	app.SetWindowResizingMode(WindowResizingModeEnabled)
-	app.SetResourceFolder("resource")
-	app.VSyncEnabled(true)
-	app.Debug()
-
-	if err := app.Run("Counter Demo"); err != nil {
-		log.Fatal(err)
-	}
-
+func Preview_Tester() View {
+	return NewContentView()
 }

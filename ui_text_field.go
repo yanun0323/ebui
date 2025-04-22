@@ -83,7 +83,7 @@ func (t *textFieldImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImag
 
 func (t *textFieldImpl) onMouseEvent(event input.MouseEvent) {
 	defer t.viewCtx.onMouseEvent(event)
-
+	println("onMouseEvent", event.Phase)
 	switch event.Phase {
 	case input.MousePhaseBegan:
 		if t.isHover(event.Position) {
@@ -128,5 +128,7 @@ func (t *textFieldImpl) onTypeEvent(event input.TypeEvent) {
 
 func Preview_TextField() View {
 	text := Bind("Hello")
-	return TextField(text, "Hello, World!").Center()
+	return VStack(
+		TextField(text, "Hello, World!").Center(),
+	)
 }

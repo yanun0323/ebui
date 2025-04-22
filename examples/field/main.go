@@ -22,7 +22,7 @@ func (v *ContentView) Body() SomeView {
 		Spacer(),
 		HStack(
 			Spacer(),
-			TextField(v.content, v.placeholder).
+			TextField(v.content).
 				Frame(Bind(NewSize(200, 50))),
 			Spacer(),
 		),

@@ -19,6 +19,7 @@ var (
 	file   = flag.String("f", "", "ebui go file with functions starting with Preview_")
 	helper = flag.Bool("h", false, "show help")
 	debug  = flag.Bool("debug", false, "debug mode")
+	keep   = flag.Bool("k", false, "keep running changed go file")
 )
 
 func main() {
@@ -35,9 +36,11 @@ func main() {
 		return
 	}
 
-	if err := tryKillPreviousProcess(); err != nil {
-		fatal("try kill previous process, err: %+v", err)
-		return
+	if !*keep {
+		if err := tryKillPreviousProcess(); err != nil {
+			fatal("try kill previous process, err: %+v", err)
+			return
+		}
 	}
 
 	wd, err := findProjectRoot(file)
@@ -86,12 +89,16 @@ func main() {
 	}
 
 	importPath := moduleName
+	println("relativeFile:", relativeFile)
+	println("moduleName:", moduleName)
 	if strings.Contains(relativeFile, "/") {
 		importPath = fmt.Sprintf("%s/%s", moduleName, relativeFile)
 		spImportPath := strings.Split(importPath, "/")
-		spImportPath[len(spImportPath)-1] = pkgName
+		spImportPath = spImportPath[:len(spImportPath)-1]
+		// spImportPath[len(spImportPath)-1] = pkgName
 		importPath = strings.Join(spImportPath, "/")
 	}
+	println("importPath:", importPath)
 
 	var fnName string
 	ast.IterScope(func(s goast.Scope) bool {
@@ -140,6 +147,8 @@ func main() {
 	app.SetRunWithoutFocus(true)
 	app.SetWindowFloating(true)
 	app.SetSingleThread(true)
+	app.VSyncEnabled(true)
+	app.Debug()
 	app.SetLayoutHook(func() {
 		change := false
 		x, y := ebiten.WindowPosition()
@@ -212,9 +221,11 @@ func main() {
 		return
 	}
 
-	if err := tryRunPreview(wd, exportFile); err != nil {
-		fatal("try run preview, err: %+v", err)
-		return
+	if *keep {
+		if err := tryRunPreview(wd, exportFile); err != nil {
+			fatal("try run preview, err: %+v", err)
+			return
+		}
 	}
 }
 
@@ -288,17 +299,6 @@ func tryKillPreviousProcess() error {
 }
 
 func tryRunPreview(wd string, exportFile string) error {
-	log.Printf("wd: %s", wd)
-	{
-		cmd := exec.Command("pwd")
-		cmd.Dir = wd
-		output, err := cmd.Output()
-		if err != nil {
-			return errors.Errorf("pwd, err: %+v", err)
-		}
-		log.Printf("pwd: %s", string(output))
-	}
-
 	exportRelativeFile, err := filepath.Rel(wd, exportFile)
 	if err != nil {
 		return errors.Errorf("get rel, err: %+v", err)
