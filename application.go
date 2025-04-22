@@ -21,11 +21,15 @@ var (
 )
 
 type application struct {
-	isDebug         bool
-	debugInfo       string
-	rootView        SomeView
-	backgroundColor color.Color
-	layoutHook      func()
+	isDebug           bool
+	debugInfo         string
+	rootView          SomeView
+	backgroundColor   color.Color
+	initUnfocused     bool
+	screenTransparent bool
+	skipTaskbar       bool
+	singleThread      bool
+	layoutHook        func()
 }
 
 func NewApplication(root View) *application {
@@ -58,6 +62,52 @@ func (app *application) SetLayoutHook(hook func()) {
 	app.layoutHook = hook
 }
 
+// SetRunWithoutFocus indicates whether the window is unfocused or not on launching.
+// SetRunWithoutFocus is valid on desktops and browsers.
+//
+// The default (zero) value is false, which means that the window is focused.
+func (app *application) SetRunWithoutFocus(initUnfocused bool) {
+	ebiten.SetRunnableOnUnfocused(initUnfocused)
+	app.initUnfocused = initUnfocused
+}
+
+// SetScreenTransparent indicates whether the window is transparent or not.
+// SetScreenTransparent is valid on desktops and browsers.
+//
+// The default (zero) value is false, which means that the window is not transparent.
+func (app *application) SetScreenTransparent(screenTransparent bool) {
+	app.screenTransparent = screenTransparent
+}
+
+// SetSkipTaskbar indicates whether an application icon is shown on a taskbar or not.
+// SetSkipTaskbar is valid only on Windows.
+//
+// The default (zero) value is false, which means that an icon is shown on a taskbar.
+func (app *application) SetSkipTaskbar(skipTaskbar bool) {
+	app.skipTaskbar = skipTaskbar
+}
+
+// SetSingleThread indicates whether the single thread mode is used explicitly or not.
+//
+// The single thread mode disables Ebitengine's thread safety to unlock maximum performance.
+// If you use this you will have to manage threads yourself.
+// Functions like `SetWindowSize` will no longer be concurrent-safe with this build tag.
+// They must be called from the main thread or the same goroutine as the given game's callback functions like Update.
+//
+// SetSingleThread works only with desktops and consoles.
+//
+// If SetSingleThread is false, and if the build tag `ebitenginesinglethread` is specified,
+// the single thread mode is used.
+//
+// The default (zero) value is false, which means that the single thread mode is disabled.
+func (app *application) SetSingleThread(singleThread bool) {
+	app.singleThread = singleThread
+}
+
+func (app *application) SetWindowFloating(floating bool) {
+	ebiten.SetWindowFloating(floating)
+}
+
 func (app *application) SetResourceFolder(folder string) {
 	resourceDir.Set(folder)
 	logf("set resource folder: %s", folder)
@@ -74,7 +124,12 @@ func (app *application) VSyncEnabled(enabled bool) {
 func (app *application) Run(title string) error {
 	ebiten.SetWindowTitle(title)
 
-	if err := ebiten.RunGame(&game{application: app}); err != nil {
+	if err := ebiten.RunGameWithOptions(&game{application: app}, &ebiten.RunGameOptions{
+		InitUnfocused:     app.initUnfocused,
+		ScreenTransparent: app.screenTransparent,
+		SkipTaskbar:       app.skipTaskbar,
+		SingleThread:      app.singleThread,
+	}); err != nil {
 		if errors.Is(err, ebiten.Termination) {
 			return Terminate
 		}

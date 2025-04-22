@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"image"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/pkg/errors"
 	"github.com/yanun0323/goast"
 	"github.com/yanun0323/goast/scope"
@@ -36,8 +34,6 @@ func main() {
 		flag.Usage()
 		return
 	}
-
-	windowRect := tryGetWindowPosition()
 
 	if err := tryKillPreviousProcess(); err != nil {
 		fatal("try kill previous process, err: %+v", err)
@@ -110,36 +106,91 @@ func main() {
 		return
 	}
 
-	_ = os.RemoveAll(filepath.Join(wd, ".preview/main.go"))
-
-	setWindows := ""
-	if windowRect.Dx() > 0 && windowRect.Dy() > 0 {
-		setWindows = fmt.Sprintf(`
-ebiten.SetWindowPosition(%d, %d)
-ebiten.SetWindowSize(%d, %d)
-`, windowRect.Min.X, windowRect.Min.Y, windowRect.Dx(), windowRect.Dy())
-	}
+	_ = os.RemoveAll(filepath.Join(wd, ".vscode", "ebui", "main.go"))
 
 	mainFn := fmt.Sprintf(`
 package main
 
 import (
 	preview "%s"
+	"encoding/json"
+	"os"
+	"io"
+	"path/filepath"
 
 	"github.com/yanun0323/ebui"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func main() {
-	%s
-	ebiten.SetRunnableOnUnfocused(true)
+	settingFile, err := os.OpenFile(filepath.Join(".vscode", "ebui", "setting.json"), os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return
+	}
+	defer settingFile.Close()
 
-	view := preview.%s()
-	app := ebui.NewApplication(view)
+	settingData := map[string]int{}
+	setting, err := io.ReadAll(settingFile)
+	if err == nil {
+		_ = json.Unmarshal(setting, &settingData)
+	}
+
+	app := ebui.NewApplication(preview.%s())
 	app.SetWindowResizingMode(ebui.WindowResizingModeEnabled)
+	app.SetRunWithoutFocus(true)
+	app.SetWindowFloating(true)
+	app.SetSingleThread(true)
+	app.SetLayoutHook(func() {
+		change := false
+		x, y := ebiten.WindowPosition()
+		if x != settingData["x"] {
+			settingData["x"] = x
+			change = true
+		}
+
+		if y != settingData["y"] {
+			settingData["y"] = y
+			change = true
+		}
+
+		w, h := ebiten.WindowSize()
+		if w != settingData["w"] {
+			settingData["w"] = w
+			change = true
+		}
+
+		if h != settingData["h"] {
+			settingData["h"] = h
+			change = true
+		}
+
+		setting, err := json.Marshal(settingData)
+		if err != nil {
+			return
+		}
+
+		if change {
+			_ = settingFile.Truncate(0)
+			_, _ = settingFile.Seek(0, io.SeekStart)
+			_, _ = settingFile.Write(setting)
+		}
+	})
+
+	var (
+		x, y = settingData["x"], settingData["y"]
+		w, h = settingData["w"], settingData["h"]
+	)
+
+	if w > 0 && h > 0 {
+		ebiten.SetWindowPosition(x, y)
+		ebiten.SetWindowSize(w, h)
+	}
+
+	ebiten.SetRunnableOnUnfocused(true)
+		
 	app.Run("preview")
 }
-`, importPath, setWindows, fnName)
+`, importPath, fnName)
 
 	mainScope, err := goast.ParseScope(0, []byte(mainFn))
 	if err != nil {
@@ -153,8 +204,8 @@ func main() {
 		return
 	}
 
-	_ = os.MkdirAll(filepath.Join(wd, ".preview"), 0755)
-	exportFile := filepath.Join(wd, ".preview", "main.go")
+	_ = os.MkdirAll(filepath.Join(wd, ".vscode", "ebui"), 0755)
+	exportFile := filepath.Join(wd, ".vscode", "ebui", "main.go")
 
 	if err := newAst.Save(exportFile, false); err != nil {
 		fatal("save main fn, err: %+v", err)
@@ -164,22 +215,6 @@ func main() {
 	if err := tryRunPreview(wd, exportFile); err != nil {
 		fatal("try run preview, err: %+v", err)
 		return
-	}
-}
-
-func tryGetWindowPosition() (rect image.Rectangle) {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Printf("get window position, err: %+v", err)
-		}
-	}()
-
-	x, y := ebiten.WindowPosition()
-	w, h := ebiten.WindowSize()
-
-	return image.Rectangle{
-		Min: image.Point{X: x, Y: y},
-		Max: image.Point{X: x + w, Y: y + h},
 	}
 }
 
@@ -215,7 +250,7 @@ func findGoModuleName(wd string) (string, error) {
 
 func tryKillPreviousProcess() error {
 	cmd := exec.Command("ps", "aux")
-	grepCmd := exec.Command("grep", ".*go-build/.*/main$")
+	grepCmd := exec.Command("grep", ".*go-build.*/main$")
 
 	psOutput, err := cmd.Output()
 	if err != nil {
@@ -241,11 +276,12 @@ func tryKillPreviousProcess() error {
 		fmt.Printf("找到 PID: %s\n", pid)
 
 		cmd := exec.Command("kill", pid)
-		if err := cmd.Run(); err != nil {
-			return errors.Errorf("kill, err: %+v", err)
+		err := cmd.Run()
+		if err != nil {
+			log.Printf("kill, err: %+v", err)
+		} else {
+			fmt.Printf("已成功終止 PID %s 的程序\n", pid)
 		}
-
-		fmt.Printf("已成功終止 PID %s 的程序\n", pid)
 	}
 
 	return nil
