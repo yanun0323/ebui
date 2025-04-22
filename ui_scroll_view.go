@@ -92,11 +92,11 @@ func (s *scrollViewImpl) preload(parent *viewCtx, types ...stackType) (preloadDa
 	_, cLayout := s.content.preload(parent, types...)
 	sData, sLayout := s.viewCtx.preload(parent, types...)
 
-	return sData, func(start CGPoint, childBoundsSize CGSize) (CGRect, alignFunc) {
+	return sData, func(start CGPoint, childBoundsSize CGSize) (CGRect, alignFunc, bool) {
 		childFrameSize := childBoundsSize.Shrink(sData.Padding.Add(sData.Border))
-		sBounds, sAlignFunc := sLayout(start, childFrameSize)
+		sBounds, sAlignFunc, sIsImageCache := sLayout(start, childFrameSize)
 		sFrameSize := sBounds.Size().Shrink(sData.Padding.Add(sData.Border))
-		cBounds, cAlignFunc := cLayout(start, sFrameSize)
+		cBounds, cAlignFunc, cIsImageCache := cLayout(start, sFrameSize)
 
 		sBoundsSize := sBounds.Size()
 		cBoundsSize := cBounds.Size()
@@ -111,7 +111,7 @@ func (s *scrollViewImpl) preload(parent *viewCtx, types ...stackType) (preloadDa
 		return sBounds, func(offset CGPoint) {
 			sAlignFunc(offset)
 			cAlignFunc(offset)
-		}
+		}, sIsImageCache && cIsImageCache && s.indicateCache.IsNextCacheOutdated()
 	}
 }
 

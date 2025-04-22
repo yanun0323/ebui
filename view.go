@@ -217,7 +217,7 @@ type alignFunc func(offset CGPoint)
 //	start: the starting coordinate of this child View
 //	childBoundsSize: the external bounds of this child View
 //	bounds: the actual occupied space (include padding, border ...)
-type layoutFunc func(start CGPoint, childBoundsSize CGSize) (bounds CGRect, alignFunc alignFunc)
+type layoutFunc func(start CGPoint, childBoundsSize CGSize) (bounds CGRect, alignFunc alignFunc, cached bool)
 
 func newPreloadData(frameSize CGSize, padding, border CGInset) preloadData {
 	return preloadData{

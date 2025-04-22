@@ -1,44 +1,64 @@
 package main
 
 import (
-	"image/color"
 	"log"
 
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
+	. "github.com/yanun0323/ebui"
 )
 
-const (
-	screenWidth  = 640
-	screenHeight = 480
+var (
+	gray   = NewColor(128)
+	white  = NewColor(239)
+	black  = NewColor(16)
+	red    = NewColor(128, 0, 0)
+	green  = NewColor(0, 128, 0)
+	blue   = NewColor(0, 0, 128)
+	yellow = NewColor(128, 128, 0)
 )
 
-type Game struct{}
-
-func NewGame() *Game {
-	return &Game{}
+func NewContentView() View {
+	return &ContentView{
+		lightMode: Bind(true).Animated(),
+		length:    Bind(5.0).Animated(),
+	}
 }
 
-func (g *Game) Update() error {
-	return nil
+type ContentView struct {
+	lightMode *Binding[bool]
+	length    *Binding[float64]
 }
 
-func (g *Game) Draw(screen *ebiten.Image) {
-	screen.Fill(color.RGBA{255, 255, 255, 255})
-
-	vector.DrawFilledCircle(screen, 100, 100, 100, color.RGBA{255, 0, 0, 255}, true)
-	vector.DrawFilledRect(screen, 300, 300, 100, 100, color.RGBA{0, 255, 0, 255}, true)
+func (v *ContentView) Body() SomeView {
+	return VStack(
+		Rectangle().Fill(Const(green)),
+		Rectangle().Fill(Const(red)),
+	).Spacing().Padding()
 }
 
-func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return screenWidth, screenHeight
+func (v *ContentView) CurrentBackgroundColorText() SomeView {
+	return Text(BindOneWay(v.lightMode, func(lightMode bool) string {
+		if lightMode {
+			return "White"
+		}
+		return "Black"
+	}))
+}
+
+func (v *ContentView) ChangeBackgroundColor() {
+	v.lightMode.Set(!v.lightMode.Get())
 }
 
 func main() {
-	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Ebiten 文字輸入框示例")
+	app := NewApplication(NewContentView())
+	app.SetWindowSize(300, 600)
+	app.SetWindowBackgroundColor(black)
+	app.SetWindowResizingMode(WindowResizingModeEnabled)
+	app.SetResourceFolder("resource")
+	app.VSyncEnabled(true)
+	app.Debug()
 
-	if err := ebiten.RunGame(NewGame()); err != nil {
+	if err := app.Run("Counter Demo"); err != nil {
 		log.Fatal(err)
 	}
+
 }

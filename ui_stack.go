@@ -1,6 +1,8 @@
 package ebui
 
 import (
+	"sync/atomic"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yanun0323/ebui/input"
 )
@@ -22,6 +24,7 @@ func stack(types stackType, flexibleStack bool, views ...View) *stackImpl {
 		types:         types,
 		flexibleStack: flexibleStack,
 		children:      someViews(views...),
+		baseCache:     newValue[*ebiten.Image](),
 	}
 	s.viewCtx = newViewContext(s)
 	return s
@@ -33,6 +36,9 @@ type stackImpl struct {
 	types         stackType
 	flexibleStack bool
 	children      []SomeView
+
+	baseCache      *value[*ebiten.Image]
+	childrenCached atomic.Bool
 }
 
 func (s *stackImpl) count() int {
@@ -51,13 +57,47 @@ func (s *stackImpl) preload(parent *viewCtx, types ...stackType) (preloadData, l
 		preloadStackOnlyFrame: s.flexibleStack,
 	}
 
-	return stackFormula.preload(parent, types...)
+	pd, lf := stackFormula.preload(parent, types...)
+	return pd, func(start CGPoint, childBoundsSize CGSize) (CGRect, alignFunc, bool) {
+		bounds, alignFunc, cached := lf(start, childBoundsSize)
+		if !cached {
+			s.childrenCached.Store(false)
+		}
+		return bounds, alignFunc, cached
+	}
 }
 func (s *stackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
 	s.viewCtx.draw(screen, hook...)
-	for _, child := range s.children {
-		child.draw(screen, hook...)
+
+	var (
+		sysFrame = s.systemSetFrame()
+		opt      = s.drawOption(NewRect(0), hook...)
+	)
+
+	cH := make([]func(*ebiten.DrawImageOptions), 0, len(hook)+1)
+	cH = append(cH, hook...)
+	cH = append(cH, func(op *ebiten.DrawImageOptions) {
+		op.GeoM.Translate(-sysFrame.Start.X, -sysFrame.Start.Y)
+	})
+
+	var base *ebiten.Image
+
+	childrenCached := s.childrenCached.Load()
+	if childrenCached {
+		base = s.baseCache.Load()
+	} else {
+		base = ebiten.NewImage(sysFrame.Delta())
+		for _, child := range s.children {
+			child.draw(base, cH...)
+		}
 	}
+
+	if !childrenCached {
+		s.baseCache.Store(base)
+		s.childrenCached.Store(true)
+	}
+
+	screen.DrawImage(base, opt)
 }
 
 var _ eventHandler = &stackImpl{}
@@ -145,8 +185,7 @@ type stackPreloader struct {
 
 func (v *stackPreloader) preload(parent *viewCtx, types ...stackType) (preloadData, layoutFunc) {
 	var (
-		children = v.children
-
+		children             = v.children
 		childrenSummedBounds = CGSize{}
 		childrenLayoutFns    = make([]layoutFunc, 0, len(children))
 		flexCount            = NewPoint(0, 0)
@@ -232,7 +271,8 @@ func (v *stackPreloader) preload(parent *viewCtx, types ...stackType) (preloadDa
 		}
 	}
 
-	return sData, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc) {
+	return sData, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc, bool) {
+		childrenCached := true
 		flexFrameSize := flexBoundsSize.Shrink(sData.Padding).Shrink(sData.Border)
 		perFlexFrameSize := CGSize{}
 
@@ -334,7 +374,9 @@ func (v *stackPreloader) preload(parent *viewCtx, types ...stackType) (preloadDa
 				}
 			}
 
-			childBounds, alignChild := childLayoutFn(anchor, perFlexFrameSize)
+			childBounds, alignChild, childCached := childLayoutFn(anchor, perFlexFrameSize)
+			childrenCached = childrenCached && childCached
+
 			alignFuncs = append(alignFuncs, alignChild)
 			aligners = append(aligners, v.newAligner(childBounds, alignChild))
 			childBoundsSize := childBounds.Size()
@@ -367,9 +409,9 @@ func (v *stackPreloader) preload(parent *viewCtx, types ...stackType) (preloadDa
 		)
 
 		if v.preloadStackOnlyFrame {
-			sBounds, sAlignFunc = v.layoutStack(sData, start, flexBoundsSize, sLayoutFn)
+			sBounds, sAlignFunc, _ = v.layoutStack(sData, start, flexBoundsSize, sLayoutFn)
 		} else {
-			sBounds, sAlignFunc = v.layoutStack(sData, start, summedBoundsSize, sLayoutFn)
+			sBounds, sAlignFunc, _ = v.layoutStack(sData, start, summedBoundsSize, sLayoutFn)
 		}
 		sFrameSize := sBounds.Size().Shrink(sData.Padding).Shrink(sData.Border)
 		for _, aligner := range aligners {
@@ -381,11 +423,11 @@ func (v *stackPreloader) preload(parent *viewCtx, types ...stackType) (preloadDa
 			for _, af := range alignFuncs {
 				af(offset)
 			}
-		}
+		}, childrenCached
 	}
 }
 
-func (v *stackPreloader) layoutStack(data preloadData, start CGPoint, finalFrameSize CGSize, layoutFn layoutFunc) (bounds CGRect, alignFunc alignFunc) {
+func (v *stackPreloader) layoutStack(data preloadData, start CGPoint, finalFrameSize CGSize, layoutFn layoutFunc) (CGRect, alignFunc, bool) {
 	finalFrame := data.FrameSize
 	{
 		if data.IsInfWidth || v.preloadStackOnlyFrame {

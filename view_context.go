@@ -110,7 +110,7 @@ func (c *viewCtx) preload(parent *viewCtx, _ ...stackType) (preloadData, layoutF
 	border := c.border()
 	userSetFrameSize := c._owner.userSetFrameSize()
 	data := newPreloadData(userSetFrameSize, padding, border)
-	return data, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc) {
+	return data, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc, bool) {
 		flexFrameSize := flexBoundsSize.Shrink(padding).Shrink(border)
 		flexibleFrame := CGRect{start, start.Add(flexFrameSize.ToCGPoint())}
 		finalFrame := flexibleFrame
@@ -133,7 +133,7 @@ func (c *viewCtx) preload(parent *viewCtx, _ ...stackType) (preloadData, layoutF
 		c._shadowCache.SetNextHash(c.HashShadow())
 		c.debugPrintPreload(finalFrame, flexFrameSize, data)
 
-		return finalFrame.Expand(padding).Expand(border), c.align
+		return finalFrame.Expand(padding).Expand(border), c.align, c._cache.IsNextHashCached() && c._shadowCache.IsNextHashCached()
 	}
 }
 

@@ -35,7 +35,7 @@ func (su *SpacerSuite) Test() {
 			),
 		)
 		_, layoutFn := view.preload(nil)
-		bound, _ := layoutFn(NewPoint(0, 0), NewSize(500, 500))
+		bound, _, _ := layoutFn(NewPoint(0, 0), NewSize(500, 500))
 		su.Equal(NewPoint(0, 0), bound.Start)
 		su.Equal(NewPoint(500, 500), bound.End)
 

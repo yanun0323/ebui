@@ -64,22 +64,6 @@ func Toggle(enabled *Binding[bool], label ...func() SomeView) SomeView {
 			}
 			return defaultToggleOffBackgroundColor
 		})
-		// if t.enabled.Get() {
-		// 	t.defaultToggleOffset.Set(defaultToggleOffset)
-		// 	t.defaultToggleColor.Set(defaultToggleOnColor)
-		// 	t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor)
-		// }
-		// enabled.AddListener(func(_, newVal bool, animStyle ...animation.Style) {
-		// 	if newVal {
-		// 		t.defaultToggleOffset.Set(defaultToggleOffset, animStyle...)
-		// 		t.defaultToggleColor.Set(defaultToggleOnColor, animStyle...)
-		// 		t.defaultToggleBackgroundColor.Set(defaultToggleOnBackgroundColor, animStyle...)
-		// 	} else {
-		// 		t.defaultToggleOffset.Set(CGPoint{}, animStyle...)
-		// 		t.defaultToggleColor.Set(defaultToggleOffColor, animStyle...)
-		// 		t.defaultToggleBackgroundColor.Set(defaultToggleOffBackgroundColor, animStyle...)
-		// 	}
-		// })
 
 		t.labelLoaded = t.defaultLabel()
 	}

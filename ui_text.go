@@ -155,7 +155,7 @@ func (t *textImpl) measure(lines []string) (w, h, lineHeight float64) {
 
 func (t *textImpl) preload(parent *viewCtx, _ ...stackType) (preloadData, layoutFunc) {
 	data, layoutFn := t.viewCtx.preload(parent)
-	return data, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc) {
+	return data, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc, bool) {
 		flexFrameSize := flexBoundsSize.Shrink(data.Padding).Shrink(data.Border)
 		if isInf(flexFrameSize.Width) {
 			flexFrameSize.Width = data.FrameSize.Width
@@ -165,10 +165,10 @@ func (t *textImpl) preload(parent *viewCtx, _ ...stackType) (preloadData, layout
 			flexFrameSize.Height = data.FrameSize.Height
 		}
 
-		result, _ := layoutFn(start, flexFrameSize)
+		result, _, cached := layoutFn(start, flexFrameSize)
 		t.cache.SetNextHash(t.Hash())
 		t.viewCtx.debugPrintPreload(result, flexFrameSize, data)
-		return result, t.viewCtx.align
+		return result, t.viewCtx.align, cached && t.cache.IsNextHashCached()
 	}
 }
 
@@ -227,4 +227,9 @@ func (t *textImpl) Hash() string {
 	h.Write(t.viewCtx.Bytes(true))
 	h.Write(helper.BytesString(t.content.Value()))
 	return strconv.FormatUint(h.Sum64(), 16)
+}
+
+// Preview_Text
+func Preview_Text() View {
+	return Text(Const("Hello, World!"))
 }

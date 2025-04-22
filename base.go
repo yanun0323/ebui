@@ -362,6 +362,10 @@ func (r CGRect) Size() CGSize {
 	}
 }
 
+func (r CGRect) Delta() (x, y int) {
+	return int(ceil(r.Dx())), int(ceil(r.Dy()))
+}
+
 func (r CGRect) Expand(inset CGInset) CGRect {
 	return NewRect(r.Start.X, r.Start.Y, r.End.X+inset.Left+inset.Right, r.End.Y+inset.Top+inset.Bottom)
 }

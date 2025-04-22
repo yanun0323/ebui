@@ -13,8 +13,8 @@ func EmptyView() SomeView {
 }
 
 func (e *emptyImpl) preload(parent *viewCtx, _ ...stackType) (preloadData, layoutFunc) {
-	return preloadData{}, func(start CGPoint, flexBoundsSize CGSize) (bounds CGRect, alignFunc alignFunc) {
-		return CGRect{start, start}, func(CGPoint) {}
+	return preloadData{}, func(start CGPoint, flexBoundsSize CGSize) (CGRect, alignFunc, bool) {
+		return CGRect{start, start}, func(CGPoint) {}, true
 	}
 }
 
