@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"image"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/pkg/errors"
 	"github.com/yanun0323/goast"
 	"github.com/yanun0323/goast/scope"
@@ -18,6 +20,7 @@ import (
 var (
 	file   = flag.String("f", "", "ebui go file with functions starting with Preview_")
 	helper = flag.Bool("h", false, "show help")
+	debug  = flag.Bool("debug", false, "debug mode")
 )
 
 func main() {
@@ -34,28 +37,35 @@ func main() {
 		return
 	}
 
+	windowRect := tryGetWindowPosition()
+
 	if err := tryKillPreviousProcess(); err != nil {
-		log.Fatalf("try kill previous process, err: %+v", err)
+		fatal("try kill previous process, err: %+v", err)
+		return
 	}
 
-	wd, err := os.Getwd()
+	wd, err := findProjectRoot(file)
 	if err != nil {
-		log.Fatalf("get wd, err: %+v", err)
+		fatal("find project root, err: %+v", err)
+		return
 	}
 
 	moduleName, err := findGoModuleName(wd)
 	if err != nil {
-		log.Fatalf("find go module name, err: %+v", err)
+		fatal("find go module name, err: %+v", err)
+		return
 	}
 
 	relativeFile, err := filepath.Rel(wd, *file)
 	if err != nil {
-		log.Fatalf("get rel, err: %+v", err)
+		fatal("get rel, err: %+v", err)
+		return
 	}
 
 	ast, err := goast.ParseAst(*file)
 	if err != nil {
-		log.Fatalf("parse ast, err: %+v", err)
+		fatal("parse ast, err: %+v", err)
+		return
 	}
 
 	var pkgName string
@@ -75,7 +85,8 @@ func main() {
 	})
 
 	if pkgName == "" {
-		log.Fatalf("package name not found")
+		fatal("package name not found")
+		return
 	}
 
 	importPath := moduleName
@@ -96,55 +107,94 @@ func main() {
 	})
 
 	if fnName == "" {
-		log.Fatalf("Preview function not found. The function name must start with Preview_")
+		return
 	}
 
-	_ = os.RemoveAll(filepath.Join(wd, ".preview"))
-	_ = os.MkdirAll(filepath.Join(wd, ".preview"), 0755)
+	_ = os.RemoveAll(filepath.Join(wd, ".preview/main.go"))
+
+	setWindows := ""
+	if windowRect.Dx() > 0 && windowRect.Dy() > 0 {
+		setWindows = fmt.Sprintf(`
+ebiten.SetWindowPosition(%d, %d)
+ebiten.SetWindowSize(%d, %d)
+`, windowRect.Min.X, windowRect.Min.Y, windowRect.Dx(), windowRect.Dy())
+	}
 
 	mainFn := fmt.Sprintf(`
 package main
 
 import (
-	"github.com/yanun0323/ebui"
 	preview "%s"
+
+	"github.com/yanun0323/ebui"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func main() {
+	%s
+	ebiten.SetRunnableOnUnfocused(true)
+
 	view := preview.%s()
 	app := ebui.NewApplication(view)
 	app.SetWindowResizingMode(ebui.WindowResizingModeEnabled)
 	app.Run("preview")
 }
-`, importPath, fnName)
+`, importPath, setWindows, fnName)
 
 	mainScope, err := goast.ParseScope(0, []byte(mainFn))
 	if err != nil {
-		log.Fatalf("parse main fn, err: %+v", err)
+		fatal("parse main fn, err: %+v", err)
+		return
 	}
 
 	newAst, err := goast.NewAst(mainScope...)
 	if err != nil {
-		log.Fatalf("new ast, err: %+v", err)
+		fatal("new ast, err: %+v", err)
+		return
 	}
 
+	_ = os.MkdirAll(filepath.Join(wd, ".preview"), 0755)
 	exportFile := filepath.Join(wd, ".preview", "main.go")
 
 	if err := newAst.Save(exportFile, false); err != nil {
-		log.Fatalf("save main fn, err: %+v", err)
+		fatal("save main fn, err: %+v", err)
+		return
 	}
 
-	cmd := exec.Command("go", "run", exportFile)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("run main fn, err: %+v", err)
+	if err := tryRunPreview(wd, exportFile); err != nil {
+		fatal("try run preview, err: %+v", err)
+		return
+	}
+}
+
+func tryGetWindowPosition() (rect image.Rectangle) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("get window position, err: %+v", err)
+		}
+	}()
+
+	x, y := ebiten.WindowPosition()
+	w, h := ebiten.WindowSize()
+
+	return image.Rectangle{
+		Min: image.Point{X: x, Y: y},
+		Max: image.Point{X: x + w, Y: y + h},
+	}
+}
+
+func findProjectRoot(file *string) (string, error) {
+	dir := filepath.Dir(*file)
+	for dir != "." && dir != "/" && dir != "" {
+		goModPath := filepath.Join(dir, "go.mod")
+		if _, err := os.Stat(goModPath); err == nil {
+			return dir, nil
+		}
+
+		dir = filepath.Join(dir, "..")
 	}
 
-	// view := ebui.Preview_Text()
-	// app := ebui.NewApplication(view)
-	// app.SetWindowResizingMode(ebui.WindowResizingModeEnabled)
-	// app.Run("preview")
+	return "", fmt.Errorf("project root not found")
 }
 
 func findGoModuleName(wd string) (string, error) {
@@ -153,8 +203,8 @@ func findGoModuleName(wd string) (string, error) {
 		return "", err
 	}
 
-	lines := strings.Split(string(goMod), "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(string(goMod), "\n")
+	for line := range lines {
 		if strings.HasPrefix(line, "module ") {
 			return strings.TrimSpace(strings.TrimPrefix(line, "module ")), nil
 		}
@@ -199,4 +249,50 @@ func tryKillPreviousProcess() error {
 	}
 
 	return nil
+}
+
+func tryRunPreview(wd string, exportFile string) error {
+	log.Printf("wd: %s", wd)
+	{
+		cmd := exec.Command("pwd")
+		cmd.Dir = wd
+		output, err := cmd.Output()
+		if err != nil {
+			return errors.Errorf("pwd, err: %+v", err)
+		}
+		log.Printf("pwd: %s", string(output))
+	}
+
+	exportRelativeFile, err := filepath.Rel(wd, exportFile)
+	if err != nil {
+		return errors.Errorf("get rel, err: %+v", err)
+	}
+
+	cmd := exec.Command("go", "run", "./"+exportRelativeFile)
+	cmd.Dir = wd
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		var execErr *exec.ExitError
+		if errors.As(err, &execErr) {
+			if execErr.ProcessState.ExitCode() == 1 {
+				return nil
+			}
+		}
+
+		if errors.Is(err, exec.ErrNotFound) {
+			return errors.New("require go and github.com/yanun0323/ebui/tool/ebui installed")
+		}
+
+		return errors.Errorf("run main fn, err: %+v", err)
+	}
+
+	return nil
+}
+
+func fatal(format string, v ...any) {
+	if *debug {
+		log.Fatalf(format, v...)
+	}
 }

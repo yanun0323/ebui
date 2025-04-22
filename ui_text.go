@@ -231,5 +231,5 @@ func (t *textImpl) Hash() string {
 
 // Preview_Text
 func Preview_Text() View {
-	return Text(Const("Hello, World!"))
+	return Text(Const("Hello, World2!"))
 }

@@ -25,6 +25,7 @@ type application struct {
 	debugInfo       string
 	rootView        SomeView
 	backgroundColor color.Color
+	layoutHook      func()
 }
 
 func NewApplication(root View) *application {
@@ -45,8 +46,16 @@ func (app *application) SetWindowSize(width, height int) {
 	EbitenLayout(width, height)
 }
 
+func (app *application) SetWindowPosition(x, y int) {
+	ebiten.SetWindowPosition(x, y)
+}
+
 func (app *application) SetWindowResizingMode(mode windowResizingMode) {
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeType(mode))
+}
+
+func (app *application) SetLayoutHook(hook func()) {
+	app.layoutHook = hook
 }
 
 func (app *application) SetResourceFolder(folder string) {
@@ -103,6 +112,10 @@ func (app *game) Draw(screen *ebiten.Image) {
 }
 
 func (app *game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	if app.layoutHook != nil {
+		app.layoutHook()
+	}
+
 	EbitenLayout(outsideWidth, outsideHeight)
 	return outsideWidth, outsideHeight
 }
