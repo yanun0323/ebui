@@ -3,22 +3,31 @@
 
 # EBUI
 
-#### EBUI is a [SwiftUI](https://developer.apple.com/documentation/swiftui) likes UI framework build with golang and [Ebitengine](https://github.com/hajimehoshi/ebiten) framework.
+EBUI is a declarative UI framework for Go, inspired by [SwiftUI](https://developer.apple.com/documentation/swiftui) and built on top of the [Ebitengine](https://github.com/hajimehoshi/ebiten) framework. It enables developers to create interactive applications with a clean, functional syntax.
 
-For develop games, apps, websites, and other interactive applications.
+## Features
 
-It also works within a [Ebitengine](https://github.com/hajimehoshi/ebiten) application.
+- **Declarative Syntax**: Build UIs with a clean, SwiftUI-like declarative syntax
+- **Data Binding**: Reactive programming model with bindings to update UI automatically
+- **Component-Based Architecture**: Create reusable UI components
+- **Layout System**: Flexible stack-based layout system (VStack, HStack, ZStack)
+- **Modifiers**: Chain modifiers for styling and behavior customization
+- **Live Preview**: Preview changes in real-time with VSCode integration
+- **Cross-Platform**: Run on any platform supported by Ebitengine
+- **Integrated Animation**: Built-in support for smooth UI animations
+- **Ebitengine Integration**: Works as a standalone app or inside existing Ebitengine projects
 
-## Install
+## Installation
 
-### Coming soon...
+```
+# Coming soon to package managers
+```
 
-## Example
+## Quick Start
 
 ### Define a Content View
 
 ```go
-
 import (
 	ui "github.com/yanun0323/ebui"
 	"image/color"
@@ -56,12 +65,13 @@ func (view *contentView) Body() ui.SomeView {
 }
 ```
 
-### Run an App
+### Run as Standalone App
 
 ```go
 import (
 	ui "github.com/yanun0323/ebui"
 	"image/color"
+	"log"
 )
 
 func main() {
@@ -82,11 +92,13 @@ func main() {
 }
 ```
 
-### Run in a Ebitengine Application
+### Run within Ebitengine
 
 ```go
 import (
 	ui "github.com/yanun0323/ebui"
+	"github.com/hajimehoshi/ebiten/v2"
+	"log/slog"
 	"image/color"
 )
 
@@ -99,14 +111,14 @@ func main() {
 	}
 }
 
-func NewGame(contentView View) *Game {
+func NewGame(contentView ui.View) *Game {
 	return &Game{
 		contentView: contentView.Body(),
 	}
 }
 
 type Game struct {
-	contentView SomeView
+	contentView ui.SomeView
 }
 
 func (g *Game) Update() error {
@@ -124,66 +136,47 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 ```
 
-## Developing Status
+## Available Components
 
-### View
+### Views (✓ = Implemented)
 
-- [x] VStack
-- [x] HStack
-- [x] ZStack
-- [x] Text
-- [x] Image
-- [x] Button
-- [x] Spacer
-- [x] EmptyView
-- [x] Circle
-- [x] Rectangle
-- [x] ViewModifier
-- [x] Divider
-- [x] ScrollView
-- [x] Toggle
-- [x] Slider
-- [ ] List
-- [ ] TableView
-- [ ] Menu
-- [ ] Sheet
-- [ ] Navigation
-- [ ] Radio
-- [ ] Picker
-- [ ] DatePicker
-- [ ] TimePicker
-- [ ] ColorPicker
-- [ ] ProgressView
-- [ ] TextField
-- [ ] TextEditor
+| Basic Components | Layout Components | Input Components | Advanced Components |
+| ---------------- | ----------------- | ---------------- | ------------------- |
+| ✓ Text           | ✓ VStack          | ✓ Button         | ✓ ScrollView        |
+| ✓ Image          | ✓ HStack          | ✓ Toggle         | ❑ List              |
+| ✓ Rectangle      | ✓ ZStack          | ✓ Slider         | ❑ TableView         |
+| ✓ Circle         | ✓ Spacer          | ❑ TextField      | ❑ Navigation        |
+| ✓ Divider        | ✓ EmptyView       | ❑ TextEditor     | ❑ Sheet             |
+| ✓ ViewModifier   |                   | ❑ Picker         | ❑ Menu              |
+|                  |                   | ❑ Radio          | ❑ ProgressView      |
+|                  |                   | ❑ DatePicker     |                     |
+|                  |                   | ❑ TimePicker     |                     |
+|                  |                   | ❑ ColorPicker    |                     |
 
-### Feature
+### Features (✓ = Implemented)
 
-- [x] Modifier Stack
-- [x] CornerRadius
-- [x] Animation
-- [x] Alignment
-- [ ] Gesture
-- [ ] Overlay
-- [ ] Mask
-- [ ] Clip
+- ✓ Modifier Stack
+- ✓ CornerRadius
+- ✓ Animation
+- ✓ Alignment
+- ❑ Gesture
+- ❑ Overlay
+- ❑ Mask
+- ❑ Clip
 
 ## Live Preview with VSCode
 
-EBUI supports live preview functionality similar to SwiftUI, allowing you to see your UI changes in real-time without restarting your application.
+EBUI offers a seamless development experience with real-time UI previews directly in VSCode, similar to SwiftUI's preview functionality.
 
 ### Using the VSCode Extension
 
-You can use the [ebui-vscode extension](https://github.com/yanun0323/ebui-vscode) to automatically hot-reload any function that starts with `Preview_`. This enables SwiftUI-like instant previews of your UI components.
+The [ebui-vscode extension](https://github.com/yanun0323/ebui-vscode) enables hot-reloading for any function that starts with `Preview_`.
 
-1. Install the extension from the VSCode marketplace or from the repository
-2. Open your project using EBUI as a framework
-3. Create functions that start with `Preview_` to define your preview components
-4. Save your file to automatically see changes in a preview window
+1. Install the extension from the VSCode marketplace
+2. Create functions prefixed with `Preview_` in your Go files
+3. Save to see your UI update instantly in a preview window
 
 ### Example
-
-Create a file with a `Preview_` function:
 
 ```go
 package mypackage
@@ -193,7 +186,7 @@ import (
 	"image/color"
 )
 
-// This function will be automatically detected and previewed
+// This function will be automatically previewed
 func Preview_MyButton() ui.View {
 	return ui.Button(ui.Const("Click Me")).
 		BackgroundColor(ui.Bind[color.Color](color.RGBA{200, 100, 100, 255})).
@@ -202,24 +195,13 @@ func Preview_MyButton() ui.View {
 }
 ```
 
-Similarly, as shown in the `ui_text.go` file:
-
-```go
-func Preview_Text() ui.View {
-	return ui.Text(ui.Const("Hello, World!")).Center()
-}
-```
-
-When you save the file, the VSCode extension will automatically run the EBUI tool and display a preview window with your component.
-
 ### How It Works
 
 The extension:
 
-1. Monitors changes to your Go files
-2. Automatically runs the EBUI tool (`ebui -f ${FILEPATH}`) when saving
-3. Detects functions starting with `Preview_`
-4. Generates a temporary application to render the preview
-5. Shows the preview in a floating window
+1. Watches for changes in your Go files
+2. Runs the EBUI preview tool when you save
+3. Detects any `Preview_` functions in your code
+4. Renders them in a live preview window
 
-This workflow allows you to iteratively design and test your UI components without leaving your editor.
+This creates a fast feedback loop for UI development without leaving your editor.
