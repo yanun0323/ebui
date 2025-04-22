@@ -39,7 +39,6 @@ func main() {
 	if !*keep {
 		if err := tryKillPreviousProcess(); err != nil {
 			fatal("try kill previous process, err: %+v", err)
-			return
 		}
 	}
 
@@ -222,10 +221,14 @@ func main() {
 	}
 
 	if *keep {
-		if err := tryRunPreview(wd, exportFile); err != nil {
-			fatal("try run preview, err: %+v", err)
-			return
+		if err := tryKillPreviousProcess(); err != nil {
+			fatal("try kill previous process, err: %+v", err)
 		}
+	}
+
+	if err := tryRunPreview(wd, exportFile); err != nil {
+		fatal("try run preview, err: %+v", err)
+		return
 	}
 }
 

@@ -29,6 +29,7 @@ type ContentView struct {
 func (v *ContentView) Body() SomeView {
 	return VStack(
 		Rectangle().Fill(Const(green)),
+		Text("Hello, World!"),
 		Rectangle().Fill(Const(red)),
 	).Spacing().Padding()
 }
