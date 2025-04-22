@@ -1,7 +1,7 @@
 > [!IMPORTANT]
 > 此套件目前處於 alpha 開發階段
 
-# EBUI
+<a href="."><img height="200" src="./document/ebui.png"></a>
 
 [![English](https://img.shields.io/badge/English-Click-yellow)](README.md)
 [![繁體中文](https://img.shields.io/badge/繁體中文-點擊查看-orange)](README-tw.md)
@@ -26,7 +26,7 @@ EBUI 是一個受 [SwiftUI](https://developer.apple.com/documentation/swiftui) �
 ## 安裝
 
 ```
-# 即將推出至套件管理器
+go get github.com/yanun0323/ebui@latest
 ```
 
 ## 快速入門

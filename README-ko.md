@@ -1,7 +1,7 @@
 > [!IMPORTANT]
 > 이 패키지는 현재 알파 개발 단계입니다
 
-# EBUI
+<a href="."><img height="200" src="./document/ebui.png"></a>
 
 [![English](https://img.shields.io/badge/English-Click-yellow)](README.md)
 [![繁體中文](https://img.shields.io/badge/繁體中文-點擊查看-orange)](README-tw.md)
@@ -26,7 +26,7 @@ EBUI는 [SwiftUI](https://developer.apple.com/documentation/swiftui)에서 영�
 ## 설치
 
 ```
-# 패키지 관리자 지원 예정
+go get github.com/yanun0323/ebui@latest
 ```
 
 ## 빠른 시작

@@ -1,13 +1,13 @@
 > [!IMPORTANT]
 > This package is presently in its alpha stage of development
 
-# EBUI
+<a href="."><img height="200" src="./document/ebui.png"></a>
+
 [![English](https://img.shields.io/badge/English-Click-yellow)](README.md)
 [![繁體中文](https://img.shields.io/badge/繁體中文-點擊查看-orange)](README-tw.md)
 [![简体中文](https://img.shields.io/badge/简体中文-点击查看-orange)](README-cn.md)
 [![日本語](https://img.shields.io/badge/日本語-クリック-青)](README-ja.md)
 [![한국어](https://img.shields.io/badge/한국어-클릭-yellow)](README-ko.md)
-
 
 EBUI is a declarative UI framework for Go, inspired by [SwiftUI](https://developer.apple.com/documentation/swiftui) and built on top of the [Ebitengine](https://github.com/hajimehoshi/ebiten) framework. It enables developers to create interactive applications with a clean, functional syntax.
 
@@ -26,7 +26,7 @@ EBUI is a declarative UI framework for Go, inspired by [SwiftUI](https://develop
 ## Installation
 
 ```
-# Coming soon to package managers
+go get github.com/yanun0323/ebui@latest
 ```
 
 ## Quick Start
