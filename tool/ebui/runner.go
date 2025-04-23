@@ -17,7 +17,7 @@ import (
 
 var (
 	helper = flag.Bool("h", false, "show help")
-	debug  = flag.Bool("debug", false, "debug mode")
+	debug  = flag.Bool("d", false, "show debug info")
 	keep   = flag.Bool("k", false, "keep running changed go file")
 	file   = flag.String("f", "", "ebui go file with functions starting with Preview_")
 )
@@ -115,6 +115,11 @@ func main() {
 
 	_ = os.RemoveAll(filepath.Join(wd, ".vscode", "ebui", "main.go"))
 
+	debugScope := ""
+	if *debug {
+		debugScope = "app.Debug()"
+	}
+
 	mainFn := fmt.Sprintf(`
 package main
 
@@ -148,7 +153,7 @@ func main() {
 	app.SetWindowFloating(true)
 	app.SetSingleThread(true)
 	app.VSyncEnabled(true)
-	app.Debug()
+	%s
 	app.SetLayoutHook(func() {
 		change := false
 		x, y := ebiten.WindowPosition()
@@ -199,7 +204,7 @@ func main() {
 		
 	app.Run("preview")
 }
-`, importPath, fnName)
+`, importPath, fnName, debugScope)
 
 	mainScope, err := goast.ParseScope(0, []byte(mainFn))
 	if err != nil {

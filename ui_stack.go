@@ -57,49 +57,14 @@ func (s *stackImpl) preload(parent *viewCtx, types ...stackType) (preloadData, l
 		preloadStackOnlyFrame: s.flexibleStack,
 	}
 
-	pd, lf := stackFormula.preload(parent, types...)
-	return pd, func(start CGPoint, childBoundsSize CGSize) (CGRect, alignFunc, bool) {
-		bounds, alignFunc, cached := lf(start, childBoundsSize)
-		if !cached {
-			s.childrenCached.Store(false)
-		}
-		return bounds, alignFunc, cached
-	}
+	return stackFormula.preload(parent, types...)
 }
 func (s *stackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOptions)) {
 	s.viewCtx.draw(screen, hook...)
 
-	var (
-		sysFrame     = s.systemSetFrame()
-		screenBounds = screen.Bounds()
-		opt          = s.drawOption(NewRect(0), hook...)
-	)
-
-	cH := make([]func(*ebiten.DrawImageOptions), 0, len(hook)+1)
-	cH = append(cH, hook...)
-	cH = append(cH, func(op *ebiten.DrawImageOptions) {
-		op.GeoM.Translate(-sysFrame.Start.X, -sysFrame.Start.Y)
-	})
-
-	var base *ebiten.Image
-
-	childrenCached := s.childrenCached.Load()
-	if childrenCached {
-		base = s.baseCache.Load()
-	} else {
-		// base = ebiten.NewImage(sysFrame.Delta())
-		base = ebiten.NewImage(screenBounds.Dx(), screenBounds.Dy())
-		for _, child := range s.children {
-			child.draw(base, cH...)
-		}
+	for _, child := range s.children {
+		child.draw(screen, hook...)
 	}
-
-	if !childrenCached {
-		s.baseCache.Store(base)
-		s.childrenCached.Store(true)
-	}
-
-	screen.DrawImage(base, opt)
 }
 
 var _ eventHandler = &stackImpl{}

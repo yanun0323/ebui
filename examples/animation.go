@@ -10,8 +10,7 @@ import (
 	"github.com/yanun0323/ebui/layout"
 )
 
-type AnimationContentView struct {
-}
+type AnimationContentView struct{}
 
 func NewAnimationContentView() View {
 	return &AnimationContentView{}

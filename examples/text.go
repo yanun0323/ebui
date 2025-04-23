@@ -5,5 +5,5 @@ import (
 )
 
 func Preview_Text() View {
-	return Text(Const("Hello, World 2!")).Offset(Const(NewPoint(100, 100)))
+	return Text(Const("Hello, World!")).Offset(Const(NewPoint(100, 100))).Debug()
 }
