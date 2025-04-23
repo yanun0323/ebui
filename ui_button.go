@@ -94,9 +94,3 @@ func (b *buttonImpl) onMouseEvent(event input.MouseEvent) {
 		}
 	}
 }
-
-func Preview_Button() View {
-	return Button("Hello", func() {
-		println("Hello")
-	}).Offset(Bind(NewPoint(100, 100)))
-}

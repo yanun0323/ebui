@@ -228,7 +228,3 @@ func (t *textImpl) Hash() string {
 	h.Write(helper.BytesString(t.content.Value()))
 	return strconv.FormatUint(h.Sum64(), 16)
 }
-
-func Preview_Text() View {
-	return Text(Const("Hello, World 2!")).Center()
-}

@@ -70,8 +70,9 @@ func (s *stackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpt
 	s.viewCtx.draw(screen, hook...)
 
 	var (
-		sysFrame = s.systemSetFrame()
-		opt      = s.drawOption(NewRect(0), hook...)
+		sysFrame     = s.systemSetFrame()
+		screenBounds = screen.Bounds()
+		opt          = s.drawOption(NewRect(0), hook...)
 	)
 
 	cH := make([]func(*ebiten.DrawImageOptions), 0, len(hook)+1)
@@ -86,7 +87,8 @@ func (s *stackImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOpt
 	if childrenCached {
 		base = s.baseCache.Load()
 	} else {
-		base = ebiten.NewImage(sysFrame.Delta())
+		// base = ebiten.NewImage(sysFrame.Delta())
+		base = ebiten.NewImage(screenBounds.Dx(), screenBounds.Dy())
 		for _, child := range s.children {
 			child.draw(base, cH...)
 		}

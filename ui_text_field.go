@@ -125,10 +125,3 @@ func (t *textFieldImpl) onTypeEvent(event input.TypeEvent) {
 		t.content.Set(content + string(event.Char))
 	}
 }
-
-func Preview_TextField() View {
-	text := Bind("Hello")
-	return VStack(
-		TextField(text, "Hello, World!").Center(),
-	)
-}

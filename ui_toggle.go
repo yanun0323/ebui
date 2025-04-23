@@ -140,7 +140,3 @@ func (t *toggleImpl) onMouseEvent(event input.MouseEvent) {
 		}
 	}
 }
-
-func Preview_Toggle() View {
-	return Toggle(Bind(true))
-}

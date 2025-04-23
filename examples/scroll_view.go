@@ -1,8 +1,7 @@
-package main
+package examples
 
 import (
 	"fmt"
-	"log"
 
 	. "github.com/yanun0323/ebui"
 	"github.com/yanun0323/ebui/layout"
@@ -88,17 +87,6 @@ func (v *ContentView) ChangeBackgroundColor() {
 	v.lightMode.Set(!v.lightMode.Get())
 }
 
-func main() {
-	app := NewApplication(NewContentView())
-	app.SetWindowSize(1200, 800)
-	app.SetWindowBackgroundColor(black)
-	app.SetWindowResizingMode(WindowResizingModeEnabled)
-	app.SetResourceFolder("resource")
-	app.VSyncEnabled(true)
-	app.Debug()
-
-	if err := app.Run("Counter Demo"); err != nil {
-		log.Fatal(err)
-	}
-
+func Preview_ScrollView() View {
+	return NewContentView()
 }

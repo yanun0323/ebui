@@ -1,8 +1,7 @@
-package main
+package examples
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	. "github.com/yanun0323/ebui"
@@ -11,14 +10,14 @@ import (
 	"github.com/yanun0323/ebui/layout"
 )
 
-type ContentView struct {
+type AnimationContentView struct {
 }
 
-func NewContentView() View {
-	return &ContentView{}
+func NewAnimationContentView() View {
+	return &AnimationContentView{}
 }
 
-func (v *ContentView) Body() SomeView {
+func (v *AnimationContentView) Body() SomeView {
 	// 創建一些綁定以進行動畫操作
 	count := Bind(0.0).Animated()
 	opacity := Bind(1.0)
@@ -93,15 +92,6 @@ func (v *ContentView) Body() SomeView {
 		Align(Bind(layout.AlignCenter))
 }
 
-func main() {
-	app := NewApplication(NewContentView())
-	app.SetWindowBackgroundColor(NewColor(32))
-	app.SetWindowSize(600, 500)
-	app.SetWindowResizingMode(WindowResizingModeEnabled)
-	app.SetResourceFolder("resource")
-	app.Debug()
-
-	if err := app.Run("Counter Demo"); err != nil {
-		log.Fatal(err)
-	}
+func Preview_Animation() View {
+	return NewAnimationContentView()
 }

@@ -272,6 +272,7 @@ func (c *viewCtx) Frame(size *Binding[CGSize]) SomeView {
 }
 
 func (c *viewCtx) Padding(padding ...*Binding[CGInset]) SomeView {
+	// FIXME: Fix me
 	if len(padding) != 0 {
 		return c.wrap(func(c *viewCtx) {
 			c.inset = padding[0]
