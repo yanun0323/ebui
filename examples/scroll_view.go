@@ -41,7 +41,8 @@ func (v *ContentView) Body() SomeView {
 				return fmt.Sprintf("length: %.2f", length)
 			})),
 
-			Slider(v.length, Const(0.0), Const(100.0)),
+			Slider(v.length, Const(0.0), Const(100.0)).
+				Frame(Bind(NewSize(250, 30))).Debug(),
 
 			HStack(
 				Rectangle().Fill(Const(red)).Frame(Const(NewSize(100, 100))),
@@ -58,7 +59,7 @@ func (v *ContentView) Body() SomeView {
 			Rectangle().Fill(Const(red)).Frame(Const(NewSize(100, 1000))),
 		).Spacing(Const(30.0)).
 			Center().
-			Align(Const(layout.AlignCenter)).
+			Align(Const(layout.AlignTopCenter)).
 			ForegroundColor(BindOneWay(v.lightMode, func(lightMode bool) CGColor {
 				if lightMode {
 					return black

@@ -433,8 +433,10 @@ func (c *viewCtx) Align(alignment *Binding[layout.Align]) SomeView {
 }
 
 func (c *viewCtx) Debug() SomeView {
-	c.Border(Const(NewInset(1)), Const(NewColor(255, 0, 0)))
-	return c.wrap()
+	// c.Border(Const(NewInset(1)), Const(NewColor(255, 0, 0)))
+	return c.wrap(func(c *viewCtx) {
+		c.Border(Const(NewInset(1)), Const(NewColor(255, 0, 0)))
+	})
 }
 
 func (c *viewCtx) Center() SomeView {
@@ -450,6 +452,10 @@ func (c *viewCtx) Center() SomeView {
 }
 
 func (c *viewCtx) Offset(offset *Binding[CGPoint]) SomeView {
+	return c.Padding(BindOneWay(offset, func(offset CGPoint) CGInset {
+		return NewInset(offset.Y, 0, 0, offset.X)
+	}))
+
 	if offset == nil {
 		return c._owner
 	}

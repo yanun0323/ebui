@@ -1,29 +1,28 @@
-package main
+package examples
 
 import (
 	"fmt"
-	"log"
 
 	. "github.com/yanun0323/ebui"
 	"github.com/yanun0323/ebui/font"
 	"github.com/yanun0323/ebui/layout"
 )
 
-type ContentView struct {
+type CounterContentView struct {
 	count     *Binding[int]
 	countText *Binding[string]
 	enabled   *Binding[bool]
 }
 
-func NewContentView() View {
-	return &ContentView{
+func NewCounterContentView() View {
+	return &CounterContentView{
 		count:     Bind(0),
 		countText: Bind("Current Value: 0"),
 		enabled:   Bind(false),
 	}
 }
 
-func (v *ContentView) Body() SomeView {
+func (v *CounterContentView) Body() SomeView {
 	return VStack(
 		Rectangle().BackgroundColor(Bind(NewColor(125, 125, 255))),
 		Rectangle().BackgroundColor(Bind(NewColor(255, 125, 125))),
@@ -103,16 +102,6 @@ func (v *ContentView) Body() SomeView {
 		Padding(Bind(NewInset(15)))
 }
 
-func main() {
-	app := NewApplication(NewContentView())
-	app.SetWindowBackgroundColor(NewColor(32))
-	app.SetWindowSize(600, 500)
-	app.SetWindowResizingMode(WindowResizingModeEnabled)
-	app.SetResourceFolder("resource")
-	app.Debug()
-
-	if err := app.Run("Counter Demo"); err != nil {
-		log.Fatal(err)
-	}
-
+func Preview_Counter() View {
+	return NewCounterContentView()
 }

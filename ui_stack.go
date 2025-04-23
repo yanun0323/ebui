@@ -144,9 +144,11 @@ const (
 )
 
 type stackPreloader struct {
-	types                 stackType
-	stackCtx              *viewCtx
-	children              []SomeView
+	types    stackType
+	stackCtx *viewCtx
+	children []SomeView
+	// preloadStackOnlyFrame only preloads the stack's frame
+	// and not the subviews's frame
 	preloadStackOnlyFrame bool
 }
 
@@ -284,12 +286,20 @@ func (v *stackPreloader) preload(parent *viewCtx, types ...stackType) (preloadDa
 				ensureHeightMinimum()
 			case stackTypeZStack:
 				perFlexFrameSize = flexFrameSize
+				if !sData.IsInfWidth {
+					perFlexFrameSize.Width = sData.FrameSize.Width
+				}
+
+				if !sData.IsInfHeight {
+					perFlexFrameSize.Height = sData.FrameSize.Height
+				}
+
 				ensureWidthMinimum()
 				ensureHeightMinimum()
 			}
 
-			perFlexFrameSize.Width = max(perFlexFrameSize.Width, 0)
-			perFlexFrameSize.Height = max(perFlexFrameSize.Height, 0)
+			// perFlexFrameSize.Width = max(perFlexFrameSize.Width, 0)
+			// perFlexFrameSize.Height = max(perFlexFrameSize.Height, 0)
 		}
 
 		if isSpacingInf {
