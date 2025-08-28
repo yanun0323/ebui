@@ -11,7 +11,7 @@ var (
 			return Text(key).
 				Padding(Bind(NewInset(5, 15, 5, 15))).
 				BackgroundColor(AccentColor).
-				RoundCorner(Bind(15.0)).
+				RoundCorner(Bind(30.0)).
 				Shadow().
 				Padding(Bind(NewInset(5, 15, 5, 15)))
 		}
@@ -93,4 +93,10 @@ func (b *buttonImpl) onMouseEvent(event input.MouseEvent) {
 			}
 		}
 	}
+}
+
+func Preview_Button() View {
+	return Button("Hello", func() {
+		println("Hello")
+	}).Offset(Bind(NewPoint(100, 100)))
 }

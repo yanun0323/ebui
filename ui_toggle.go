@@ -104,9 +104,9 @@ func (b *toggleImpl) draw(screen *ebiten.Image, hook ...func(*ebiten.DrawImageOp
 func (b *toggleImpl) defaultLabel() SomeView {
 	return HStack(
 		Circle().
+			BackgroundColor(b.defaultToggleColor).
 			Frame(Const(NewSize(_defaultToggleSize, _defaultToggleSize))).
 			Offset(b.defaultToggleOffset).
-			BackgroundColor(b.defaultToggleColor).
 			Shadow(Const(_defaultToggleShadowLength)).
 			Padding(Const(NewInset(_defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding, _defaultTogglePadding))),
 	).
@@ -139,4 +139,8 @@ func (t *toggleImpl) onMouseEvent(event input.MouseEvent) {
 			t.enabled.Set(!t.enabled.Get())
 		}
 	}
+}
+
+func Preview_Toggle() View {
+	return Toggle(Bind(true)).Offset(Bind(NewPoint(100, 100)))
 }
