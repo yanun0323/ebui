@@ -142,5 +142,5 @@ func (t *toggleImpl) onMouseEvent(event input.MouseEvent) {
 }
 
 func Preview_Toggle() View {
-	return Toggle(Bind(true)).Offset(Bind(NewPoint(100, 100)))
+	return Toggle(Bind(true)).Offset(Bind(NewPoint(10, 50)))
 }

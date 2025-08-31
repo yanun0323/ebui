@@ -226,15 +226,6 @@ func main() {
 		return
 	}
 
-	println("keep:", *keep)
-
-	if *keep {
-		println("keep: try kill previous process")
-		if err := tryKillPreviousProcess(); err != nil {
-			fatal("try kill previous process, err: %+v", err)
-		}
-	}
-
 	if err := tryRunPreview(wd, exportFile); err != nil {
 		fatal("try run preview, err: %+v", err)
 		return
@@ -324,6 +315,12 @@ func tryRunPreview(wd string, exportFile string) error {
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	println("keep: try kill previous process")
+	if err := tryKillPreviousProcess(); err != nil {
+		fatal("try kill previous process, err: %+v", err)
+	}
+
 	if err := cmd.Run(); err != nil {
 		var execErr *exec.ExitError
 		if errors.As(err, &execErr) {
