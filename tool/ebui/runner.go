@@ -37,7 +37,6 @@ func main() {
 	}
 
 	if !*keep {
-		println("!keep: try kill previous process")
 		if err := tryKillPreviousProcess(); err != nil {
 			fatal("try kill previous process, err: %+v", err)
 		}
@@ -263,6 +262,7 @@ func findGoModuleName(wd string) (string, error) {
 }
 
 func tryKillPreviousProcess() error {
+	return nil
 	cmd := exec.Command("ps", "aux")
 	grepCmd := exec.Command("grep", ".*/main$")
 
@@ -315,8 +315,8 @@ func tryRunPreview(wd string, exportFile string) error {
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
 
-	println("keep: try kill previous process")
 	if err := tryKillPreviousProcess(); err != nil {
 		fatal("try kill previous process, err: %+v", err)
 	}
