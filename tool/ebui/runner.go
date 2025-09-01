@@ -263,6 +263,7 @@ func findGoModuleName(wd string) (string, error) {
 }
 
 func tryKillPreviousProcess() error {
+	return nil
 	cmd := exec.Command("ps", "aux")
 	grepCmd := exec.Command("grep", ".*/main$")
 
