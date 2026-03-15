@@ -1,0 +1,14 @@
+# Mac system files
+*.DS_Store
+*.DS_STORE
+
+# VSCode settings
+*.vscode
+
+# Golang
+go.work
+
+# Others
+*.yaml
+*.build
+Makefile
